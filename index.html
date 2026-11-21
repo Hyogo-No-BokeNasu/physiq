@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="PhysiQ" />
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="./icon-180.png" />
-  <link rel="icon" type="image/png" href="./icon-192.png" />
+  <link rel="manifest" href="./manifest.webmanifest?v=20261122" />
+  <link id="appTouchIcon" rel="apple-touch-icon" href="./icon-180.png?v=20261122" />
+  <link id="appFavicon" rel="icon" type="image/png" href="./icon-192.png?v=20261122" />
   <title>PhysiQ ― 毎日つづくゲーム感覚物理クイズ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -76,6 +76,15 @@
       background: linear-gradient(135deg, var(--blue), #16a34a);
       color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 18px;
     }
+    .brand-icon-img { width: 34px; height: 34px; border-radius: 10px; display: block; }
+    .title-logo-img { width: 84px; height: 84px; border-radius: 22px; display: block; margin: 0 auto; box-shadow: 0 8px 24px rgba(37,99,235,.25); animation: titleFloat 3.2s ease-in-out infinite, titleFadeUp .5s ease both; }
+    .icon-pick-grid { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
+    .icon-pick { width: 56px; height: 56px; border-radius: 14px; border: 3px solid var(--border); padding: 0; cursor: pointer; background: none; overflow: hidden; }
+    .icon-pick.selected { border-color: var(--blue); }
+    .icon-pick img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .auth-field { margin-bottom: 10px; }
+    .auth-field label { font-size: 12.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    .auth-error { color: var(--red); font-size: 13px; font-weight: 700; min-height: 18px; margin: 4px 0 8px; }
 
     .hud-stats { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
     .stat-btn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 30vw; }
@@ -705,6 +714,7 @@
       .hud-inner { padding: 6px 10px; gap: 6px; }
       .brand { font-size: 15px; gap: 6px; }
       .brand-icon { width: 30px; height: 30px; font-size: 16px; border-radius: 8px; }
+      .brand-icon-img { width: 30px; height: 30px; }
       .hud-stats { gap: 5px; }
       .stat-pill { font-size: 12px; padding: 4px 8px; }
       .stat-btn { font-size: 11.5px; padding: 4px 8px; min-height: 32px; }
@@ -745,7 +755,7 @@
   <header class="hud">
     <div class="hud-inner">
       <div class="brand">
-        <span class="brand-icon">⚛</span>
+        <img id="brandIconImg" class="brand-icon-img" src="./icon-192.png?v=20261122" alt="PhysiQ" />
         <span>PhysiQ</span>
       </div>
       <div class="hud-stats">
@@ -789,16 +799,37 @@
         <li>XP・ストリーク・進捗がアカウントごとに保存される</li>
         <li>ゲストの進捗と混ざらない</li>
         <li>複数アカウントを切り替えて使える</li>
+        <li>ユーザーIDとパスワードでサインインできる（他の端末へはバックアップコードで移行）</li>
       </ul>
     </div>
 
     <div style="border-top:1.5px solid var(--border); padding-top:14px;">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">✨ 新しいアカウントを作成</div>
-      <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">ニックネーム（本名不要）</label>
-      <input id="newNickInput" class="text-input" type="text" maxlength="16" placeholder="例：ニュートン見習い" style="margin-top:4px; margin-bottom:10px;" />
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">アカウント</div>
+      <button id="openCreateAccBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:8px;">✨ 新しいアカウントを作成（専用画面）</button>
+      <button id="openSigninBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:8px;">🔑 サインイン（ユーザーIDとパスワード）</button>
+      <button id="guestStartBtn" class="btn-3d btn-ghost" style="width:100%;">ゲストで始める（アカウントなしでもOK）</button>
+    </div>
 
-      <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">アバターを選択</label>
-      <div id="avatarPicker" class="avatar-grid">
+    <div style="margin-top:14px; font-size:11.5px; color:var(--text-light); line-height:1.5;">
+      ※アカウント・進捗データはお使いの端末のブラウザ内に保存されます。ユーザーIDとパスワードは、この端末でのサインインと、設定画面の「データ移行（バックアップコード）」で他の端末へデータを移すときに使います。サーバーには保存されないので、パスワードを忘れると復旧できません。
+    </div>
+  </div>
+</div>
+
+<!-- New Account (dedicated screen) Modal -->
+<div id="createAccountModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:18px;">✨ 新しいアカウントを作成</h2>
+      <button id="closeCreateModal" class="stat-btn">✕</button>
+    </div>
+    <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">ユーザーIDとパスワードでアカウントを作ります。この端末でサインインできるほか、設定の「データ移行」で他の端末へ進捗を移せます。</div>
+    <div class="auth-field"><label>ユーザーID（半角英数字・_・-、3〜20文字）</label><input id="createLoginId" class="text-input" type="text" maxlength="20" placeholder="例：sora_210" autocomplete="username" /></div>
+    <div class="auth-field"><label>パスワード（6文字以上）</label><input id="createPassword" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="new-password" /></div>
+    <div class="auth-field"><label>パスワード（確認）</label><input id="createPassword2" class="text-input" type="password" maxlength="64" placeholder="もう一度入力" autocomplete="new-password" /></div>
+    <div class="auth-field"><label>ニックネーム（本名不要）</label><input id="createNick" class="text-input" type="text" maxlength="16" placeholder="例：ニュートン見習い" /></div>
+    <div class="auth-field"><label>アバターを選択</label>
+      <div id="createAvatarPicker" class="avatar-grid">
         <button type="button" class="avatar-opt selected" data-av="🚀">🚀</button>
         <button type="button" class="avatar-opt" data-av="🍎">🍎</button>
         <button type="button" class="avatar-opt" data-av="🧲">🧲</button>
@@ -824,15 +855,37 @@
         <button type="button" class="avatar-opt" data-av="🐙">🐙</button>
         <button type="button" class="avatar-opt" data-av="🦄">🦄</button>
       </div>
-
-      <button id="createAccBtn" class="btn-3d btn-blue" style="width:100%;">このアカウントで始める</button>
-
-      <button id="guestStartBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:10px;">ゲストで始める（アカウントなしでもOK）</button>
     </div>
+    <div id="createError" class="auth-error"></div>
+    <button id="createSubmitBtn" class="btn-3d btn-blue" style="width:100%;">このIDとパスワードでアカウントを作成</button>
+    <div style="margin-top:10px; font-size:11.5px; color:var(--text-light); line-height:1.5;">※パスワードは端末内にハッシュ化して保存され、サーバーには送られません。パスワードを忘れると復旧できないので、忘れないものを設定してください。</div>
+  </div>
+</div>
 
-    <div style="margin-top:14px; font-size:11.5px; color:var(--text-light); line-height:1.5;">
-      ※アカウント・ストリーク・進捗データはお使いの端末のブラウザ内に安全に保存されます（個人情報やパスワードは不要です）。
+<!-- Sign In Modal -->
+<div id="signinModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:18px;">🔑 サインイン</h2>
+      <button id="closeSigninModal" class="stat-btn">✕</button>
     </div>
+    <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">作成したユーザーIDとパスワードでサインインします。</div>
+    <div class="auth-field"><label>ユーザーID</label><input id="signinLoginId" class="text-input" type="text" maxlength="20" placeholder="ユーザーID" autocomplete="username" /></div>
+    <div class="auth-field"><label>パスワード</label><input id="signinPassword" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="current-password" /></div>
+    <div id="signinError" class="auth-error"></div>
+    <button id="signinSubmitBtn" class="btn-3d btn-blue" style="width:100%;">サインインする</button>
+    <div style="margin-top:10px; font-size:11.5px; color:var(--text-light); line-height:1.5;">※他の端末で作ったアカウントは、この端末にまだありません。先に設定画面の「データ移行（バックアップコード）」で取り込んでください。パスワードを忘れた場合の復旧はできません。</div>
+  </div>
+</div>
+
+<!-- Settings Modal (separated from profile) -->
+<div id="settingsModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="margin:0; font-size:18px;">⚙️ 設定</h2>
+      <button id="closeSettingsModal" class="stat-btn">✕</button>
+    </div>
+    <div id="settingsBody"></div>
   </div>
 </div>
 
@@ -854,7 +907,7 @@
 (() => {
   const raw = String.raw;
 
-  const STAGES = [
+  const PHYSICS_STAGES = [
     {
       id: "jr1", num: 1, title: "中学理科の復習：速さと運動", sub: "速さの計算・単位換算・音の速さ", icon: "🚴", color: "#65a30d",
       questions: [
@@ -1462,7 +1515,173 @@
     }
   ];
   // ステージ番号は並び順で自動付与する（途中にステージを挿しても番号がずれないように）
-  STAGES.forEach((st, i) => { st.num = i + 1; });
+  PHYSICS_STAGES.forEach((st, i) => { st.num = i + 1; });
+  let STAGES = PHYSICS_STAGES;
+  // ===== 他教科（数学・化学）:物理と同じ形のステージデータ =====
+  // 各教科 30問（単元3つ×10問）＋チャレンジ15問＝45問
+  const MATH_STAGES = [
+    {
+      id: "m1", num: 1, title: "計算と文字式", sub: "四則計算・文字式・割合", icon: "🔢", color: "#2563eb",
+      intro: { concept: "文字式と計算のルール", what: "数のかわりに文字を使うと、どんな数でもあてはまる計算のルールを表せます。かけ算の順序や、＋－の扱いに気をつけて計算しましょう。", terms: [{ word: "文字式", what: "数や量を文字で表した式。x や a などを使います。" }, { word: "係数", what: "文字の前につく数。3x の係数は 3 です。" }, { word: "項", what: "＋や－で区切られた、式のひとつひとつの部分。" }], points: ["かけ算・割り算は、足し算・引き算より先に計算する", "文字式では × や 1 を省略して書く（1x ではなく x）", "分配法則：a(b+c) = ab + ac を使ってカッコをはずす"], formula: raw`$3x + 2x = 5x$` },
+      questions: [
+        { q: raw`$3 + 4 \times 5$ を計算しなさい。`, opts: ["35", "23", "27", "20"], ans: 1, exp: raw`かけ算を先に計算します。$4 \times 5 = 20$ なので、$3 + 20 = 23$ です。` },
+        { q: raw`$(-3) + (+7)$ を計算しなさい。`, opts: ["-10", "10", "4", "-4"], ans: 2, exp: raw`負の数に正の数をたす計算です。$7 - 3 = 4$ です。` },
+        { q: raw`$2^3$ の値はいくつか。`, opts: ["6", "8", "9", "5"], ans: 1, exp: raw`$2^3 = 2 \times 2 \times 2 = 8$ です。` },
+        { q: raw`$x = 4$ のとき、$3x$ の値はいくつか。`, opts: ["7", "12", "34", "43"], ans: 1, exp: raw`$3x = 3 \times 4 = 12$ です。` },
+        { q: raw`$2a + 3a$ を計算しなさい。`, opts: ["5a", "6a", "5a²", "a"], ans: 0, exp: raw`同じ文字の項はまとめられます。$2a + 3a = 5a$ です。` },
+        { q: raw`$(x + 3) + (2x - 1)$ を計算しなさい。`, opts: ["3x + 2", "3x + 4", "2x + 2", "3x - 2"], ans: 0, exp: raw`$x + 2x = 3x$、$3 - 1 = 2$ なので、$3x + 2$ です。` },
+        { q: "12と18の最大公約数はいくつか。", opts: ["3", "6", "9", "36"], ans: 1, exp: "12の約数は 1,2,3,4,6,12、18の約数は 1,2,3,6,9,18。共通する最大の数は 6 です。" },
+        { q: raw`$\frac{3}{4} + \frac{1}{2}$ を計算しなさい。`, opts: ["4/6", "5/4", "1", "3/8"], ans: 1, exp: raw`通分して $\frac{3}{4} + \frac{2}{4} = \frac{5}{4}$ です。` },
+        { q: raw`$0.2 \times 30$ を計算しなさい。`, opts: ["0.6", "6", "60", "0.06"], ans: 1, exp: raw`$0.2 \times 30 = 6$ です。小数点を1つ左にずらす感覚で計算できます。` },
+        { q: "100の25%はいくつか。", opts: ["2.5", "250", "25", "0.25"], ans: 2, exp: "25% は 100分の25 なので、100 × 0.25 = 25 です。" }
+      ]
+    },
+    {
+      id: "m2", num: 2, title: "方程式と関数", sub: "一次方程式・連立方程式・一次関数", icon: "📈", color: "#0891b2",
+      intro: { concept: "方程式は「未知の数を求める道具」", what: "方程式は、わからない数を x とおいて、等しい関係を式にしたものです。両辺に同じ操作をすると、等式はくずれません。この性質を使って x を求めます。", terms: [{ word: "方程式", what: "x などの文字を含む等式。x の値を求める問題になります。" }, { word: "移項", what: "項を等号の反対側に移すこと。移すと符号が変わります。" }, { word: "一次関数", what: "y = ax + b の形の関数。グラフは直線になります。" }], points: ["両辺に同じ数をたす・引く・かける・割っても等式は成り立つ", "移項するときは符号を変える", "一次関数 y = ax + b で、a は傾き、b は切片"], formula: raw`$y = ax + b$` },
+      questions: [
+        { q: raw`方程式 $x + 5 = 12$ の解はいくつか。`, opts: ["5", "7", "12", "17"], ans: 1, exp: raw`両辺から5を引くと $x = 12 - 5 = 7$ です。` },
+        { q: raw`方程式 $2x = 14$ の解はいくつか。`, opts: ["12", "28", "7", "16"], ans: 2, exp: raw`両辺を2で割ると $x = 7$ です。` },
+        { q: raw`方程式 $3x - 4 = 11$ の解はいくつか。`, opts: ["3", "5", "15", "7"], ans: 1, exp: raw`$3x = 11 + 4 = 15$ なので、$x = 5$ です。` },
+        { q: raw`方程式 $\frac{x}{3} = 4$ の解はいくつか。`, opts: ["7", "12", "1", "4/3"], ans: 1, exp: raw`両辺に3をかけると $x = 12$ です。` },
+        { q: raw`連立方程式 $x + y = 10$、$x - y = 2$ のとき、$x$ の値はいくつか。`, opts: ["4", "6", "8", "2"], ans: 1, exp: raw`2式をたすと $2x = 12$ なので $x = 6$ です（このとき $y = 4$）。` },
+        { q: raw`$y = 2x$ で、$x = 3$ のとき $y$ の値はいくつか。`, opts: ["5", "6", "23", "1"], ans: 1, exp: raw`$y = 2 \times 3 = 6$ です。` },
+        { q: raw`一次関数 $y = 3x + 2$ のグラフが y軸と交わる点の y座標（切片）はいくつか。`, opts: ["3", "2", "5", "0"], ans: 1, exp: raw`$y = ax + b$ の b が切片です。ここでは $b = 2$ です。` },
+        { q: raw`比例の関係 $y = 5x$ で、$x = 4$ のとき $y$ の値はいくつか。`, opts: ["9", "20", "1.25", "45"], ans: 1, exp: raw`$y = 5 \times 4 = 20$ です。` },
+        { q: raw`方程式 $2x + 3 = 3x - 1$ の解はいくつか。`, opts: ["2", "4", "-4", "1"], ans: 1, exp: raw`$3 + 1 = 3x - 2x$ より $x = 4$ です。` },
+        { q: "方程式の「解」とは何か。", opts: ["式の答えの数", "等式を成り立たせる文字の値", "式を簡単にする方法", "グラフの傾き"], ans: 1, exp: "解とは、その値を代入すると等式が成り立つ文字の値のことです。" }
+      ]
+    },
+    {
+      id: "m3", num: 3, title: "図形と確率", sub: "角度・面積・三平方の定理・確率", icon: "📐", color: "#7c3aed",
+      intro: { concept: "図形の性質と「起こりやすさ」", what: "三角形の内角の和は180°、円の面積は半径×半径×円周率など、図形には決まった性質があります。確率は「ある場合の数 ÷ 全体の場合の数」で求めます。", terms: [{ word: "三平方の定理", what: "直角三角形で、斜辺² = 他の2辺²の和になる定理。" }, { word: "確率", what: "あることが起こる割合。場合の数で求めます。" }, { word: "相似", what: "形が同じで大きさだけが違う図形の関係。" }], points: ["三角形の内角の和は180°", "円の面積 = 半径 × 半径 × 円周率", "確率は「その場合の数 ÷ 全体の場合の数」"], formula: raw`$a^2 + b^2 = c^2$` },
+      questions: [
+        { q: "三角形の3つの内角の和は何度か。", opts: ["90°", "180°", "270°", "360°"], ans: 1, exp: "三角形の内角の和はつねに180°です。" },
+        { q: raw`半径 $3\,\mathrm{cm}$ の円の面積はいくつか。ただし円周率を $\pi$ とする。`, opts: ["6π cm²", "9π cm²", "3π cm²", "12π cm²"], ans: 1, exp: raw`円の面積は $\pi r^2 = \pi \times 3^2 = 9\pi\,\mathrm{cm^2}$ です。` },
+        { q: "直角三角形の直角をはさむ2辺が 3cm と 4cm のとき、斜辺の長さは何cmか。", opts: ["5cm", "6cm", "7cm", "12cm"], ans: 0, exp: "三平方の定理より、斜辺² = 3² + 4² = 25 なので、斜辺は 5cm です。" },
+        { q: "底辺が 6cm、高さが 4cm の平行四辺形の面積は何cm²か。", opts: ["10cm²", "20cm²", "24cm²", "12cm²"], ans: 2, exp: "平行四辺形の面積は 底辺 × 高さ = 6 × 4 = 24cm² です。" },
+        { q: "さいころを1回ふって、偶数の目が出る確率はいくつか。", opts: ["1/6", "1/3", "1/2", "2/3"], ans: 2, exp: "偶数の目は 2,4,6 の3通り、全体は6通りなので、確率は 3/6 = 1/2 です。" },
+        { q: "コインを2回投げて、2回とも表が出る確率はいくつか。", opts: ["1/2", "1/4", "1/3", "3/4"], ans: 1, exp: "全体は 表表・表裏・裏表・裏裏 の4通り、そのうち表表は1通りなので 1/4 です。" },
+        { q: raw`半径 $r$ の円の円周の長さを表す式はどれか。`, opts: ["πr", "2πr", "πr²", "2r"], ans: 1, exp: raw`円周は $2\pi r$（直径 × 円周率）です。` },
+        { q: "縦 3cm、横 4cm の長方形の対角線の長さは何cmか。", opts: ["5cm", "6cm", "7cm", "12cm"], ans: 0, exp: "対角線は直角三角形の斜辺です。三平方の定理より √(3²+4²) = 5cm です。" },
+        { q: "2つのさいころの目の和が7になる確率はいくつか。", opts: ["1/6", "1/12", "1/36", "7/36"], ans: 0, exp: "和が7になるのは (1,6)(2,5)(3,4)(4,3)(5,2)(6,1) の6通り、全体36通りなので 6/36 = 1/6 です。" },
+        { q: "相似な図形で、相似比が2倍になると、面積比は何倍になるか。", opts: ["2倍", "4倍", "8倍", "変わらない"], ans: 1, exp: "面積比は相似比の2乗になるので、2² = 4倍です。" }
+      ]
+    },
+    {
+      id: "mch", num: 4, title: "数学チャレンジ", sub: "難問・因数分解と二次方程式・応用", icon: "👹", color: "#991b1b", challenge: true,
+      intro: { concept: "発展：二次式と文章題", what: "因数分解や二次方程式、文章題の応用に挑戦します。式を変形する力と、問題文を式に直す力が試されます。", terms: [{ word: "因数分解", what: "式をかけ算の形に直すこと。展開の逆の操作です。" }, { word: "二次方程式", what: "x² を含む方程式。因数分解して解くことが多いです。" }], points: ["因数分解：x² + (a+b)x + ab = (x+a)(x+b)", "二次方程式は因数分解して「積が0ならどちらかが0」を使う", "文章題は「何を x とおくか」が第一歩"], formula: raw`$x^2 + 5x + 6 = (x + 2)(x + 3)$` },
+      questions: [
+        { q: raw`$x^2 + 5x + 6$ を因数分解しなさい。`, opts: ["(x+2)(x+3)", "(x+1)(x+6)", "(x-2)(x-3)", "(x+5)(x+1)"], ans: 0, exp: raw`$2 + 3 = 5$、$2 \times 3 = 6$ なので $(x+2)(x+3)$ です。` },
+        { q: raw`二次方程式 $x^2 - 5x + 6 = 0$ の解はどれか。`, opts: ["x = 2, 3", "x = -2, -3", "x = 1, 6", "x = -1, -6"], ans: 0, exp: raw`$(x-2)(x-3) = 0$ より、$x = 2, 3$ です。` },
+        { q: raw`$\sqrt{50}$ を簡単にしなさい。`, opts: ["5√2", "2√5", "10√5", "25√2"], ans: 0, exp: raw`$\sqrt{50} = \sqrt{25 \times 2} = 5\sqrt{2}$ です。` },
+        { q: raw`$y = x^2$ で、$x = 3$ のとき $y$ の値はいくつか。`, opts: ["6", "9", "3", "12"], ans: 1, exp: raw`$y = 3^2 = 9$ です。` },
+        { q: "鶴と亀が合わせて10匹、足の合計が28本のとき、鶴は何羽か。", opts: ["4羽", "5羽", "6羽", "7羽"], ans: 2, exp: "鶴を x 羽とすると、2x + 4(10-x) = 28。解くと x = 6 です。" },
+        { q: raw`$(x + 2)(x - 3)$ を展開しなさい。`, opts: ["x² - x - 6", "x² + x - 6", "x² - 5x - 6", "x² + 5x + 6"], ans: 0, exp: raw`$(x+2)(x-3) = x^2 - 3x + 2x - 6 = x^2 - x - 6$ です。` },
+        { q: "数列 3, 7, 11, 15, … の第10項はいくつか。", opts: ["35", "39", "43", "31"], ans: 1, exp: "公差4の等差数列です。第n項は 4n - 1 なので、第10項は 39 です。" },
+        { q: "定価 2000円の商品を2割引で買ったときの値段はいくらか。", opts: ["400円", "1600円", "1800円", "1200円"], ans: 1, exp: "2割引は 8割の値段なので、2000 × 0.8 = 1600円 です。" },
+        { q: raw`不等式 $2x - 3 > 7$ を満たす $x$ の範囲はどれか。`, opts: ["x > 2", "x > 5", "x < 5", "x > 10"], ans: 1, exp: raw`$2x > 10$ より $x > 5$ です。` },
+        { q: "底面の半径が 3cm、高さが 4cm の円錐の体積はいくつか。ただし円周率を π とする。", opts: ["12π cm³", "36π cm³", "9π cm³", "48π cm³"], ans: 0, exp: raw`円錐の体積は $\frac{1}{3}\pi r^2 h = \frac{1}{3} \times \pi \times 9 \times 4 = 12\pi\,\mathrm{cm^3}$ です。` },
+        { q: "時速 60km で2時間走ったときの距離は何kmか。", opts: ["30km", "120km", "62km", "90km"], ans: 1, exp: "距離 = 速さ × 時間 = 60 × 2 = 120km です。" },
+        { q: "赤玉3個、白玉2個の袋から1個取り出すとき、赤玉が出る確率はいくつか。", opts: ["2/5", "3/5", "1/3", "1/2"], ans: 1, exp: "全体5個のうち赤玉は3個なので、確率は 3/5 です。" },
+        { q: raw`$x^2 - 9$ を因数分解しなさい。`, opts: ["(x-3)(x-3)", "(x+3)(x-3)", "(x+9)(x-1)", "(x-9)(x+1)"], ans: 1, exp: raw`$x^2 - 9 = x^2 - 3^2 = (x+3)(x-3)$ です。` },
+        { q: "1辺が 5cm の正方形の対角線の長さはいくつか。", opts: ["5√2 cm", "10cm", "5cm", "25cm"], ans: 0, exp: "三平方の定理より、対角線² = 5² + 5² = 50 なので、対角線は 5√2 cm です。" },
+        { q: raw`関数 $y = -2x + 1$ について、$x$ が1増えると $y$ はどう変わるか。`, opts: ["2増える", "2減る", "1増える", "変わらない"], ans: 1, exp: "傾きが -2 なので、x が1増えると y は2減ります。" }
+      ]
+    }
+  ];
+  MATH_STAGES.forEach((st, i) => { st.num = i + 1; });
+
+  const CHEM_STAGES = [
+    {
+      id: "c1", num: 1, title: "物質と原子", sub: "元素・原子のつくり・状態変化", icon: "🧪", color: "#0ea5e9",
+      intro: { concept: "すべてのものは原子からできている", what: "身の回りのものはすべて、100種類ほどの元素の原子の組み合わせでできています。原子は陽子・中性子・電子からできていて、陽子の数が元素を決めます。", terms: [{ word: "元素", what: "物質を構成する基本的な種類。酸素・水素・鉄など。" }, { word: "原子", what: "物質をつくる最小の粒子。陽子・中性子・電子からなる。" }, { word: "分子", what: "原子が結びついてできた、物質の性質をもつ最小の単位。" }], points: ["原子番号 = 陽子の数", "水の化学式は H₂O", "状態変化では物質そのものは変わらない"], formula: raw`$\mathrm{H_2O}$` },
+      questions: [
+        { q: "水素の原子番号はいくつか。", opts: ["0", "1", "2", "8"], ans: 1, exp: "水素の原子番号は1です。陽子が1個あります。" },
+        { q: "元素記号 O は何という元素か。", opts: ["金", "酸素", "水素", "窒素"], ans: 1, exp: "O は酸素（Oxygen）の元素記号です。" },
+        { q: "水の化学式はどれか。", opts: ["CO₂", "H₂O", "O₂", "NaCl"], ans: 1, exp: "水は水素原子2個と酸素原子1個からできていて、H₂O と表します。" },
+        { q: "原子と分子のちがいとして正しいのはどれか。", opts: ["原子は分子より大きい", "分子は原子が結びついてできたもの", "原子は化学式で表せない", "分子は1種類の原子だけからなる"], ans: 1, exp: "分子は、2個以上の原子が結びついてできたものです。" },
+        { q: "元素記号 Fe は何という元素か。", opts: ["鉛", "鉄", "銅", "銀"], ans: 1, exp: "Fe は鉄（Ferrum）の元素記号です。" },
+        { q: "原子の中心にある原子核をつくる粒子はどれか。", opts: ["陽子と中性子", "電子だけ", "陽子と電子", "中性子と電子"], ans: 0, exp: "原子核は陽子と中性子からできていて、そのまわりを電子が回っています。" },
+        { q: "氷がとけて水になるとき、変化するのはどれか。", opts: ["水の分子そのもの", "分子の並び方・運動", "水素原子の数", "酸素原子の数"], ans: 1, exp: "状態変化では分子そのものは変わらず、分子の並び方や運動の激しさが変わります。" },
+        { q: "次のうち、純物質はどれか。", opts: ["空気", "食塩水", "酸素", "海水"], ans: 2, exp: "酸素は1種類の物質だけからなる純物質です。空気や食塩水は混合物です。" },
+        { q: "金属の性質として正しいのはどれか。", opts: ["電気を通さない", "みがくと光る（金属光沢）", "水に必ずとける", "もろくて割れやすい"], ans: 1, exp: "金属は電気や熱をよく通し、みがくと光ります。" },
+        { q: "原子番号が8の元素はどれか。", opts: ["水素", "窒素", "酸素", "炭素"], ans: 2, exp: "原子番号8は酸素です。陽子が8個あります。" }
+      ]
+    },
+    {
+      id: "c2", num: 2, title: "化学反応式とモル", sub: "質量保存・モル計算・反応式", icon: "⚗️", color: "#059669",
+      intro: { concept: "化学反応では原子の数が保存される", what: "化学反応では、原子は新しく生まれたり消えたりしません。並び方が変わるだけです。だから反応の前後で原子の数は同じで、全体の質量も変わりません。これを質量保存の法則といいます。", terms: [{ word: "モル", what: "物質の量の単位。1 mol は 6.0×10²³ 個の集まり。" }, { word: "化学反応式", what: "化学反応を化学式と係数で表した式。" }, { word: "質量保存の法則", what: "化学反応の前後で、物質の質量の合計は変わらないという法則。" }], points: ["化学反応式は、左右の原子の数をそろえる", "1 mol = 6.0×10²³ 個", "水 18g が 1 mol"], formula: raw`$2\mathrm{H_2} + \mathrm{O_2} \to 2\mathrm{H_2O}$` },
+      questions: [
+        { q: raw`水の生成反応 $2\mathrm{H_2} + \mathrm{O_2} \to 2\mathrm{H_2O}$ で、酸素分子1個と反応する水素分子は何個か。`, opts: ["1個", "2個", "3個", "4個"], ans: 1, exp: "反応式の係数から、水素分子2個が酸素分子1個と反応します。" },
+        { q: "1 mol の粒子数として正しいのはどれか。", opts: ["6.0×10²³ 個", "1.0×10²³ 個", "6.0×10² 個", "100個"], ans: 0, exp: "1 mol はアボガドロ定数 6.0×10²³ 個の集まりです。" },
+        { q: "水（H₂O）18g は何 mol か。ただし H=1、O=16 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "18 mol"], ans: 1, exp: "水の分子量は 1×2 + 16 = 18 なので、18g は 1 mol です。" },
+        { q: "化学反応の前後で変わらないものはどれか。", opts: ["物質の質量の合計", "物質の色", "物質の温度", "気体の体積"], ans: 0, exp: "質量保存の法則により、反応の前後で物質の質量の合計は変わりません。" },
+        { q: "マグネシウムが燃えて酸化マグネシウムになるとき、結びつくのは何か。", opts: ["窒素", "酸素", "水素", "炭素"], ans: 1, exp: "燃焼（酸化）は、物質が酸素と結びつく反応です。" },
+        { q: "炭酸水素ナトリウムを加熱すると、二酸化炭素と水と何ができるか。", opts: ["炭酸ナトリウム", "水酸化ナトリウム", "塩化ナトリウム", "酸化カルシウム"], ans: 0, exp: "炭酸水素ナトリウムの熱分解では、二酸化炭素・水・炭酸ナトリウムができます。" },
+        { q: "化学変化の例として正しいのはどれか。", opts: ["氷がとける", "鉄がさびる", "水が蒸発する", "食塩が水にとける"], ans: 1, exp: "鉄がさびるのは、鉄が酸素と結びついて別の物質になる化学変化です。" },
+        { q: "酸素の原子量を16とすると、酸素分子 O₂ の分子量はいくつか。", opts: ["16", "32", "8", "48"], ans: 1, exp: "O₂ は酸素原子2個分なので、分子量は 16 × 2 = 32 です。" },
+        { q: "標準状態で、気体 1 mol の体積はおよそ何 L か。", opts: ["1.0 L", "22.4 L", "100 L", "6.0 L"], ans: 1, exp: "0℃・1気圧（標準状態）では、気体 1 mol の体積は約 22.4 L です。" },
+        { q: raw`化学反応式 $\mathrm{C} + \mathrm{O_2} \to \mathrm{CO_2}$ について正しいのはどれか。`, opts: ["炭素原子の数が左右で違う", "酸素原子の数が左右で違う", "左右の原子の数がそろっている", "反応前後で質量が減る"], ans: 2, exp: "左辺は C 1個・O 2個、右辺も C 1個・O 2個で、原子の数はそろっています。" }
+      ]
+    },
+    {
+      id: "c3", num: 3, title: "酸・塩基とイオン", sub: "pH・中和・電解質・電気分解", icon: "🧫", color: "#db2777",
+      intro: { concept: "酸と塩基は打ち消し合う", what: "酸性の水溶液と塩基性（アルカリ性）の水溶液をまぜると、互いの性質を打ち消し合って中性に近づきます。これを中和といい、塩と水ができます。", terms: [{ word: "中和", what: "酸と塩基がまざって、互いの性質を打ち消し合う反応。" }, { word: "電解質", what: "水にとけて、電気を通すようになる物質。" }, { word: "イオン", what: "電子を失ったり受け取ったりして、電気を帯びた原子や原子の集まり。" }], points: ["pH7 が中性、7より小さいと酸性、大きいと塩基性", "BTB溶液は酸性で黄、塩基性で青", "中和では塩と水ができる"], formula: raw`$\mathrm{HCl} + \mathrm{NaOH} \to \mathrm{NaCl} + \mathrm{H_2O}$` },
+      questions: [
+        { q: "pH が7の水溶液の性質はどれか。", opts: ["酸性", "塩基性", "中性", "強い酸性"], ans: 2, exp: "pH7 は中性です。7より小さいと酸性、大きいと塩基性です。" },
+        { q: "BTB溶液に塩酸を加えたときの色はどれか。", opts: ["青", "緑", "黄", "赤"], ans: 2, exp: "BTB溶液は酸性で黄色、塩基性で青色、中性で緑色になります。" },
+        { q: "酸と塩基が反応して、互いの性質を打ち消し合う反応を何というか。", opts: ["酸化", "中和", "分解", "燃焼"], ans: 1, exp: "酸と塩基の反応を中和といい、塩と水ができます。" },
+        { q: "水にとかしたときに電気を通す物質を何というか。", opts: ["非電解質", "電解質", "金属", "絶縁体"], ans: 1, exp: "食塩水のように、水にとけて電気を通す物質を電解質といいます。" },
+        { q: "塩化水素 HCl が水にとけたときの陽イオンはどれか。", opts: ["Cl⁻", "H⁺", "Na⁺", "OH⁻"], ans: 1, exp: "HCl は H⁺ と Cl⁻ に電離します。陽イオンは H⁺ です。" },
+        { q: "水酸化ナトリウム NaOH の水溶液の性質はどれか。", opts: ["酸性", "中性", "塩基性（アルカリ性）", "電気を通さない"], ans: 2, exp: "NaOH は水にとけて OH⁻ を出す塩基で、強いアルカリ性を示します。" },
+        { q: "塩酸と水酸化ナトリウム水溶液を中和させたときにできる塩はどれか。", opts: ["塩化ナトリウム", "炭酸カルシウム", "硫酸", "水酸化カルシウム"], ans: 0, exp: "HCl + NaOH → NaCl + H₂O で、塩として塩化ナトリウムができます。" },
+        { q: "食塩水に電気を流すと、陰極（－極）で発生する気体はどれか。", opts: ["酸素", "水素", "塩素", "二酸化炭素"], ans: 1, exp: "食塩水の電気分解では、陰極で水素、陽極で塩素が発生します。" },
+        { q: "次のうち、酸性の水溶液はどれか。", opts: ["石けん水", "レモン汁", "重曹水", "アンモニア水"], ans: 1, exp: "レモン汁にはクエン酸が含まれ、酸性です。石けん水やアンモニア水は塩基性です。" },
+        { q: "ナトリウムイオンのイオン式はどれか。", opts: ["Na", "Na⁺", "Na⁻", "Na²⁺"], ans: 1, exp: "ナトリウム原子は電子を1個失って Na⁺ になります。" }
+      ]
+    },
+    {
+      id: "cch", num: 4, title: "化学チャレンジ", sub: "難問・モル計算と反応式・中和", icon: "👹", color: "#991b1b", challenge: true,
+      intro: { concept: "発展：モル計算と反応式の応用", what: "モルの計算、反応式の係数合わせ、中和の計算に挑戦します。単位をそろえて、比の関係で考えるのがコツです。", terms: [{ word: "モル濃度", what: "溶液 1 L あたりにとけている溶質のモル数。単位は mol/L。" }, { word: "質量パーセント濃度", what: "溶液全体の質量に対する、とけている物質の質量の割合（%）。" }], points: ["モル = 質量 ÷ 分子量", "中和では H⁺ と OH⁻ が 1:1 で反応する", "反応式の係数比 = モル比"], formula: raw`$\mathrm{mol} = \frac{\text{質量}}{\text{分子量}}$` },
+      questions: [
+        { q: "二酸化炭素 CO₂ 44g は何 mol か。ただし C=12、O=16 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "4 mol"], ans: 1, exp: "CO₂ の分子量は 12 + 16×2 = 44 なので、44g は 1 mol です。" },
+        { q: "酸素 O₂ 2 mol の質量は何gか。ただし O=16 とする。", opts: ["16g", "32g", "64g", "48g"], ans: 2, exp: "O₂ の分子量は32なので、2 mol の質量は 32 × 2 = 64g です。" },
+        { q: "水 H₂O 0.5 mol の質量は何gか。", opts: ["9g", "18g", "36g", "4.5g"], ans: 0, exp: "水の分子量は18なので、0.5 mol は 18 × 0.5 = 9g です。" },
+        { q: raw`メタン $\mathrm{CH_4}$ の燃焼 $\mathrm{CH_4} + 2\mathrm{O_2} \to \mathrm{CO_2} + 2\mathrm{H_2O}$ で、メタン 1 mol と反応する酸素は何 mol か。`, opts: ["1 mol", "2 mol", "3 mol", "4 mol"], ans: 1, exp: "反応式の係数比から、メタン1 mol に対して酸素は 2 mol 必要です。" },
+        { q: "食塩 10g を水 90g にとかしたときの質量パーセント濃度は何%か。", opts: ["9%", "10%", "11%", "90%"], ans: 1, exp: "溶液全体は 100g、食塩は 10g なので、濃度は 10% です。" },
+        { q: "0.1 mol/L の水酸化ナトリウム水溶液 100mL に含まれる NaOH は何 mol か。", opts: ["0.01 mol", "0.1 mol", "1 mol", "10 mol"], ans: 0, exp: "100mL は 0.1 L なので、0.1 mol/L × 0.1 L = 0.01 mol です。" },
+        { q: "塩酸 HCl 0.02 mol を中和するのに必要な水酸化ナトリウム NaOH は何 mol か。", opts: ["0.01 mol", "0.02 mol", "0.04 mol", "0.2 mol"], ans: 1, exp: "中和では H⁺ と OH⁻ が 1:1 で反応するので、0.02 mol 必要です。" },
+        { q: "カルシウムイオンのイオン式はどれか。", opts: ["Ca⁺", "Ca²⁺", "Ca⁻", "Ca²⁻"], ans: 1, exp: "カルシウム原子は電子を2個失うので、Ca²⁺ になります。" },
+        { q: "水の電気分解で、陰極と陽極で発生する気体の体積比（陰極：陽極）はどれか。", opts: ["1:1", "1:2", "2:1", "1:3"], ans: 2, exp: "水の電気分解では、水素：酸素 = 2:1 の体積比で発生します。" },
+        { q: "周期表で、同じ縦の列（族）の元素に共通する性質はどれか。", opts: ["原子番号が同じ", "性質が似ている", "質量が同じ", "電子の数が同じ"], ans: 1, exp: "同じ族の元素は最外殻の電子の数が同じで、性質が似ています。" },
+        { q: "塩化ナトリウムの結晶をつくる結合はどれか。", opts: ["共有結合", "イオン結合", "金属結合", "水素結合"], ans: 1, exp: "Na⁺ と Cl⁻ が電気的な力で結びつくイオン結合です。" },
+        { q: "鉄を空気中で加熱すると、質量はどうなるか。", opts: ["変わらない", "軽くなる", "重くなる", "0になる"], ans: 2, exp: "鉄が酸素と結びついて酸化鉄になるので、結びついた酸素の分だけ重くなります。" },
+        { q: "気体の性質として正しいのはどれか。", opts: ["温度が上がると体積は小さくなる", "圧力を上げると体積は小さくなる", "圧力を上げると体積は大きくなる", "温度と体積は関係ない"], ans: 1, exp: "ボイルの法則により、温度一定で圧力を上げると体積は小さくなります。" },
+        { q: "酸素原子の電子配置として正しいのはどれか。", opts: ["2, 6", "2, 8", "2, 4", "2, 8, 6"], ans: 0, exp: "酸素の原子番号は8で、電子は内側の殻に2個、外側の殻に6個配置されます。" },
+        { q: "水素と酸素の混合気体に火をつけると起こる反応はどれか。", opts: ["水ができる燃焼", "水が分解する反応", "何も起こらない", "水素だけが燃える"], ans: 0, exp: "2H₂ + O₂ → 2H₂O の燃焼反応で、水ができます。" }
+      ]
+    }
+  ];
+  CHEM_STAGES.forEach((st, i) => { st.num = i + 1; });
+
+  // 科目メタ情報（科目選択・切替で使う）
+  const SUBJECTS = {
+    physics: { id: "physics", name: "物理", icon: "⚛️", stages: null }, // stages は PHYSICS_STAGES（後で代入）
+    math: { id: "math", name: "数学", icon: "🔢", stages: MATH_STAGES },
+    chem: { id: "chem", name: "化学", icon: "🧪", stages: CHEM_STAGES }
+  };
+  SUBJECTS.physics.stages = PHYSICS_STAGES;
+  let currentSubject = "physics";
+  function setSubject(id, silent) {
+    const meta = SUBJECTS[id];
+    if (!meta) return;
+    currentSubject = id;
+    STAGES = meta.stages;
+    if (appData) { appData.subject = id; if (!silent) saveData(); }
+    session = null;
+  }
+
 const EXTRA_QUESTIONS = {
   st1: [
     { q: raw`家から駅まで $1200\,\mathrm{m}$ の道のりを10分間で歩いた。平均の速さは何 $\mathrm{m/s}$ か。`, opts: ["1.2 m/s", "12 m/s", "2.0 m/s", "20 m/s"], ans: 2, exp: raw`10分間は600秒なので、速さ $= 1200 / 600 = 2.0\,\mathrm{m/s}$ です。` },
@@ -2021,20 +2240,41 @@ const EXTRA_QUESTIONS = {
   }
 
   // ===== 称号・実績（バッジ）・復習記録システム =====
-  const TITLES = [
-    { xp: 0, name: "物理見習い", icon: "🌱" },
-    { xp: 100, name: "物理学徒", icon: "🔰" },
-    { xp: 300, name: "実験家", icon: "🔬" },
-    { xp: 600, name: "理論家", icon: "📐" },
-    { xp: 1000, name: "研究者", icon: "🧪" },
-    { xp: 1600, name: "物理学者", icon: "🎓" },
-    { xp: 2500, name: "ニュートン級", icon: "🍎" }
-  ];
+  const TITLES = {
+    physics: [
+      { xp: 0, name: "物理見習い", icon: "🌱" },
+      { xp: 100, name: "物理学徒", icon: "🔰" },
+      { xp: 300, name: "実験家", icon: "🔬" },
+      { xp: 600, name: "理論家", icon: "📐" },
+      { xp: 1000, name: "研究者", icon: "🧪" },
+      { xp: 1600, name: "物理学者", icon: "🎓" },
+      { xp: 2500, name: "ニュートン級", icon: "🍎" }
+    ],
+    math: [
+      { xp: 0, name: "数学見習い", icon: "🌱" },
+      { xp: 100, name: "数学学徒", icon: "🔰" },
+      { xp: 300, name: "計算家", icon: "🔢" },
+      { xp: 600, name: "幾何家", icon: "📐" },
+      { xp: 1000, name: "代数家", icon: "📈" },
+      { xp: 1600, name: "数学者", icon: "🎓" },
+      { xp: 2500, name: "オイラー級", icon: "👑" }
+    ],
+    chem: [
+      { xp: 0, name: "化学見習い", icon: "🌱" },
+      { xp: 100, name: "化学学徒", icon: "🔰" },
+      { xp: 300, name: "実験家", icon: "🧪" },
+      { xp: 600, name: "分析家", icon: "🔬" },
+      { xp: 1000, name: "研究者", icon: "⚗️" },
+      { xp: 1600, name: "化学者", icon: "🎓" },
+      { xp: 2500, name: "キュリー級", icon: "👑" }
+    ]
+  };
   function titleInfo(acc) {
-    let cur = TITLES[0], next = null;
-    for (let i = 0; i < TITLES.length; i++) {
-      if (acc.xp >= TITLES[i].xp) { cur = TITLES[i]; next = null; }
-      else { next = TITLES[i]; break; }
+    const list = TITLES[currentSubject] || TITLES.physics;
+    let cur = list[0], next = null;
+    for (let i = 0; i < list.length; i++) {
+      if (acc.xp >= list[i].xp) { cur = list[i]; next = null; }
+      else { next = list[i]; break; }
     }
     return { cur, next };
   }
@@ -2151,6 +2391,7 @@ const EXTRA_QUESTIONS = {
   // ===== アプリからのお知らせ =====
   // 新しいお知らせはこの配列の先頭に追加する（id・日付・タイトル・本文）
   const ANNOUNCEMENTS = [
+    { id: "20261122-update3", date: "2026-11-22", title: "🆕 11/22アップデート③：アカウント専用画面・数学と化学を追加", body: "アカウント作成が専用画面になり、ユーザーIDとパスワードでサインインできるようになりました（データは端末内に保存され、他の端末へは設定の「データ移行（バックアップコード）」で移します）。プロフィールと設定を分け、設定画面にダークモード・効果音・テーマカラー・アプリアイコン・更新・データ移行をまとめました。ホームはデイリー・ステージマップ・復習モードだけのシンプルな表示に整理し、称号はプロフィールで見られます。数学と化学を追加しました（各45問：単元30問＋チャレンジ15問）。科目はホームの「科目を変える」ボタンや学習タブから切り替えられます。ホーム画面に追加したアプリが更新されないときは、設定の「最新版を読み込む」ボタンを使ってください。それでも古い場合は、ホーム画面のアイコンを一度削除してSafariから追加し直してください。" },
     { id: "20261122-fix2", date: "2026-11-22", title: "🆕 11/22アップデート②：フレンド追加の横スクロール修正・タイトル画面のアニメーション・解答時間の列車ランク", body: "フレンド追加画面で横スクロールが必要だった問題を修正し、狭い画面でもボタンや入力欄が折り返して表示されるようになりました。タイトル画面と科目選択画面にアニメーションを追加しました。クイズの結果画面にかかった時間と獲得XPを表示し、3分以内は特急、3〜4分は急行、4〜5分は準急、それ以降は普通の列車ランクも表示します。割り算が「/div」と表示されるバグも修正し「÷」と表示されるようになりました。" },
     { id: "20261122-update", date: "2026-11-22", title: "🆕 11/22アップデート：ホーム画面追加でアプリ化・手書きメモ・フレンド機能", body: "Safariの「ホーム画面に追加」でPhysiQが単独アプリのように開けるようになりました。クイズの解答欄に手書きメモ（指・ペンで計算やメモ書き）が追加され、科目は化学・数学・英語・原付免許に整理されました。フレンド機能では招待コードで友だちを追加し、XPランキングで競ったり、応援（200XP）や7日間XPレース（500XP）でXPを使えます。クイズ開始時に画面が下に残ったままになる不具合も修正しました。" },
     { id: "20261121-darkmode", date: "2026-11-21", title: "🌙 ダークモード＆プロフィール設定が登場", body: "ヘッダーの自分のアイコン（アバター）から開けるプロフィールで、ユーザー名の変更やダークモードの切り替えができるようになりました。夜の学習にも目にやさしい暗い画面でどうぞ。" },
@@ -2654,9 +2895,7 @@ const EXTRA_QUESTIONS = {
   function renderHome() {
     updateHUD();
     const acc = curAcc();
-    if (syncWeeklyBonus(acc)) saveData(); // 週が変わっていたら週間ボードをリセット
-    const wk = weeklySet();
-    const wb = acc.weeklyBonus;
+    if (syncWeeklyBonus(acc)) saveData();
     const td = todayStr();
     const doneToday = acc.lastActiveDate === td;
     const isGuest = acc.id === "guest";
@@ -2694,49 +2933,15 @@ const EXTRA_QUESTIONS = {
         </div>`}
       </section>
 
-      ${acc.xpBoost > 0 ? `
-      <section class="boost-banner">
-        <span style="font-size:20px;">⚡</span>
-        <span>XPブースト所持中 ×${acc.xpBoost}：次のクイズの獲得XPが<strong>1.5倍</strong>になります</span>
-      </section>` : ""}
 
-      <section class="title-strip">
-        <span>${ti.cur.icon} 称号：<strong>${ti.cur.name}</strong></span>
-        <span class="t-progress"><div style="width:${titlePct}%;"></div></span>
-        <span style="font-size:12px; color:var(--text-muted); font-weight:700;">${ti.next ? `次の称号「${ti.next.name}」まで あと ${ti.next.xp - acc.xp} XP` : "最高ランク到達！🎉"}</span>
-        <span style="font-weight:800;">🏆 実績 ${earnedBadges} / ${BADGES.length}</span>
-      </section>
+      <div style="display:flex; gap:10px; margin-bottom:12px; align-items:center;">
+        <span style="font-weight:800; font-size:14px; white-space:nowrap;">${SUBJECTS[currentSubject].icon} ${SUBJECTS[currentSubject].name}</span>
+        <button id="changeSubjectHomeBtn" class="btn-3d btn-ghost" style="flex:1;">📚 科目を変える</button>
+      </div>
 
       <button id="reviewBtn" class="btn-3d ${acc.wrongList.length ? "btn-blue" : "btn-ghost"}" style="width:100%; margin-bottom:12px;" ${acc.wrongList.length ? "" : "disabled"}>
         🔁 復習モード（あと${acc.wrongList.length}問）${acc.wrongList.length ? "" : " ― 間違えた問題がここにたまります"}
       </button>
-
-      <div style="display:flex; gap:10px; margin-bottom:12px;">
-        <button id="friendsBtn" class="btn-3d btn-ghost" style="flex:1;">👥 フレンド・XPレース</button>
-        <button id="homeShopBtn" class="btn-3d btn-ghost" style="flex:1;">🛒 XPショップ（⚡${acc.xpBalance}）</button>
-      </div>
-
-      <section class="bonus-board-card">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-          <div style="font-weight:800; font-size:15px;">📅 週間デイリーボーナス</div>
-          <span style="font-size:11.5px; font-weight:800; color:var(--blue-dark); background:var(--blue-soft); padding:2px 9px; border-radius:999px;">今週は「${wk.set.name}」</span>
-        </div>
-        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">デイリーをクリアするたびに1マス進みます（現在 ${wb.progress} / 7 マス）。報酬セットは毎週ローテーションし、進捗は翌週リセットされます。</div>
-        <div class="bonus-cells">
-          ${wk.set.cells.map((c, i) => {
-            const done = i < wb.progress;
-            const next = i === wb.progress && !wb.completed;
-            return `<div class="bonus-cell ${done ? "done" : ""} ${next ? "next" : ""}">
-              <div class="bc-day">${i + 1}日目</div>
-              <div class="bc-icon">${done ? "✅" : rewardIcon(c)}</div>
-              <div class="bc-label">${rewardShort(c)}</div>
-            </div>`;
-          }).join("")}
-        </div>
-        <div class="bonus-complete ${wb.completed ? "got" : ""}">
-          ${wb.completed ? `🎉 今週コンプリート達成！（報酬：${rewardLabel(wk.set.complete)} ゲット済み）` : `🏆 7マスコンプリート報酬：${rewardLabel(wk.set.complete)}`}
-        </div>
-      </section>
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 4px;">
         <h2 style="margin:0; font-size:17px;">🗺️ ステージマップ（クリアで次が解放）</h2>
@@ -2776,6 +2981,8 @@ const EXTRA_QUESTIONS = {
     `;
 
     document.getElementById("startDailyBtn").addEventListener("click", startDailyQuiz);
+    const changeSubjectHomeBtn = document.getElementById("changeSubjectHomeBtn");
+    if (changeSubjectHomeBtn) changeSubjectHomeBtn.addEventListener("click", () => renderSubjectSelect());
     const friendsBtn = document.getElementById("friendsBtn");
     if (friendsBtn) friendsBtn.addEventListener("click", () => renderFriends());
     const homeShopBtn = document.getElementById("homeShopBtn");
@@ -3198,23 +3405,8 @@ const EXTRA_QUESTIONS = {
       <div class="avatar-grid" style="margin:0 0 14px;">
         ${availAvatars.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-change-av="${a}">${a}</button>`).join("")}
       </div>
-      <div style="font-weight:800; font-size:13px; margin-bottom:4px;">⚙️ アプリ設定</div>
-      <div style="margin-bottom:14px;">
-        <div class="toggle-row">
-          <div>
-            <div style="font-weight:800; font-size:13.5px;">🌙 ダークモード</div>
-            <div style="font-size:11.5px; color:var(--text-muted);">画面全体を暗い配色に切り替えます（このアカウントに保存）</div>
-          </div>
-          <button id="darkModeToggle" class="toggle-switch ${acc.darkMode ? "on" : ""}" aria-label="ダークモード切替"></button>
-        </div>
-        <div class="toggle-row">
-          <div>
-            <div style="font-weight:800; font-size:13.5px;">🔊 効果音</div>
-            <div style="font-size:11.5px; color:var(--text-muted);">正解・不正解・クリア時の効果音</div>
-          </div>
-          <button id="soundToggle" class="toggle-switch ${appData.sound ? "on" : ""}" aria-label="効果音切替"></button>
-        </div>
-      </div>
+      <button id="openSettingsBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:8px;">⚙️ 設定を開く（ダークモード・効果音・テーマ・アプリアイコン・更新・データ移行）</button>
+      <div id="profileLoginState" style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;"></div>
       <div style="font-weight:800; font-size:13px; margin-bottom:8px;">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
       <div class="badge-grid">
         ${BADGES.map(b => `
@@ -3266,6 +3458,12 @@ const EXTRA_QUESTIONS = {
         openAccountModal();
       });
     });
+    const loginState = document.getElementById("profileLoginState");
+    if (loginState) {
+      loginState.textContent = acc.loginId ? `🔑 サインイン用ID：${acc.loginId}（この端末でサインインできます）` : "🔑 サインイン用ID：未設定（設定画面からIDとパスワードを設定できます）";
+    }
+    const settingsBtn = document.getElementById("openSettingsBtn");
+    if (settingsBtn) settingsBtn.addEventListener("click", () => { document.getElementById("accountModal").classList.remove("open"); openSettingsModal(); });
     const shopBtn = document.getElementById("profileShopBtn");
     if (shopBtn) {
       shopBtn.addEventListener("click", () => {
@@ -3303,34 +3501,323 @@ const EXTRA_QUESTIONS = {
   document.getElementById("closeNewsModal").addEventListener("click", () => document.getElementById("newsModal").classList.remove("open"));
   document.getElementById("newsModal").addEventListener("click", (e) => { if (e.target.id === "newsModal") e.target.classList.remove("open"); });
 
-  document.getElementById("avatarPicker").addEventListener("click", (e) => {
+  // ===== アカウント専用画面・設定・アイコン・更新（2026-11-22③） =====
+  // 注意：PhysiQ は GitHub Pages の静的サイトのため、サーバー側にデータを保存する
+  // 本物のクラウド同期はできません。ユーザーID＋パスワードはこの端末でのサインイン用で、
+  // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
+  const APP_VERSION = "2026-11-22.3";
+  const APP_ICONS = [
+    { id: "default", name: "ブルー×グリーン", file180: "./icon-180.png?v=20261122", file512: "./icon-512.png?v=20261122" },
+    { id: "violet", name: "バイオレット", file180: "./icon-violet-180.png?v=20261122", file512: "./icon-violet-512.png?v=20261122" },
+    { id: "rose", name: "ローズ", file180: "./icon-rose-180.png?v=20261122", file512: "./icon-rose-512.png?v=20261122" },
+    { id: "amber", name: "サンセット", file180: "./icon-amber-180.png?v=20261122", file512: "./icon-amber-512.png?v=20261122" },
+    { id: "dark", name: "ダーク", file180: "./icon-dark-180.png?v=20261122", file512: "./icon-dark-512.png?v=20261122" }
+  ];
+  function appIconSrc(size) {
+    if (appData.appIcon === "custom" && appData.customIconDataUrl) return appData.customIconDataUrl;
+    const it = APP_ICONS.find(x => x.id === (appData.appIcon || "default")) || APP_ICONS[0];
+    return size === 512 ? it.file512 : it.file180;
+  }
+  function applyAppIcon() {
+    const src180 = appIconSrc(180), src512 = appIconSrc(512);
+    const touch = document.getElementById("appTouchIcon"); if (touch) touch.href = src180;
+    const fav = document.getElementById("appFavicon"); if (fav) fav.href = src180;
+    const brand = document.getElementById("brandIconImg"); if (brand) brand.src = src180;
+    const logo = document.getElementById("titleLogoImg"); if (logo) logo.src = src512;
+  }
+  async function hashPassword(pw, salt) {
+    try {
+      const data = new TextEncoder().encode(salt + "::" + pw);
+      const buf = await crypto.subtle.digest("SHA-256", data);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    } catch (e) {
+      let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+      const s = salt + "::" + pw;
+      for (let i = 0; i < s.length; i++) { const ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+      return "fb" + (h1 >>> 0).toString(16) + (h2 >>> 0).toString(16);
+    }
+  }
+  function newAccountFields(id, name, avatar) {
+    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "" };
+  }
+  function closeAuthModals() {
+    ["createAccountModal", "signinModal", "settingsModal"].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("open"); });
+  }
+  function openCreateModal() {
+    document.getElementById("createError").textContent = "";
+    document.getElementById("createAccountModal").classList.add("open");
+  }
+  function openSigninModal() {
+    document.getElementById("signinError").textContent = "";
+    document.getElementById("signinModal").classList.add("open");
+  }
+
+  // 新規アカウント作成（専用画面）
+  document.getElementById("openCreateAccBtn").addEventListener("click", () => {
+    document.getElementById("accountModal").classList.remove("open");
+    openCreateModal();
+  });
+  document.getElementById("openSigninBtn").addEventListener("click", () => {
+    document.getElementById("accountModal").classList.remove("open");
+    openSigninModal();
+  });
+  document.getElementById("closeCreateModal").addEventListener("click", closeAuthModals);
+  document.getElementById("closeSigninModal").addEventListener("click", closeAuthModals);
+  document.getElementById("createAccountModal").addEventListener("click", (e) => { if (e.target.id === "createAccountModal") closeAuthModals(); });
+  document.getElementById("signinModal").addEventListener("click", (e) => { if (e.target.id === "signinModal") closeAuthModals(); });
+  document.getElementById("createAvatarPicker").addEventListener("click", (e) => {
     const b = e.target.closest(".avatar-opt");
     if (!b) return;
-    document.querySelectorAll(".avatar-opt").forEach(x => x.classList.remove("selected"));
+    document.querySelectorAll("#createAvatarPicker .avatar-opt").forEach(x => x.classList.remove("selected"));
     b.classList.add("selected");
     pickedAvatar = b.getAttribute("data-av");
   });
-
-  document.getElementById("createAccBtn").addEventListener("click", () => {
-    const rawName = document.getElementById("newNickInput").value.trim();
-    const name = rawName || "チャレンジャー";
+  document.getElementById("createSubmitBtn").addEventListener("click", async () => {
+    const errEl = document.getElementById("createError");
+    const loginId = document.getElementById("createLoginId").value.trim();
+    const pw = document.getElementById("createPassword").value;
+    const pw2 = document.getElementById("createPassword2").value;
+    const nick = document.getElementById("createNick").value.trim() || "チャレンジャー";
+    const fail = (msg) => { errEl.textContent = msg; };
+    if (!/^[a-zA-Z0-9_-]{3,20}$/.test(loginId)) return fail("ユーザーIDは半角英数字・_・-で3〜20文字で入力してください");
+    if (Object.values(appData.accounts).some(a => (a.loginId || "").toLowerCase() === loginId.toLowerCase())) return fail("そのユーザーIDはすでに使われています。別のIDにしてください");
+    if (pw.length < 6) return fail("パスワードは6文字以上にしてください");
+    if (pw !== pw2) return fail("パスワード（確認）が一致しません");
+    const salt = Math.random().toString(36).slice(2, 10);
+    const hash = await hashPassword(pw, salt);
     const id = "acc_" + Date.now();
-    appData.accounts[id] = {
-      id, name, avatar: pickedAvatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {},
-      wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0,
-      unlockedIds: ["jr1"],
-      xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue",
-      xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false },
-      darkMode: false, readAnnouncements: [],
-      friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null
-    };
+    const acc = newAccountFields(id, nick, pickedAvatar);
+    acc.loginId = loginId; acc.pwHash = hash; acc.pwSalt = salt;
+    appData.accounts[id] = acc;
     appData.activeId = id;
     saveData();
-    document.getElementById("newNickInput").value = "";
-    document.getElementById("accountModal").classList.remove("open");
+    document.getElementById("createPassword").value = "";
+    document.getElementById("createPassword2").value = "";
+    document.getElementById("createLoginId").value = "";
+    document.getElementById("createNick").value = "";
+    closeAuthModals();
+    updateHUD();
     session = null;
     if (appStarted) renderMain(); else renderTitleScreen();
+    showToast(`🎉 アカウント「${loginId}」を作成しました！`);
   });
+
+  // サインイン（ユーザーID＋パスワード）
+  document.getElementById("signinSubmitBtn").addEventListener("click", async () => {
+    const errEl = document.getElementById("signinError");
+    const loginId = document.getElementById("signinLoginId").value.trim();
+    const pw = document.getElementById("signinPassword").value;
+    const fail = (msg) => { errEl.textContent = msg; };
+    if (!loginId || !pw) return fail("ユーザーIDとパスワードを入力してください");
+    const acc = Object.values(appData.accounts).find(a => (a.loginId || "").toLowerCase() === loginId.toLowerCase());
+    if (!acc) return fail("そのユーザーIDのアカウントがこの端末にありません。別の端末のアカウントは、設定の「データ移行」で先に移してください");
+    if (!acc.pwHash) return fail("このアカウントにはパスワードが設定されていません。プロフィールから切り替えて、設定画面でIDとパスワードを設定してください");
+    const hash = await hashPassword(pw, acc.pwSalt || "");
+    if (hash !== acc.pwHash) return fail("パスワードがちがいます");
+    appData.activeId = acc.id;
+    saveData();
+    document.getElementById("signinPassword").value = "";
+    closeAuthModals();
+    updateHUD();
+    session = null;
+    if (appStarted) renderMain(); else renderTitleScreen();
+    showToast(`👋 おかえりなさい、${acc.name}さん！`);
+  });
+
+  // ===== 設定（プロフィールから分離） =====
+  function openSettingsModal() {
+    renderSettings();
+    document.getElementById("settingsModal").classList.add("open");
+  }
+  document.getElementById("closeSettingsModal").addEventListener("click", closeAuthModals);
+  document.getElementById("settingsModal").addEventListener("click", (e) => { if (e.target.id === "settingsModal") closeAuthModals(); });
+
+  function renderSettings() {
+    const acc = curAcc();
+    const body = document.getElementById("settingsBody");
+    const isCustomIcon = appData.appIcon === "custom";
+    const exportCode = (() => {
+      try { return btoa(unescape(encodeURIComponent(JSON.stringify(acc)))); } catch (e) { return ""; }
+    })();
+    body.innerHTML = `
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🖥️ 表示</div>
+      <div style="margin-bottom:16px;">
+        <div class="toggle-row">
+          <div><div style="font-weight:800; font-size:13.5px;">🌙 ダークモード</div><div style="font-size:11.5px; color:var(--text-muted);">画面全体を暗い配色に切り替えます（このアカウントに保存）</div></div>
+          <button id="setDarkToggle" class="toggle-switch ${acc.darkMode ? "on" : ""}" aria-label="ダークモード切替"></button>
+        </div>
+        <div class="toggle-row">
+          <div><div style="font-weight:800; font-size:13.5px;">🔊 効果音</div><div style="font-size:11.5px; color:var(--text-muted);">正解・不正解・クリア時の効果音</div></div>
+          <button id="setSoundToggle" class="toggle-switch ${appData.sound ? "on" : ""}" aria-label="効果音切替"></button>
+        </div>
+      </div>
+
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🎨 テーマカラー</div>
+      <div class="theme-row" style="margin-bottom:16px;">
+        ${THEMES.map(t => {
+          const owned = t.id === "blue" || acc.themesOwned.includes(t.id);
+          const selected = acc.themeColor === t.id;
+          return `<div class="theme-cell">
+            <button class="theme-dot ${selected ? "selected" : ""}" data-set-theme="${t.id}" style="background:${t.vars["--blue"]};" ${owned ? "" : "disabled"} title="${t.name}"></button>
+            <span>${t.name}${selected ? "（使用中）" : owned ? "" : `<br><button class="glossary-link" data-set-buy-theme="${t.id}" ${acc.xpBalance < SHOP_PRICES.theme ? "disabled" : ""}>${SHOP_PRICES.theme} XPで買う</button>`}</span>
+          </div>`;
+        }).join("")}
+      </div>
+      <div style="font-size:11.5px; color:var(--text-muted); margin:-8px 0 16px;">未購入の色はXPショップでも買えます（各300XP）。</div>
+
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">📱 アプリアイコン</div>
+      <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6;">ホーム画面のアイコンを選びます。選んだあと、Safariの「ホーム画面に追加」をし直すと反映されます（すでに追加済みのアイコンは変わりません）。</div>
+      <div class="icon-pick-grid">
+        ${APP_ICONS.map(ic => `<button class="icon-pick ${!isCustomIcon && (appData.appIcon || "default") === ic.id ? "selected" : ""}" data-app-icon="${ic.id}" title="${ic.name}"><img src="${ic.file180}" alt="${ic.name}" /></button>`).join("")}
+        ${appData.customIconDataUrl ? `<button class="icon-pick ${isCustomIcon ? "selected" : ""}" data-app-icon="custom" title="自分の写真"><img src="${appData.customIconDataUrl}" alt="自分の写真アイコン" /></button>` : ""}
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+        <label for="customIconInput" class="btn-3d btn-ghost" style="cursor:pointer; min-height:40px;">📷 自分の写真からアイコンを作る</label>
+        <input id="customIconInput" type="file" accept="image/*" style="display:none;" />
+        <a id="downloadIconBtn" class="btn-3d btn-ghost" style="min-height:40px; text-decoration:none;" href="${appIconSrc(512)}" download="physiq-icon.png">⬇️ 今のアイコンを保存</a>
+      </div>
+
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🔑 アカウントと同期</div>
+      <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
+        現在のアカウント：<strong>${acc.avatar} ${acc.name}</strong><br>
+        サインイン用ID：<strong>${acc.loginId ? acc.loginId : "未設定"}</strong><br>
+        <span style="color:var(--text-muted);">データはこの端末のブラウザ内に保存されます。他の端末で使うには、下のバックアップコードで移行してください。</span>
+      </div>
+      <div class="auth-field"><label>サインイン用ID（半角英数字・_・-、3〜20文字）</label><input id="setLoginId" class="text-input" type="text" maxlength="20" value="${acc.loginId || ""}" placeholder="例：sora_210" /></div>
+      <div class="auth-field"><label>パスワード（6文字以上・変更するときだけ入力）</label><input id="setPassword" class="text-input" type="password" maxlength="64" placeholder="新しいパスワード" autocomplete="new-password" /></div>
+      <div id="setCredMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin-bottom:4px;"></div>
+      <button id="setCredBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">IDとパスワードを設定・変更する</button>
+
+      <div style="font-weight:800; font-size:13px; margin-bottom:6px;">📤 データ移行（バックアップコード）</div>
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">このコードを他の端末の「📥 取り込み」に貼ると、アカウントごと進捗が移ります。移行先でも同じユーザーIDとパスワードでサインインできます。</div>
+      <textarea id="exportCode" class="text-input" rows="3" readonly style="font-size:11px; word-break:break-all;">${exportCode}</textarea>
+      <div style="display:flex; gap:8px; margin:8px 0 12px;">
+        <button id="copyExportBtn" class="btn-3d btn-ghost" style="flex:1;">📋 コードをコピー</button>
+      </div>
+      <div style="font-weight:800; font-size:13px; margin-bottom:6px;">📥 バックアップコード取り込み</div>
+      <textarea id="importCode" class="text-input" rows="3" placeholder="他の端末でコピーしたバックアップコードを貼り付け" style="font-size:11px; word-break:break-all;"></textarea>
+      <div id="importMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
+      <button id="importBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">取り込んでアカウントを追加する</button>
+
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🔄 アップデート</div>
+      <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
+        現在のバージョン：<strong>${APP_VERSION}</strong><br>
+        <span style="color:var(--text-muted);">ホーム画面に追加したアプリは、Safariのキャッシュのせいで古いままになることがあります。更新されないときは下のボタンで最新版を読み込んでください。それでも古い場合は、ホーム画面のアイコンを一度削除して、Safariから追加し直してください。</span>
+      </div>
+      <button id="forceUpdateBtn" class="btn-3d btn-amber" style="width:100%; margin-bottom:16px;">🔄 最新版を読み込む</button>
+
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🚪 アカウント操作</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="signOutBtn" class="btn-3d btn-ghost" style="flex:1;">ゲストに切り替える</button>
+        ${acc.id !== "guest" ? `<button id="deleteAccBtn" class="btn-3d btn-ghost" style="flex:1; color:var(--red); border-color:#fda4af;">このアカウントを削除</button>` : ""}
+      </div>
+    `;
+    const dmT = body.querySelector("#setDarkToggle");
+    if (dmT) dmT.addEventListener("click", () => { const a = curAcc(); a.darkMode = !a.darkMode; saveData(); applyAppearance(); renderSettings(); });
+    const sndT = body.querySelector("#setSoundToggle");
+    if (sndT) sndT.addEventListener("click", () => { appData.sound = !appData.sound; saveData(); updateHUD(); renderSettings(); });
+    body.querySelectorAll("[data-set-theme]").forEach(b => b.addEventListener("click", () => {
+      const a = curAcc(); a.themeColor = b.getAttribute("data-set-theme"); saveData(); applyAppearance(); renderSettings();
+    }));
+    body.querySelectorAll("[data-set-buy-theme]").forEach(b => b.addEventListener("click", () => {
+      const a = curAcc(); const tid = b.getAttribute("data-set-buy-theme");
+      if (a.xpBalance < SHOP_PRICES.theme) { showToast("⚡ XPが足りません。クイズで貯めよう！"); return; }
+      a.xpBalance -= SHOP_PRICES.theme; a.themesOwned.push(tid); a.themeColor = tid; saveData(); applyAppearance(); renderSettings();
+      showToast(`🎨 テーマカラー「${themeById(tid).name}」を解放しました！`);
+    }));
+    body.querySelectorAll("[data-app-icon]").forEach(b => b.addEventListener("click", () => {
+      appData.appIcon = b.getAttribute("data-app-icon"); saveData(); applyAppIcon(); renderSettings();
+      showToast("📱 アプリアイコンを選びました。ホーム画面に追加し直すと反映されます");
+    }));
+    const iconInput = body.querySelector("#customIconInput");
+    if (iconInput) iconInput.addEventListener("change", () => {
+      const file = iconInput.files && iconInput.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const size = 512;
+        const cv = document.createElement("canvas"); cv.width = size; cv.height = size;
+        const ctx = cv.getContext("2d");
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        appData.customIconDataUrl = cv.toDataURL("image/png");
+        appData.appIcon = "custom";
+        saveData(); applyAppIcon(); renderSettings();
+        showToast("📷 自分の写真でアイコンを作りました！");
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); showToast("⚠️ 画像を読み込めませんでした"); };
+      img.src = url;
+    });
+    const copyBtn = body.querySelector("#copyExportBtn");
+    if (copyBtn) copyBtn.addEventListener("click", async () => {
+      const ta = body.querySelector("#exportCode");
+      try { await navigator.clipboard.writeText(ta.value); showToast("📋 バックアップコードをコピーしました"); }
+      catch (e) { ta.select(); document.execCommand("copy"); showToast("📋 バックアップコードをコピーしました"); }
+    });
+    const setCredBtn = body.querySelector("#setCredBtn");
+    if (setCredBtn) setCredBtn.addEventListener("click", async () => {
+      const msg = body.querySelector("#setCredMsg");
+      const loginId = body.querySelector("#setLoginId").value.trim();
+      const pw = body.querySelector("#setPassword").value;
+      const a = curAcc();
+      if (!/^[a-zA-Z0-9_-]{3,20}$/.test(loginId)) { msg.textContent = "ユーザーIDは半角英数字・_・-で3〜20文字で入力してください"; msg.style.color = "var(--red)"; return; }
+      if (Object.values(appData.accounts).some(x => x.id !== a.id && (x.loginId || "").toLowerCase() === loginId.toLowerCase())) { msg.textContent = "そのユーザーIDは他のアカウントで使われています"; msg.style.color = "var(--red)"; return; }
+      if (pw && pw.length < 6) { msg.textContent = "パスワードは6文字以上にしてください"; msg.style.color = "var(--red)"; return; }
+      if (!a.pwHash && !pw) { msg.textContent = "パスワードも入力してください（初回設定時）"; msg.style.color = "var(--red)"; return; }
+      a.loginId = loginId;
+      if (pw) { const salt = Math.random().toString(36).slice(2, 10); a.pwSalt = salt; a.pwHash = await hashPassword(pw, salt); }
+      saveData();
+      msg.textContent = "✅ IDとパスワードを設定しました";
+      msg.style.color = "var(--green-dark)";
+      body.querySelector("#setPassword").value = "";
+    });
+    const importBtn = body.querySelector("#importBtn");
+    if (importBtn) importBtn.addEventListener("click", () => {
+      const msg = body.querySelector("#importMsg");
+      const rawCode = body.querySelector("#importCode").value.trim();
+      try {
+        const data = JSON.parse(decodeURIComponent(escape(atob(rawCode))));
+        if (!data || typeof data !== "object" || !data.name || !Array.isArray(data.stars)) throw new Error("bad");
+        let id = data.id;
+        if (!id || appData.accounts[id] || id === "guest") id = "acc_" + Date.now();
+        data.id = id;
+        if (!data.loginId) data.loginId = "";
+        appData.accounts[id] = Object.assign(newAccountFields(id, data.name, data.avatar || "🚀"), data, { id });
+        saveData();
+        msg.textContent = `✅ 「${data.name}」のアカウントを取り込みました。プロフィールから切り替えられます`;
+        msg.style.color = "var(--green-dark)";
+        body.querySelector("#importCode").value = "";
+      } catch (e) {
+        msg.textContent = "⚠️ コードが正しくありません。コピーし直してください";
+        msg.style.color = "var(--red)";
+      }
+    });
+    const updBtn = body.querySelector("#forceUpdateBtn");
+    if (updBtn) updBtn.addEventListener("click", async () => {
+      updBtn.disabled = true; updBtn.textContent = "更新中…";
+      try { if ("caches" in window) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } } catch (e) {}
+      location.href = location.pathname + "?v=" + Date.now();
+    });
+    const signOutBtn = body.querySelector("#signOutBtn");
+    if (signOutBtn) signOutBtn.addEventListener("click", () => {
+      appData.activeId = "guest"; saveData(); closeAuthModals(); updateHUD(); session = null;
+      if (appStarted) renderMain(); else renderTitleScreen();
+      showToast("ゲストに切り替えました");
+    });
+    const delBtn = body.querySelector("#deleteAccBtn");
+    if (delBtn) delBtn.addEventListener("click", () => {
+      const a = curAcc();
+      if (!confirm(`アカウント「${a.name}」を削除しますか？進捗もすべて消えます。`)) return;
+      delete appData.accounts[a.id];
+      appData.activeId = "guest"; saveData(); closeAuthModals(); updateHUD(); session = null;
+      if (appStarted) renderMain(); else renderTitleScreen();
+      showToast("アカウントを削除しました");
+    });
+  }
+
 
   document.getElementById("soundBtn").addEventListener("click", () => {
     appData.sound = !appData.sound;
@@ -3358,14 +3845,17 @@ const EXTRA_QUESTIONS = {
     const main = document.getElementById("appMain");
     main.innerHTML = `
       <div class="title-screen" id="titleScreen">
-        <span class="title-logo-icon">⚛️</span>
+        <img id="titleLogoImg" class="title-logo-img" src="./icon-512.png?v=20261122" alt="PhysiQ" />
         <div class="title-logo-text">PhysiQ</div>
         <div class="title-tagline">あそんで学べる、物理クイズアプリ</div>
         <div><span class="title-user">${acc.avatar} ${acc.name} でログイン中</span></div>
+        <div><button id="titleAccountBtn" class="stat-btn" style="margin-top:14px;">👤 アカウント・サインイン</button></div>
         <div class="title-start">▶ タップしてスタート</div>
       </div>
     `;
     document.getElementById("titleScreen").addEventListener("click", () => renderSubjectSelect());
+    const titleAccountBtn = document.getElementById("titleAccountBtn");
+    if (titleAccountBtn) titleAccountBtn.addEventListener("click", (e) => { e.stopPropagation(); openAccountModal(); });
     window.scrollTo(0, 0);
   }
 
@@ -3383,15 +3873,15 @@ const EXTRA_QUESTIONS = {
             <span class="s-name">物理</span>
             <span class="s-sub">全${STAGES.length}ステージの問題に挑戦</span>
           </button>
-          <button class="subject-btn" disabled>
+          <button class="subject-btn" id="subjectChemBtn">
             <span class="s-icon">🧪</span>
             <span class="s-name">化学</span>
-            <span class="s-sub">🚧 実装予定</span>
+            <span class="s-sub">全45問（30問＋チャレンジ15問）</span>
           </button>
-          <button class="subject-btn" disabled>
+          <button class="subject-btn" id="subjectMathBtn">
             <span class="s-icon">🔢</span>
             <span class="s-name">数学</span>
-            <span class="s-sub">🚧 実装予定</span>
+            <span class="s-sub">全45問（30問＋チャレンジ15問）</span>
           </button>
           <button class="subject-btn" disabled>
             <span class="s-icon">🔤</span>
@@ -3404,13 +3894,15 @@ const EXTRA_QUESTIONS = {
             <span class="s-sub">🚧 実装予定</span>
           </button>
         </div>
+        <div style="text-align:center; margin-top:16px;"><button class="stat-btn" id="subjectBackBtn">← もどる（科目を変えずにホームへ）</button></div>
       </div>
     `;
-    document.getElementById("subjectPhysicsBtn").addEventListener("click", () => {
-      appStarted = true;
-      currentTab = "home";
-      renderMain();
-    });
+    const pickSubject = (id) => { setSubject(id); appStarted = true; currentTab = "home"; renderMain(); };
+    document.getElementById("subjectPhysicsBtn").addEventListener("click", () => pickSubject("physics"));
+    document.getElementById("subjectMathBtn").addEventListener("click", () => pickSubject("math"));
+    document.getElementById("subjectChemBtn").addEventListener("click", () => pickSubject("chem"));
+    const subjectBackBtn = document.getElementById("subjectBackBtn");
+    if (subjectBackBtn) subjectBackBtn.addEventListener("click", () => { if (appStarted) renderMain(); else renderTitleScreen(); });
     window.scrollTo(0, 0);
   }
 
@@ -3449,12 +3941,13 @@ const EXTRA_QUESTIONS = {
   // 学習タブ：単語帳・教科書への導線と「まずはここから」ガイド
   function renderStudy() {
     updateHUD();
+    const isPhys = currentSubject === "physics";
     const main = document.getElementById("appMain");
     main.innerHTML = `
       <button id="changeSubjectBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:12px;">🎛️ 科目を変える（科目選択にもどる）</button>
 
       <section class="guide-card">
-        <div style="font-weight:800; font-size:14.5px; margin-bottom:10px;">🌱 物理が初めての人は「まずはここから」</div>
+        <div style="font-weight:800; font-size:14.5px; margin-bottom:10px;">🌱 ${SUBJECTS[currentSubject].name}が初めての人は「まずはここから」</div>
         <div class="guide-steps">
           <button class="guide-step" id="guideWordsBtn">
             <span class="g-num">1</span>
@@ -3466,21 +3959,21 @@ const EXTRA_QUESTIONS = {
           </button>
           <button class="guide-step" id="guideStageBtn">
             <span class="g-num">3</span>
-            <span><span class="g-title">🎯 STAGE 1に挑戦</span><br><span class="g-sub">中学理科の復習からスタート</span></span>
+            <span><span class="g-title">🎯 STAGE 1に挑戦</span><br><span class="g-sub">${SUBJECTS[currentSubject].name}の最初のステージからスタート</span></span>
           </button>
         </div>
       </section>
 
       <section class="home-nav">
-        <button class="nav-card" id="openWordsBtn">
+        <button class="nav-card" id="openWordsBtn" ${isPhys ? "" : "disabled style='opacity:.55;'"}">
           <span class="nav-icon">📖</span>
           <span class="nav-title">単語帳</span>
-          <span class="nav-sub">物理用語を覚えよう（全${TERMS.length}語）</span>
+          <span class="nav-sub">${isPhys ? `物理用語を覚えよう（全${TERMS.length}語）` : "現在は物理のみ対応"}</span>
         </button>
-        <button class="nav-card" id="openBookBtn">
+        <button class="nav-card" id="openBookBtn" ${isPhys ? "" : "disabled style='opacity:.55;'"}">
           <span class="nav-icon">📚</span>
           <span class="nav-title">教科書</span>
-          <span class="nav-sub">ステージ対応のやさしい解説</span>
+          <span class="nav-sub">${isPhys ? "ステージ対応のやさしい解説" : "現在は物理のみ対応"}</span>
         </button>
       </section>
 
@@ -4066,7 +4559,14 @@ const EXTRA_QUESTIONS = {
 
 
   loadData();
+  if (appData.subject && SUBJECTS[appData.subject]) setSubject(appData.subject, true);
+  applyAppIcon();
   renderTitleScreen();
+  if (appData.seenVersion !== APP_VERSION) {
+    appData.seenVersion = APP_VERSION;
+    saveData();
+    setTimeout(() => showToast(`🆕 PhysiQをアップデートしました（${APP_VERSION}）`), 600);
+  }
   if (!appData.onboarded) {
     appData.onboarded = true;
     saveData();
