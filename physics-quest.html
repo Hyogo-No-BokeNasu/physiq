@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PhysiQ ― 毎日つづくゲーム感覚物理クイズ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Noto+Sans+JP:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-app: #f0f7ff;
+      --bg-card: #ffffff;
+      --bg-subtle: #f8fafc;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-light: #64748b;
+      --border: #e2e8f0;
+      --green: #16a34a;
+      --green-dark: #15803d;
+      --green-soft: #dcfce7;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --blue-soft: #dbeafe;
+      --orange: #f97316;
+      --orange-soft: #ffedd5;
+      --red: #e11d48;
+      --red-soft: #ffe4e6;
+      --gold: #eab308;
+      --font-sans: 'Inter', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0; padding: 0;
+      font-family: var(--font-sans);
+      background: var(--bg-app);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    /* Top HUD */
+    .hud {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(255,255,255,0.92);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border-bottom: 2px solid var(--border);
+      padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    }
+    .hud-inner {
+      max-width: 820px; margin: 0 auto; height: 60px; padding: 0 14px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--blue-dark); }
+    .brand-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, #2563eb, #16a34a);
+      color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+
+    .hud-stats { display: flex; align-items: center; gap: 6px; }
+    .stat-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 10px; border-radius: 999px; font-size: 13px; font-weight: 800;
+      background: var(--bg-subtle); border: 1.5px solid var(--border); white-space: nowrap;
+    }
+    .stat-streak { color: #ea580c; border-color: #fed7aa; background: #fff7ed; }
+    .stat-xp { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+    .stat-btn {
+      min-height: 36px; padding: 5px 10px; border-radius: 999px; border: 1.5px solid var(--border);
+      background: var(--bg-card); color: var(--text-main); font-size: 12.5px; font-weight: 700;
+      cursor: pointer; font-family: var(--font-sans); display: inline-flex; align-items: center; gap: 4px;
+    }
+    .stat-btn:hover { border-color: var(--blue); }
+
+    /* Main Layout */
+    .container {
+      max-width: 720px; margin: 0 auto; padding: 18px 14px 80px;
+    }
+
+    /* Daily Challenge & Streak Card */
+    .daily-card {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #fff; border-radius: 18px; padding: 18px 20px; margin-bottom: 22px;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.22);
+    }
+    .daily-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .daily-badge {
+      display: inline-block; background: rgba(255,255,255,0.2); padding: 3px 10px;
+      border-radius: 999px; font-size: 11.5px; font-weight: 700; margin-bottom: 6px;
+    }
+    .week-dots {
+      display: flex; gap: 8px; margin-top: 14px; justify-content: space-between;
+    }
+    .day-dot {
+      flex: 1; text-align: center; background: rgba(255,255,255,0.14);
+      border-radius: 10px; padding: 6px 4px; font-size: 11px; font-weight: 700;
+    }
+    .day-dot.done { background: #22c55e; color: #052e16; }
+
+    /* Buttons (3D tactile Duolingo style) */
+    .btn-3d {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 46px; padding: 10px 20px; border-radius: 14px; border: none;
+      font-family: var(--font-sans); font-size: 15px; font-weight: 800; cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.08s;
+    }
+    .btn-3d:active { transform: translateY(3px); }
+    .btn-green { background: #22c55e; color: #fff; box-shadow: 0 4px 0 #15803d; }
+    .btn-green:active { box-shadow: 0 1px 0 #15803d; }
+    .btn-blue { background: #3b82f6; color: #fff; box-shadow: 0 4px 0 #1d4ed8; }
+    .btn-blue:active { box-shadow: 0 1px 0 #1d4ed8; }
+    .btn-amber { background: #f59e0b; color: #fff; box-shadow: 0 4px 0 #b45309; }
+    .btn-amber:active { box-shadow: 0 1px 0 #b45309; }
+    .btn-ghost { background: var(--bg-card); color: var(--text-main); border: 2px solid var(--border); box-shadow: 0 3px 0 var(--border); }
+    .btn-ghost:active { box-shadow: 0 1px 0 var(--border); }
+
+    /* Winding Stage Path */
+    .stage-path {
+      display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 8px 0 20px;
+    }
+    .stage-node-wrap {
+      display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 340px;
+      position: relative;
+    }
+    .stage-node {
+      width: 100%; background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: 18px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+      box-shadow: 0 5px 0 var(--border); cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s;
+      text-align: left; font-family: var(--font-sans);
+    }
+    .stage-node:hover:not(.locked) { transform: translateY(-2px); border-color: var(--blue); }
+    .stage-node.unlocked { border-color: #3b82f6; box-shadow: 0 5px 0 #bfdbfe; }
+    .stage-node.cleared { border-color: #22c55e; box-shadow: 0 5px 0 #bbf7d0; }
+    .stage-node.locked { opacity: 0.58; cursor: not-allowed; background: #f1f5f9; }
+
+    .stage-circle {
+      width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: #fff;
+    }
+    .stage-stars { font-size: 13px; color: #eab308; letter-spacing: 2px; margin-top: 2px; }
+
+    /* Quiz Screen */
+    .quiz-screen {
+      background: var(--bg-card); border: 2px solid var(--border);
+      border-radius: 20px; padding: 22px 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+    }
+    .quiz-progress-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
+    }
+    .q-bar-track { flex: 1; height: 12px; background: var(--border); border-radius: 999px; overflow: hidden; }
+    .q-bar-fill { height: 100%; background: linear-gradient(90deg, #22c55e, #3b82f6); transition: width 0.3s ease; }
+
+    .combo-badge {
+      display: inline-block; background: var(--orange-soft); color: #c2410c;
+      font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; margin-bottom: 8px;
+    }
+    .q-text { font-size: 18px; font-weight: 700; line-height: 1.55; margin-bottom: 18px; }
+
+    .choices-grid { display: grid; gap: 10px; }
+    .choice-btn {
+      display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+      min-height: 54px; padding: 12px 16px; border-radius: 14px;
+      border: 2px solid var(--border); background: var(--bg-card);
+      box-shadow: 0 3px 0 var(--border); color: var(--text-main);
+      font-size: 15.5px; font-weight: 600; cursor: pointer; font-family: var(--font-sans);
+      transition: all 0.1s;
+    }
+    .choice-btn:hover:not(:disabled) { border-color: var(--blue); background: #f8fbff; }
+    .choice-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--border); }
+    .choice-btn.correct { border-color: var(--green); background: var(--green-soft); box-shadow: 0 3px 0 #86efac; }
+    .choice-btn.wrong { border-color: var(--red); background: var(--red-soft); box-shadow: 0 3px 0 #fda4af; }
+
+    .feedback-banner {
+      margin-top: 18px; padding: 14px 16px; border-radius: 14px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .feedback-banner.ok { background: var(--green-soft); border: 1.5px solid #86efac; }
+    .feedback-banner.ng { background: var(--red-soft); border: 1.5px solid #fda4af; }
+
+    /* Auth / Account Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      z-index: 60; display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: var(--bg-card); border-radius: 20px; max-width: 460px; width: 100%;
+      padding: 24px 22px; box-shadow: 0 24px 50px rgba(0,0,0,0.28);
+      max-height: 90vh; max-height: 90dvh; overflow-y: auto;
+    }
+    .avatar-grid { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 16px; }
+    .avatar-opt {
+      width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--border);
+      background: var(--bg-subtle); font-size: 22px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .avatar-opt.selected { border-color: var(--blue); background: var(--blue-soft); }
+
+    .text-input {
+      width: 100%; padding: 11px 14px; border: 2px solid var(--border); border-radius: 12px;
+      font-size: 15px; font-family: var(--font-sans); -webkit-appearance: none;
+    }
+    .text-input:focus { outline: none; border-color: var(--blue); }
+
+    /* Built-in Math Renderer */
+    .math-inline { font-family: 'Times New Roman', Georgia, serif; font-size: 1.08em; padding: 0 1px; }
+    .math-frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 3px; font-size: 0.9em; line-height: 1.15; }
+    .math-frac > .num { border-bottom: 1.2px solid currentColor; padding: 0 4px 2px; }
+    .math-frac > .den { padding: 2px 4px 0; }
+    .math-sqrt { display: inline-flex; align-items: center; vertical-align: middle; }
+    .math-sqrt-body { border-top: 1.2px solid currentColor; padding: 1px 3px 0; }
+
+    /* Gentle animations (subtle, easy on the eyes) */
+    @keyframes fadeUp { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+    @keyframes popIn { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes shakeX { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+    @keyframes pulseOk { 0% { transform: scale(1); } 40% { transform: scale(1.02); } 100% { transform: scale(1); } }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+    .quiz-screen { animation: fadeUp 0.28s ease both; }
+    .daily-card { animation: fadeUp 0.3s ease both; }
+    .stage-node-wrap { animation: fadeUp 0.35s ease both; }
+    .stage-path .stage-node-wrap:nth-child(2) { animation-delay: 0.03s; }
+    .stage-path .stage-node-wrap:nth-child(3) { animation-delay: 0.06s; }
+    .stage-path .stage-node-wrap:nth-child(4) { animation-delay: 0.09s; }
+    .stage-path .stage-node-wrap:nth-child(5) { animation-delay: 0.12s; }
+    .stage-path .stage-node-wrap:nth-child(6) { animation-delay: 0.15s; }
+    .stage-path .stage-node-wrap:nth-child(7) { animation-delay: 0.18s; }
+    .stage-path .stage-node-wrap:nth-child(8) { animation-delay: 0.21s; }
+    .stage-path .stage-node-wrap:nth-child(9) { animation-delay: 0.24s; }
+    .stage-path .stage-node-wrap:nth-child(10) { animation-delay: 0.27s; }
+    .choice-btn.correct { animation: pulseOk 0.3s ease; }
+    .choice-btn.wrong { animation: shakeX 0.3s ease; }
+    .combo-badge { animation: popIn 0.25s ease both; }
+    .feedback-banner { animation: fadeUp 0.25s ease both; }
+    .modal-card { animation: modalIn 0.22s ease both; }
+    .btn-3d:hover { transform: translateY(-1px); }
+    .stage-stars { animation: popIn 0.3s ease both; }
+
+    /* Home nav (単語帳 / 教科書) */
+    .home-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+    .nav-card {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: 18px;
+      padding: 16px; cursor: pointer; font-family: var(--font-sans); text-align: left;
+      box-shadow: 0 5px 0 var(--border); transition: transform 0.12s, border-color 0.15s;
+      animation: fadeUp 0.35s ease both;
+    }
+    .nav-card:hover { transform: translateY(-2px); border-color: var(--blue); }
+    .nav-card .nav-icon { font-size: 26px; }
+    .nav-card .nav-title { font-size: 16px; font-weight: 800; color: var(--text-main); }
+    .nav-card .nav-sub { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+    /* Sub screens (単語帳 / 教科書) */
+    .sub-screen { animation: fadeUp 0.28s ease both; }
+    .sub-head { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .sub-head h2 { margin: 0; font-size: 19px; }
+    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .chip {
+      padding: 7px 14px; border-radius: 999px; border: 2px solid var(--border);
+      background: var(--bg-card); color: var(--text-muted); font-size: 13px; font-weight: 800;
+      cursor: pointer; font-family: var(--font-sans);
+    }
+    .chip.active { border-color: var(--blue); background: var(--blue-soft); color: var(--blue-dark); }
+
+    /* Word list */
+    .word-item {
+      width: 100%; background: var(--bg-card); border: 2px solid var(--border); border-radius: 14px;
+      padding: 12px 16px; margin-bottom: 10px; text-align: left; cursor: pointer;
+      font-family: var(--font-sans); box-shadow: 0 3px 0 var(--border); color: var(--text-main);
+    }
+    .word-item .w-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .word-item .w-term { font-size: 16.5px; font-weight: 800; }
+    .word-item .w-reading { font-size: 12px; color: var(--text-light); font-weight: 700; }
+    .field-tag {
+      margin-left: auto; font-size: 11px; font-weight: 800; padding: 2px 9px;
+      border-radius: 999px; background: var(--blue-soft); color: var(--blue-dark); white-space: nowrap;
+    }
+    .word-item .w-def { display: none; margin-top: 8px; font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+    .word-item.open .w-def { display: block; animation: fadeUp 0.22s ease both; }
+    .word-item .w-formula { margin-top: 6px; font-size: 15px; color: var(--text-main); }
+
+    /* Flashcard */
+    .flash-wrap { perspective: 900px; margin-bottom: 16px; }
+    .flash-card {
+      position: relative; width: 100%; min-height: 230px; cursor: pointer;
+      transform-style: preserve-3d; transition: transform 0.45s ease;
+    }
+    .flash-card.flipped { transform: rotateY(180deg); }
+    .flash-face {
+      position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden;
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px 20px; text-align: center; gap: 8px;
+    }
+    .flash-face.back { transform: rotateY(180deg); justify-content: flex-start; overflow-y: auto; }
+    .flash-term { font-size: 30px; font-weight: 800; }
+    .flash-reading { font-size: 14px; color: var(--text-light); font-weight: 700; }
+    .flash-hint { font-size: 12px; color: var(--text-light); margin-top: 10px; }
+    .flash-def { font-size: 15.5px; line-height: 1.7; text-align: left; }
+    .flash-formula { font-size: 17px; margin-top: 8px; }
+    .flash-nav { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    /* Textbook */
+    .lesson-item {
+      width: 100%; display: flex; align-items: center; gap: 14px;
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: 18px;
+      padding: 14px 16px; margin-bottom: 12px; cursor: pointer; text-align: left;
+      font-family: var(--font-sans); box-shadow: 0 5px 0 var(--border); color: var(--text-main);
+      transition: transform 0.12s, border-color 0.15s;
+    }
+    .lesson-item:hover { transform: translateY(-2px); border-color: var(--blue); }
+    .lesson-body { font-size: 15px; line-height: 1.75; }
+    .lesson-body h3 { font-size: 16px; margin: 20px 0 8px; color: var(--blue-dark); }
+    .lesson-body ul { margin: 6px 0; padding-left: 20px; }
+    .lesson-body li { margin-bottom: 6px; }
+    .formula-box {
+      background: var(--blue-soft); border: 1.5px solid #bfdbfe; border-radius: 14px;
+      padding: 14px 16px; text-align: center; font-size: 18px; margin: 10px 0;
+    }
+    .example-box {
+      background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 14px;
+      padding: 14px 16px; margin: 10px 0; font-size: 14.5px; line-height: 1.7;
+    }
+
+    /* Account benefits box */
+    .benefit-box {
+      background: var(--green-soft); border: 1.5px solid #86efac; border-radius: 14px;
+      padding: 12px 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; color: var(--text-main);
+    }
+    .benefit-box .b-title { font-weight: 800; margin-bottom: 4px; }
+    .benefit-box ul { margin: 0; padding-left: 18px; }
+    .benefit-box li { margin-bottom: 2px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01s !important; transition-duration: 0.01s !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="hud">
+    <div class="hud-inner">
+      <div class="brand">
+        <span class="brand-icon">⚛</span>
+        <span>PhysiQ</span>
+      </div>
+      <div class="hud-stats">
+        <span class="stat-pill stat-streak" id="hudStreakPill" title="連続学習日数">🔥 <span id="hudStreak">0</span>日</span>
+        <span class="stat-pill stat-xp" title="獲得XP">⚡ <span id="hudXp">0</span></span>
+        <button id="soundBtn" class="stat-btn" title="効果音 ON/OFF">🔊</button>
+        <button id="accountBtn" class="stat-btn">👤 <span id="hudName">ゲスト</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="appMain" class="container"></main>
+</div>
+
+<!-- Account / Profile Modal -->
+<div id="accountModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="margin:0; font-size:18px;">アカウント・学習プロフィール</h2>
+      <button id="closeAccountModal" class="stat-btn">✕</button>
+    </div>
+
+    <div id="existingAccountsWrap" style="margin-bottom:16px;"></div>
+
+    <div class="benefit-box">
+      <div class="b-title">✨ アカウント作成のメリット</div>
+      <ul>
+        <li>毎日のストリーク機能が使える（ゲストでは使えません）</li>
+        <li>名前とアバターで自分のプロフィールになる</li>
+        <li>XP・ストリーク・進捗がアカウントごとに保存される</li>
+        <li>ゲストの進捗と混ざらない</li>
+        <li>複数アカウントを切り替えて使える</li>
+      </ul>
+    </div>
+
+    <div style="border-top:1.5px solid var(--border); padding-top:14px;">
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">✨ 新しいアカウントを作成</div>
+      <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">ニックネーム（本名不要）</label>
+      <input id="newNickInput" class="text-input" type="text" maxlength="16" placeholder="例：ニュートン見習い" style="margin-top:4px; margin-bottom:10px;" />
+
+      <label style="font-size:12.5px; font-weight:700; color:var(--text-muted);">アバターを選択</label>
+      <div id="avatarPicker" class="avatar-grid">
+        <button type="button" class="avatar-opt selected" data-av="🚀">🚀</button>
+        <button type="button" class="avatar-opt" data-av="🍎">🍎</button>
+        <button type="button" class="avatar-opt" data-av="🧲">🧲</button>
+        <button type="button" class="avatar-opt" data-av="🪐">🪐</button>
+        <button type="button" class="avatar-opt" data-av="🔭">🔭</button>
+        <button type="button" class="avatar-opt" data-av="🔬">🔬</button>
+        <button type="button" class="avatar-opt" data-av="🧪">🧪</button>
+        <button type="button" class="avatar-opt" data-av="🧬">🧬</button>
+        <button type="button" class="avatar-opt" data-av="⚡">⚡</button>
+        <button type="button" class="avatar-opt" data-av="🌟">🌟</button>
+        <button type="button" class="avatar-opt" data-av="☄️">☄️</button>
+        <button type="button" class="avatar-opt" data-av="🤖">🤖</button>
+        <button type="button" class="avatar-opt" data-av="👽">👽</button>
+        <button type="button" class="avatar-opt" data-av="🧑‍🚀">🧑‍🚀</button>
+        <button type="button" class="avatar-opt" data-av="🦊">🦊</button>
+        <button type="button" class="avatar-opt" data-av="🦉">🦉</button>
+        <button type="button" class="avatar-opt" data-av="🐱">🐱</button>
+        <button type="button" class="avatar-opt" data-av="🐶">🐶</button>
+        <button type="button" class="avatar-opt" data-av="🐰">🐰</button>
+        <button type="button" class="avatar-opt" data-av="🐼">🐼</button>
+        <button type="button" class="avatar-opt" data-av="🐸">🐸</button>
+        <button type="button" class="avatar-opt" data-av="🦁">🦁</button>
+        <button type="button" class="avatar-opt" data-av="🐙">🐙</button>
+        <button type="button" class="avatar-opt" data-av="🦄">🦄</button>
+      </div>
+
+      <button id="createAccBtn" class="btn-3d btn-blue" style="width:100%;">このアカウントで始める</button>
+
+      <button id="guestStartBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:10px;">ゲストで始める（アカウントなしでもOK）</button>
+    </div>
+
+    <div style="margin-top:14px; font-size:11.5px; color:var(--text-light); line-height:1.5;">
+      ※アカウント・ストリーク・進捗データはお使いの端末のブラウザ内に安全に保存されます（個人情報やパスワードは不要です）。
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const raw = String.raw;
+
+  const STAGES = [
+    {
+      id: "st1", num: 1, title: "運動のきほん", sub: "速さ・加速度・落下", icon: "🏃", color: "#2563eb",
+      questions: [
+        { q: raw`速さ $15\,\mathrm{m/s}$ で走る電車が、10秒間に進む距離は何 $\mathrm{m}$ か。`, opts: ["1.5 m", "25 m", "150 m", "300 m"], ans: 2, exp: raw`距離 $=$ 速さ $\times$ 時間 $= 15 \times 10 = 150\,\mathrm{m}$ です。` },
+        { q: raw`静止していた物体が一定の加速度 $2.0\,\mathrm{m/s^2}$ で動き出した。4.0秒後の速さは何 $\mathrm{m/s}$ か。`, opts: ["2.0 m/s", "4.0 m/s", "8.0 m/s", "16 m/s"], ans: 2, exp: raw`$v = v_0 + at = 0 + 2.0 \times 4.0 = 8.0\,\mathrm{m/s}$ です。` },
+        { q: raw`空気抵抗がないとき、重い鉄球と軽い羽を同時に落とすとどうなるか。`, opts: ["鉄球が先に着く", "羽が先に着く", "同時に着く", "途中で止まる"], ans: 2, exp: raw`重力加速度 $g$ は質量によらず一定なので、同時に地面に着きます。` }
+      ]
+    },
+    {
+      id: "st2", num: 2, title: "力とニュートンの法則", sub: "運動方程式・摩擦・つりあい", icon: "⚖️", color: "#0284c7",
+      questions: [
+        { q: raw`質量 $3.0\,\mathrm{kg}$ の物体に $12\,\mathrm{N}$ の力を加えたときの加速度は何 $\mathrm{m/s^2}$ か。`, opts: ["0.25 m/s²", "4.0 m/s²", "9.0 m/s²", "36 m/s²"], ans: 1, exp: raw`運動方程式 $ma = F$ より $a = 12 / 3.0 = 4.0\,\mathrm{m/s^2}$ です。` },
+        { q: raw`電車が急ブレーキをかけたとき、乗客が前に倒れそうになるのはどの法則によるか。`, opts: ["慣性の法則", "作用・反作用の法則", "フックの法則", "オームの法則"], ans: 0, exp: raw`元の運動状態を保とうとする「慣性の法則」による現象です。` },
+        { q: raw`ばね定数 $50\,\mathrm{N/m}$ のばねを $0.20\,\mathrm{m}$ 伸ばすのに必要な力は何 $\mathrm{N}$ か。`, opts: ["10 N", "25 N", "100 N", "250 N"], ans: 0, exp: raw`フックの法則 $F = kx = 50 \times 0.20 = 10\,\mathrm{N}$ です。` }
+      ]
+    },
+    {
+      id: "st3", num: 3, title: "仕事とエネルギー", sub: "位置・運動エネルギー保存", icon: "🎢", color: "#0d9488",
+      questions: [
+        { q: raw`物体に $20\,\mathrm{N}$ の力を加えて力の向きに $3.0\,\mathrm{m}$ 動かしたとき、した仕事は何 $\mathrm{J}$ か。`, opts: ["6.7 J", "23 J", "60 J", "120 J"], ans: 2, exp: raw`仕事 $W = Fx = 20 \times 3.0 = 60\,\mathrm{J}$ です。` },
+        { q: raw`質量 $2.0\,\mathrm{kg}$ の物体が速さ $5.0\,\mathrm{m/s}$ で動いているときの運動エネルギーは何 $\mathrm{J}$ か。`, opts: ["5.0 J", "10 J", "25 J", "50 J"], ans: 2, exp: raw`$K = \frac{1}{2}mv^2 = \frac{1}{2}\times 2.0 \times 5.0^2 = 25\,\mathrm{J}$ です。` },
+        { q: raw`ジェットコースターが坂を下って最も低い位置に来たとき、最大になるものはどれか。`, opts: ["位置エネルギー", "速さ（運動エネルギー）", "質量", "重力加速度"], ans: 1, exp: raw`位置エネルギーがすべて運動エネルギーに変わるため、最下点で速さが最大になります。` }
+      ]
+    },
+    {
+      id: "st4", num: 4, title: "運動量と円運動", sub: "衝突・モーメント・万有引力", icon: "🪐", color: "#16a34a",
+      questions: [
+        { q: raw`質量 $2.0\,\mathrm{kg}$ の物体が速さ $6.0\,\mathrm{m/s}$ で動いているときの運動量の大きさは何 $\mathrm{kg\cdot m/s}$ か。`, opts: ["3.0", "8.0", "12", "36"], ans: 2, exp: raw`運動量 $p = mv = 2.0 \times 6.0 = 12\,\mathrm{kg\cdot m/s}$ です。` },
+        { q: raw`ドアノブが蝶番から遠い位置についているのは、何を大きくするためか。`, opts: ["力のモーメント", "摩擦力", "運動エネルギー", "遠心力"], ans: 0, exp: raw`うでの長さ $l$ を大きくすることで、小さい力でも大きな力のモーメント $M = Fl$ を得られます。` },
+        { q: raw`惑星が太陽のまわりを回るのに必要な向心力を与えている力は何か。`, opts: ["静電気力", "万有引力", "弾性力", "磁力"], ans: 1, exp: raw`太陽と惑星の間の万有引力 $F = G\frac{Mm}{r^2}$ が向心力としてはたらきます。` }
+      ]
+    },
+    {
+      id: "st5", num: 5, title: "熱と気体の法則", sub: "絶対温度・状態方程式・第1法則", icon: "🔥", color: "#ea580c",
+      questions: [
+        { q: raw`セルシウス温度 $27^\circ\mathrm{C}$ を絶対温度 $[\mathrm{K}]$ で表すとおよそいくらか。`, opts: ["246 K", "273 K", "300 K", "327 K"], ans: 2, exp: raw`$T = t + 273 = 27 + 273 = 300\,\mathrm{K}$ です。` },
+        { q: raw`気体に $400\,\mathrm{J}$ の熱を加えたところ、外部に $150\,\mathrm{J}$ の仕事をした。内部エネルギーの増加は何 $\mathrm{J}$ か。`, opts: ["150 J", "250 J", "400 J", "550 J"], ans: 1, exp: raw`熱力学第1法則 $\Delta U = Q - W = 400 - 150 = 250\,\mathrm{J}$ です。` },
+        { q: raw`空気入れでタイヤの空気を素早く圧縮すると先端が熱くなるのはなぜか。`, opts: ["外部から仕事をされたため", "熱を放出したため", "分子が消えたため", "気圧が下がったため"], ans: 0, exp: raw`断熱圧縮により外部から正の仕事をされ、内部エネルギー（温度）が上昇します。` }
+      ]
+    },
+    {
+      id: "st6", num: 6, title: "波の性質と音", sub: "波長・振動数・ドップラー効果", icon: "🌊", color: "#0891b2",
+      questions: [
+        { q: raw`振動数 $5.0\,\mathrm{Hz}$、波長 $2.0\,\mathrm{m}$ の波が伝わる速さは何 $\mathrm{m/s}$ か。`, opts: ["0.4 m/s", "2.5 m/s", "7.0 m/s", "10 m/s"], ans: 3, exp: raw`波の基本式 $v = f\lambda = 5.0 \times 2.0 = 10\,\mathrm{m/s}$ です。` },
+        { q: raw`振動数 $440\,\mathrm{Hz}$ と $443\,\mathrm{Hz}$ のおんさを同時に鳴らすと、1秒間に何回のうなりが聞こえるか。`, opts: ["1回", "3回", "6回", "441回"], ans: 1, exp: raw`うなりの振動数は $|443 - 440| = 3\,\mathrm{Hz}$（1秒間に3回）です。` },
+        { q: raw`救急車が近づいてくるとき、サイレンの音が本来の音より高く聞こえる現象を何というか。`, opts: ["全反射", "ドップラー効果", "回折", "共鳴"], ans: 1, exp: raw`音源の移動によって波面が縮み、振動数が高く聞こえる現象をドップラー効果といいます。` }
+      ]
+    },
+    {
+      id: "st7", num: 7, title: "光の干渉とレンズ", sub: "屈折・全反射・シャボン玉", icon: "🌈", color: "#7c3aed",
+      questions: [
+        { q: raw`光ファイバーの中で光が外に漏れず遠くまで伝わるのはどの現象を利用しているか。`, opts: ["全反射", "偏光", "ドップラー効果", "熱伝導"], ans: 0, exp: raw`臨界角以上の角度で入射した光が境界面で100%反射される「全反射」を利用しています。` },
+        { q: raw`シャボン玉の表面が虹色に見える主な理由は何か。`, opts: ["薄膜の干渉", "万有引力", "電磁誘導", "静電気"], ans: 0, exp: raw`膜の表と裏で反射した光が干渉して特定の色が強めあう「薄膜の干渉」によるものです。` },
+        { q: raw`虫眼鏡（凸レンズ）で文字を大きく見るとき、できる像はどれか。`, opts: ["倒立実像", "正立実像", "正立虚像", "倒立虚像"], ans: 2, exp: raw`焦点の内側に物体を置くと、大きく拡大された「正立虚像」が見えます。` }
+      ]
+    },
+    {
+      id: "st8", num: 8, title: "静電気と直流回路", sub: "オームの法則・電力・コンデンサー", icon: "🔋", color: "#4f46e5",
+      questions: [
+        { q: raw`$10\,\Omega$ の抵抗に $2.0\,\mathrm{A}$ の電流が流れているとき、抵抗の両端の電圧は何 $\mathrm{V}$ か。`, opts: ["0.2 V", "5.0 V", "12 V", "20 V"], ans: 3, exp: raw`オームの法則 $V = RI = 10 \times 2.0 = 20\,\mathrm{V}$ です。` },
+        { q: raw`電圧 $100\,\mathrm{V}$ で電流 $3.0\,\mathrm{A}$ が流れる家電の消費電力は何 $\mathrm{W}$ か。`, opts: ["33 W", "103 W", "300 W", "900 W"], ans: 2, exp: raw`電力 $P = IV = 3.0 \times 100 = 300\,\mathrm{W}$ です。` },
+        { q: raw`電気容量 $C$ のコンデンサーを電圧 $V$ で充電したときに蓄えられる電気量 $Q$ はどれか。`, opts: ["C / V", "V / C", "CV", "CV²"], ans: 2, exp: raw`コンデンサーの基本式 $Q = CV$ です。` }
+      ]
+    },
+    {
+      id: "st9", num: 9, title: "磁場と電磁誘導", sub: "ローレンツ力・レンツの法則・交流", icon: "🧲", color: "#db2777",
+      questions: [
+        { q: raw`コイルに磁石を近づけると電流が流れる現象を何というか。`, opts: ["電磁誘導", "光電効果", "熱膨張", "全反射"], ans: 0, exp: raw`磁束の変化によって誘導起電力が生じる現象を電磁誘導といいます。` },
+        { q: raw`磁場中で動く荷電粒子が受ける力を何というか。`, opts: ["摩擦力", "浮力", "ローレンツ力", "核力"], ans: 2, exp: raw`大きさ $f = qvB\sin\theta$ のローレンツ力を受けます。` },
+        { q: raw`日本の家庭用コンセントの交流電圧（実効値 $100\,\mathrm{V}$）の最大値はおよそ何 $\mathrm{V}$ か。`, opts: ["71 V", "100 V", "141 V", "200 V"], ans: 2, exp: raw`$V_0 = \sqrt{2}V_e \approx 1.414 \times 100 \approx 141\,\mathrm{V}$ です。` }
+      ]
+    },
+    {
+      id: "st10", num: 10, title: "量子と原子核", sub: "光電効果・半減期・E=mc²", icon: "⚛️", color: "#be123c",
+      questions: [
+        { q: raw`金属に光を当てると電子が飛び出す現象を何というか。`, opts: ["光電効果", "電磁誘導", "ドップラー効果", "共鳴"], ans: 0, exp: raw`光が光子（エネルギー $h\nu$）として電子を弾き出す「光電効果」です。` },
+        { q: raw`半減期 5 年の放射性物質が、10 年後に残っている割合は元の何倍か。`, opts: ["1/2 倍", "1/4 倍", "1/8 倍", "0 倍"], ans: 1, exp: raw`10年は半減期2回分なので $\left(\frac{1}{2}\right)^2 = \frac{1}{4}$ 倍になります。` },
+        { q: raw`太陽が莫大なエネルギーを出し続けている核反応はどれか。`, opts: ["核融合", "化学燃焼", "電気分解", "断熱膨張"], ans: 0, exp: raw`軽い水素原子核同士が結びつく「核融合」により質量欠損分のエネルギーが解放されます。` }
+      ]
+    }
+  ];
+const EXTRA_QUESTIONS = {
+  st1: [
+    { q: raw`家から駅まで $1200\,\mathrm{m}$ の道のりを10分間で歩いた。平均の速さは何 $\mathrm{m/s}$ か。`, opts: ["1.2 m/s", "12 m/s", "2.0 m/s", "20 m/s"], ans: 2, exp: raw`10分間は600秒なので、速さ $= 1200 / 600 = 2.0\,\mathrm{m/s}$ です。` },
+    { q: raw`物体の速さが2秒間に $4.0\,\mathrm{m/s}$ から $10\,\mathrm{m/s}$ に増えた。この物体の加速度は何 $\mathrm{m/s^2}$ か。`, opts: ["3.0 m/s²", "1.5 m/s²", "5.0 m/s²", "7.0 m/s²"], ans: 0, exp: raw`加速度 $a = \frac{10 - 4.0}{2} = 3.0\,\mathrm{m/s^2}$ です。` },
+    { q: raw`静止した状態から自由落下する物体が、3秒間に落下する距離はおよそ何 $\mathrm{m}$ か。ただし重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["15 m", "29 m", "88 m", "44 m"], ans: 3, exp: raw`落下距離 $y = \frac{1}{2}gt^2 = \frac{1}{2} \times 9.8 \times 3^2 = 44.1$ なので、およそ $44\,\mathrm{m}$ です。` },
+    { q: raw`物体を静かに落とし始めてから2秒後の速さはおよそ何 $\mathrm{m/s}$ か。ただし重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["9.8 m/s", "20 m/s", "29 m/s", "39 m/s"], ans: 1, exp: raw`自由落下の速さは $v = gt = 9.8 \times 2 = 19.6$ なので、およそ $20\,\mathrm{m/s}$ です。` },
+    { q: raw`速さと時間の関係を表す $v$-$t$ グラフで、グラフと時間軸に囲まれた面積が表す物理量はどれか。`, opts: ["加速度", "力", "変位（移動距離）", "仕事"], ans: 2, exp: raw`面積は速さ $\times$ 時間に対応し、変位（移動距離）を表します。` },
+    { q: raw`小球を地面から真上に $19.6\,\mathrm{m/s}$ の速さで投げ上げた。小球が最高点に達するのは何秒後か。ただし重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["2秒", "1秒", "3秒", "4秒"], ans: 0, exp: raw`最高点では速さが0になるので、$0 = 19.6 - 9.8t$ より $t = 2$ 秒です。` },
+    { q: raw`自動車の速さ $72\,\mathrm{km/h}$ は何 $\mathrm{m/s}$ か。`, opts: ["10 m/s", "36 m/s", "72 m/s", "20 m/s"], ans: 3, exp: raw`$72\,\mathrm{km/h} = \frac{72000\,\mathrm{m}}{3600} = 20\,\mathrm{m/s}$ です（3600は1時間の秒数）。` }
+  ],
+  st2: [
+    { q: raw`質量 $5.0\,\mathrm{kg}$ の物体にはたらく重力の大きさは何 $\mathrm{N}$ か。ただし重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["9.8 N", "25 N", "98 N", "49 N"], ans: 3, exp: raw`重力の大きさは $mg = 5.0 \times 9.8 = 49\,\mathrm{N}$ です。` },
+    { q: raw`ロケットがガスを後方へ噴射することで前方へ進むのは、どの法則によるものか。`, opts: ["慣性の法則", "作用・反作用の法則", "フックの法則", "エネルギー保存の法則"], ans: 1, exp: raw`ガスを押す力の反作用として、ロケットはガスから逆向きの力を受けるため進みます。` },
+    { q: raw`質量 $2.0\,\mathrm{kg}$ の物体が加速度 $3.0\,\mathrm{m/s^2}$ で運動している。この物体にはたらく合力は何 $\mathrm{N}$ か。`, opts: ["6.0 N", "1.5 N", "5.0 N", "12 N"], ans: 0, exp: raw`運動方程式 $F = ma = 2.0 \times 3.0 = 6.0\,\mathrm{N}$ です。` },
+    { q: raw`水平な粗い面の上で質量 $2.0\,\mathrm{kg}$ の物体が滑っている。動摩擦係数が $0.25$ のとき、動摩擦力の大きさは何 $\mathrm{N}$ か。ただし重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["2.5 N", "9.8 N", "4.9 N", "20 N"], ans: 2, exp: raw`動摩擦力 $f = \mu' mg = 0.25 \times 2.0 \times 9.8 = 4.9\,\mathrm{N}$ です。` },
+    { q: raw`質量 $3.0\,\mathrm{kg}$ の物体を糸でつるして静止させた。糸の張力の大きさは何 $\mathrm{N}$ か。ただし重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["9.8 N", "29 N", "20 N", "39 N"], ans: 1, exp: raw`力のつりあいから張力は重力と等しく、$mg = 3.0 \times 9.8 = 29.4$ なのでおよそ $29\,\mathrm{N}$ です。` },
+    { q: raw`ばね定数 $200\,\mathrm{N/m}$ のばねに $10\,\mathrm{N}$ の力を加えた。ばねの伸びは何 $\mathrm{cm}$ か。`, opts: ["2.0 cm", "10 cm", "20 cm", "5.0 cm"], ans: 3, exp: raw`フックの法則 $F = kx$ より $x = \frac{10}{200} = 0.050\,\mathrm{m} = 5.0\,\mathrm{cm}$ です。` },
+    { q: raw`摩擦のない水平な面の上を滑る物体にはたらく合力は0である。この物体の運動はどうなるか。`, opts: ["だんだん遅くなって止まる", "速さが増し続ける", "同じ速さでまっすぐ進み続ける", "円を描いて進む"], ans: 2, exp: raw`合力が0のとき速度は変化しないので、物体は等速直線運動を続けます（慣性の法則）。` }
+  ],
+  st3: [
+    { q: raw`質量 $2.0\,\mathrm{kg}$ の物体が、基準面から $5.0\,\mathrm{m}$ の高さにある。重力による位置エネルギーは何 $\mathrm{J}$ か。ただし重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["49 J", "98 J", "150 J", "200 J"], ans: 1, exp: raw`位置エネルギー $U = mgh = 2.0 \times 9.8 \times 5.0 = 98\,\mathrm{J}$ です。` },
+    { q: raw`重いかばんを手に持って、水平な道をまっすぐ歩いた。この間、重力がかばんにした仕事はどうなるか。`, opts: ["正の仕事をした", "負の仕事をした", "仕事は0である", "かばんの質量に比例する"], ans: 2, exp: raw`重力の向きと移動の向きが垂直なので、重力のする仕事は0です。` },
+    { q: raw`ばね定数 $100\,\mathrm{N/m}$ のばねを $0.10\,\mathrm{m}$ 縮めた。ばねに蓄えられる弾性エネルギーは何 $\mathrm{J}$ か。`, opts: ["0.50 J", "1.0 J", "5.0 J", "10 J"], ans: 0, exp: raw`弾性エネルギーは $\frac{1}{2}kx^2 = \frac{1}{2} \times 100 \times 0.10^2 = 0.50\,\mathrm{J}$ です。` },
+    { q: raw`高さ $20\,\mathrm{m}$ の場所から物体を静かに落とした。地面に達する直前の速さはおよそ何 $\mathrm{m/s}$ か。ただし重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["10 m/s", "14 m/s", "28 m/s", "20 m/s"], ans: 3, exp: raw`力学的エネルギー保存 $mgh = \frac{1}{2}mv^2$ より $v = \sqrt{2 \times 9.8 \times 20} = \sqrt{392} \approx 20\,\mathrm{m/s}$ です。` },
+    { q: raw`質量 $1.0\,\mathrm{kg}$ の物体の速さが $2.0\,\mathrm{m/s}$ から $4.0\,\mathrm{m/s}$ に増えた。運動エネルギーの増加は何 $\mathrm{J}$ か。`, opts: ["2.0 J", "4.0 J", "6.0 J", "8.0 J"], ans: 2, exp: raw`増加分は $\frac{1}{2} \times 1.0 \times (4.0^2 - 2.0^2) = \frac{1}{2} \times 12 = 6.0\,\mathrm{J}$ です。` },
+    { q: raw`$600\,\mathrm{J}$ の仕事を10秒間で行った。この仕事率は何 $\mathrm{W}$ か。`, opts: ["6.0 W", "60 W", "600 W", "6000 W"], ans: 1, exp: raw`仕事率 $P = \frac{W}{t} = \frac{600}{10} = 60\,\mathrm{W}$ です。` },
+    { q: raw`表面が粗い坂を物体が滑り降りた。物体の力学的エネルギー（位置エネルギーと運動エネルギーの和）はどうなるか。`, opts: ["減る（一部が熱などに変わる）", "増える", "変わらない", "質量によって決まる"], ans: 0, exp: raw`摩擦力が負の仕事をするため、力学的エネルギーの一部が熱エネルギーなどに変わって減ります。` }
+  ],
+  st4: [
+    { q: raw`物体に $10\,\mathrm{N}$ の力を2秒間加え続けた。この力が物体に与えた力積の大きさは何 $\mathrm{N\cdot s}$ か。`, opts: ["5.0 N·s", "10 N·s", "20 N·s", "40 N·s"], ans: 2, exp: raw`力積は力 $\times$ 時間 $= 10 \times 2 = 20\,\mathrm{N\cdot s}$ です。` },
+    { q: raw`質量 $2.0\,\mathrm{kg}$ の物体Aが速さ $3.0\,\mathrm{m/s}$ で進み、静止していた質量 $2.0\,\mathrm{kg}$ の物体Bに衝突して合体した。合体後の速さは何 $\mathrm{m/s}$ か。`, opts: ["0.75 m/s", "1.5 m/s", "3.0 m/s", "6.0 m/s"], ans: 1, exp: raw`運動量保存より $2.0 \times 3.0 = (2.0 + 2.0)v$ なので $v = 1.5\,\mathrm{m/s}$ です。` },
+    { q: raw`2つの物体の間の距離を2倍にした。2物体間にはたらく万有引力の大きさはもとの何倍になるか。`, opts: ["2倍", "4倍", "1/2倍", "1/4倍"], ans: 3, exp: raw`万有引力は距離の2乗に反比例するので、距離が2倍になると $\frac{1}{2^2} = \frac{1}{4}$ 倍になります。` },
+    { q: raw`等速円運動をする物体が、1分間に30回転した。この物体の周期は何秒か。`, opts: ["2秒", "0.5秒", "30秒", "90秒"], ans: 0, exp: raw`周期は1回転にかかる時間なので、$60 \div 30 = 2$ 秒です。` },
+    { q: raw`半径 $2.0\,\mathrm{m}$ の円周上を速さ $4.0\,\mathrm{m/s}$ で等速円運動する物体の向心加速度の大きさは何 $\mathrm{m/s^2}$ か。`, opts: ["2.0 m/s²", "4.0 m/s²", "8.0 m/s²", "16 m/s²"], ans: 2, exp: raw`向心加速度 $a = \frac{v^2}{r} = \frac{4.0^2}{2.0} = 8.0\,\mathrm{m/s^2}$ です。` },
+    { q: raw`物体が力積を受けると、物体の何が変化するか。`, opts: ["運動エネルギー", "運動量", "質量", "温度"], ans: 1, exp: raw`力積は運動量の変化と等しくなります（運動量の変化 $=$ 力 $\times$ 時間）。` },
+    { q: raw`ドアの蝶番から $0.50\,\mathrm{m}$ 離れた位置に、ドアに垂直に $20\,\mathrm{N}$ の力を加えた。力のモーメントの大きさは何 $\mathrm{N\cdot m}$ か。`, opts: ["40 N·m", "5.0 N·m", "20 N·m", "10 N·m"], ans: 3, exp: raw`力のモーメント $M = Fl = 20 \times 0.50 = 10\,\mathrm{N\cdot m}$ です。` }
+  ],
+  st5: [
+    { q: raw`水 $200\,\mathrm{g}$ の温度を $10\,\mathrm{K}$ 上げるのに必要な熱量は何 $\mathrm{J}$ か。ただし水の比熱を $4.2\,\mathrm{J/(g\cdot K)}$ とする。`, opts: ["840 J", "4200 J", "8400 J", "84000 J"], ans: 2, exp: raw`熱量 $Q = mc\Delta T = 200 \times 4.2 \times 10 = 8400\,\mathrm{J}$ です。` },
+    { q: raw`ある物体に $500\,\mathrm{J}$ の熱を加えたら、温度が $5.0\,\mathrm{K}$ 上がった。この物体の熱容量は何 $\mathrm{J/K}$ か。`, opts: ["100 J/K", "50 J/K", "500 J/K", "2500 J/K"], ans: 0, exp: raw`熱容量 $C = \frac{Q}{\Delta T} = \frac{500}{5.0} = 100\,\mathrm{J/K}$ です。` },
+    { q: raw`一定量の気体の温度を一定に保ちながら、圧力をもとの2倍にした。気体の体積はもとの何倍になるか。`, opts: ["2倍", "1/2倍", "変わらない", "1/4倍"], ans: 1, exp: raw`ボイルの法則 $pV = $ 一定より、圧力が2倍になると体積は $\frac{1}{2}$ 倍になります。` },
+    { q: raw`一定量の気体の圧力を一定に保ちながら、絶対温度をもとの2倍にした。気体の体積はもとの何倍になるか。`, opts: ["1/2倍", "変わらない", "4倍", "2倍"], ans: 3, exp: raw`シャルルの法則 $\frac{V}{T} = $ 一定より、体積は絶対温度に比例するので2倍になります。` },
+    { q: raw`理想気体の圧力 $p$、体積 $V$、物質量 $n$、絶対温度 $T$ の関係を表す状態方程式はどれか。ただし $R$ は気体定数である。`, opts: ["pV = nRT", "pV = nR/T", "p/V = nRT", "pT = nRV"], ans: 0, exp: raw`理想気体の状態方程式は $pV = nRT$ です。` },
+    { q: raw`気体が外部から $300\,\mathrm{J}$ の仕事をされ、同時に $100\,\mathrm{J}$ の熱を外部に放出した。気体の内部エネルギーの変化はどれか。`, opts: ["100 J 減少", "400 J 増加", "200 J 増加", "変化しない"], ans: 2, exp: raw`熱力学第1法則より、内部エネルギーの変化は（加えられた熱）$-$（外部にした仕事）$= -100 - (-300) = 200\,\mathrm{J}$ の増加です。` },
+    { q: raw`気体の温度が上がると、気体を構成する分子の平均の運動エネルギーはどうなるか。`, opts: ["小さくなる", "大きくなる", "変わらない", "ゼロになる"], ans: 1, exp: raw`分子の平均の運動エネルギーは絶対温度に比例するので、温度が上がると大きくなります。` }
+  ],
+  st6: [
+    { q: raw`振動数 $2.5\,\mathrm{Hz}$ の波の周期は何秒か。`, opts: ["0.25秒", "0.40秒", "2.5秒", "4.0秒"], ans: 1, exp: raw`周期 $T = \frac{1}{f} = \frac{1}{2.5} = 0.40$ 秒です。` },
+    { q: raw`空気中を伝わる音の速さを $340\,\mathrm{m/s}$ とする。振動数 $170\,\mathrm{Hz}$ の音の波長は何 $\mathrm{m}$ か。`, opts: ["0.50 m", "1.0 m", "4.0 m", "2.0 m"], ans: 3, exp: raw`波長 $\lambda = \frac{v}{f} = \frac{340}{170} = 2.0\,\mathrm{m}$ です。` },
+    { q: raw`長さ $0.50\,\mathrm{m}$ の弦を伝わる波の速さが $100\,\mathrm{m/s}$ のとき、この弦の基本振動の振動数は何 $\mathrm{Hz}$ か。`, opts: ["100 Hz", "50 Hz", "200 Hz", "400 Hz"], ans: 0, exp: raw`基本振動では波長が弦の長さの2倍の $1.0\,\mathrm{m}$ になるので、$f = \frac{100}{1.0} = 100\,\mathrm{Hz}$ です。` },
+    { q: raw`大きな山に向かって声を出したところ、2秒後にこだまが返ってきた。音の速さを $340\,\mathrm{m/s}$ として、山までの距離は何 $\mathrm{m}$ か。`, opts: ["170 m", "680 m", "340 m", "1020 m"], ans: 2, exp: raw`音は往復で2秒かかるので片道は1秒、距離は $340 \times 1 = 340\,\mathrm{m}$ です。` },
+    { q: raw`ひもを伝わる波が、壁に固定された端（固定端）で反射するとどうなるか。`, opts: ["そのままの形で返ってくる", "山と谷が逆になって返ってくる", "消えてなくなる", "速さが2倍になって返ってくる"], ans: 1, exp: raw`固定端反射では位相が反転し、山は谷に、谷は山になって返ってきます。` },
+    { q: raw`振動数 $400\,\mathrm{Hz}$ の警笛を鳴らす車両が、速さ $68\,\mathrm{m/s}$ で静止した観測者に近づいている。観測者が聞く音の振動数は何 $\mathrm{Hz}$ か。ただし音の速さを $340\,\mathrm{m/s}$ とする。`, opts: ["320 Hz", "400 Hz", "480 Hz", "500 Hz"], ans: 3, exp: raw`ドップラー効果より $f' = \frac{340}{340 - 68} \times 400 = 500\,\mathrm{Hz}$ です。` },
+    { q: raw`音の大きさ（強さ）は、音波の何によって決まるか。`, opts: ["振動数", "波長", "振幅", "伝わる速さ"], ans: 2, exp: raw`音の大きさは振幅で決まります。振動数は音の高さを決めます。` }
+  ],
+  st7: [
+    { q: raw`光が空気中から水中へ進むとき、境界面で進行方向が変わる（屈折する）のはなぜか。`, opts: ["水が光を吸収するから", "媒質によって光の速さが異なるから", "光の色が変わるから", "重力がはたらくから"], ans: 1, exp: raw`屈折は、媒質ごとに光の速さが違うために起こります。` },
+    { q: raw`焦点距離 $20\,\mathrm{cm}$ の凸レンズから $30\,\mathrm{cm}$ 離れた位置に物体を置いた。像ができるのはレンズから何 $\mathrm{cm}$ の位置か。`, opts: ["12 cm", "30 cm", "45 cm", "60 cm"], ans: 3, exp: raw`レンズの式 $\frac{1}{30} + \frac{1}{b} = \frac{1}{20}$ より $\frac{1}{b} = \frac{1}{60}$、つまり $b = 60\,\mathrm{cm}$（倒立実像）です。` },
+    { q: raw`光が細いすき間を通るとき、すき間の後ろ側に回り込むように広がる現象を何というか。`, opts: ["反射", "屈折", "回折", "全反射"], ans: 2, exp: raw`波が障害物の裏側へ回り込んで広がる現象を回折といいます。` },
+    { q: raw`2つの光の波が干渉して強め合うのは、2つの光の経路差がどのようなときか。`, opts: ["波長の整数倍のとき", "波長の半分の奇数倍のとき", "振幅が異なるとき", "速さが異なるとき"], ans: 0, exp: raw`経路差が波長の整数倍のとき、山と山が重なって強め合います。` },
+    { q: raw`真空中の光の速さを $3.0 \times 10^8\,\mathrm{m/s}$、水中での光の速さを $2.25 \times 10^8\,\mathrm{m/s}$ とする。水の屈折率はおよそいくらか。`, opts: ["0.75", "1.0", "1.3", "2.3"], ans: 2, exp: raw`屈折率 $n = \frac{3.0 \times 10^8}{2.25 \times 10^8} \approx 1.3$ です。` },
+    { q: raw`全反射が起こるのは、どのような場合か。`, opts: ["光が空気から水へ斜めに入射するとき", "光が水から空気へ、臨界角より大きい入射角で進むとき", "光が境界面に垂直に入射するとき", "光がガラスから空気へ小さい入射角で進むとき"], ans: 1, exp: raw`全反射は、屈折率の大きい媒質から小さい媒質へ、入射角が臨界角より大きいときに起こります。` },
+    { q: raw`凹レンズによってできる像は、物体の位置によらず常にどれか。`, opts: ["正立虚像", "倒立実像", "正立実像", "倒立虚像"], ans: 0, exp: raw`凹レンズでできる像は常に正立虚像（実物より小さい像）です。` }
+  ],
+  st8: [
+    { q: raw`$3\,\Omega$ の抵抗と $6\,\Omega$ の抵抗を直列に接続した。合成抵抗は何 $\Omega$ か。`, opts: ["2 Ω", "3 Ω", "9 Ω", "18 Ω"], ans: 2, exp: raw`直列接続の合成抵抗は和になるので $3 + 6 = 9\,\Omega$ です。` },
+    { q: raw`$3\,\Omega$ の抵抗と $6\,\Omega$ の抵抗を並列に接続した。合成抵抗は何 $\Omega$ か。`, opts: ["2 Ω", "4.5 Ω", "9 Ω", "18 Ω"], ans: 0, exp: raw`並列では $\frac{1}{R} = \frac{1}{3} + \frac{1}{6} = \frac{1}{2}$ より $R = 2\,\Omega$ です。` },
+    { q: raw`$4\,\Omega$ の抵抗に $12\,\mathrm{V}$ の電圧を加えた。流れる電流は何 $\mathrm{A}$ か。`, opts: ["0.33 A", "3.0 A", "8.0 A", "48 A"], ans: 1, exp: raw`オームの法則 $I = \frac{V}{R} = \frac{12}{4} = 3.0\,\mathrm{A}$ です。` },
+    { q: raw`電気容量 $2.0\,\mu\mathrm{F}$ のコンデンサーに $10\,\mathrm{V}$ の電圧を加えて充電した。蓄えられるエネルギーは何 $\mathrm{J}$ か。`, opts: ["2.0×10⁻² J", "1.0×10⁻² J", "2.0×10⁻⁴ J", "1.0×10⁻⁴ J"], ans: 3, exp: raw`エネルギー $U = \frac{1}{2}CV^2 = \frac{1}{2} \times 2.0 \times 10^{-6} \times 10^2 = 1.0 \times 10^{-4}\,\mathrm{J}$ です。` },
+    { q: raw`$10\,\Omega$ の抵抗に $2.0\,\mathrm{A}$ の電流を10秒間流した。発生するジュール熱は何 $\mathrm{J}$ か。`, opts: ["200 J", "400 J", "800 J", "2000 J"], ans: 1, exp: raw`ジュール熱 $Q = I^2Rt = 2.0^2 \times 10 \times 10 = 400\,\mathrm{J}$ です。` },
+    { q: raw`$6\,\mathrm{V}$ の電源に $2\,\Omega$ の抵抗と $4\,\Omega$ の抵抗を直列に接続した。$4\,\Omega$ の抵抗の両端の電圧は何 $\mathrm{V}$ か。`, opts: ["2 V", "3 V", "4 V", "6 V"], ans: 2, exp: raw`回路の電流は $\frac{6}{2 + 4} = 1.0\,\mathrm{A}$ なので、電圧は $1.0 \times 4 = 4\,\mathrm{V}$ です。` },
+    { q: raw`電場の中に正の電荷を置いたとき、その電荷が受ける力の向きはどうなるか。`, opts: ["電場と同じ向き", "電場と逆向き", "電場と垂直な向き", "力は受けない"], ans: 0, exp: raw`正の電荷は電場と同じ向きに力を受けます。負の電荷の場合は逆向きになります。` }
+  ],
+  st9: [
+    { q: raw`コイルに磁石のN極を近づけたとき、磁石に近い側のコイルの端はどうなるか。`, opts: ["S極になる", "N極になる", "極は生じない", "N極とS極が交互に生じる"], ans: 1, exp: raw`レンツの法則により、変化を妨げる向きに誘導電流が流れ、近づくN極を反発するようにN極が生じます。` },
+    { q: raw`100回巻きのコイルを貫く磁束が、2秒間に $0.60\,\mathrm{Wb}$ 変化した。コイルに生じる誘導起電力の大きさは何 $\mathrm{V}$ か。`, opts: ["3.0 V", "12 V", "30 V", "120 V"], ans: 2, exp: raw`誘導起電力 $V = N \frac{\Delta \Phi}{\Delta t} = 100 \times \frac{0.60}{2} = 30\,\mathrm{V}$ です。` },
+    { q: raw`一次コイルの巻数が1000回、二次コイルの巻数が100回の変圧器で、一次側に $100\,\mathrm{V}$ の交流電圧を加えた。二次側に得られる電圧は何 $\mathrm{V}$ か。`, opts: ["10 V", "100 V", "1000 V", "10000 V"], ans: 0, exp: raw`電圧は巻数に比例するので、$100 \times \frac{100}{1000} = 10\,\mathrm{V}$ です。` },
+    { q: raw`まっすぐな導線に電流を流すと、導線のまわりにはどのような形の磁場ができるか。`, opts: ["導線に平行な直線状", "導線から放射状", "磁場はできない", "電流を中心とする同心円状"], ans: 3, exp: raw`直線電流のまわりには、電流を中心とする同心円状の磁力線ができます（右ねじの法則）。` },
+    { q: raw`磁束密度 $0.50\,\mathrm{T}$ の一様な磁場の中に、磁場に垂直に長さ $0.20\,\mathrm{m}$ の導線を置き、$3.0\,\mathrm{A}$ の電流を流した。導線が受ける力の大きさは何 $\mathrm{N}$ か。`, opts: ["0.10 N", "0.30 N", "0.90 N", "3.0 N"], ans: 1, exp: raw`力の大きさは $F = BIL = 0.50 \times 3.0 \times 0.20 = 0.30\,\mathrm{N}$ です。` },
+    { q: raw`電動モーター（電動機）が回転するのは、何の現象を利用しているためか。`, opts: ["電流が磁場から力を受けること", "電磁誘導", "静電気力", "熱膨張"], ans: 0, exp: raw`モーターは、磁場の中で電流が力を受けることを利用してコイルを回転させます。` },
+    { q: raw`周期0.020秒の交流の周波数は何 $\mathrm{Hz}$ か。`, opts: ["20 Hz", "200 Hz", "50 Hz", "100 Hz"], ans: 2, exp: raw`周波数 $f = \frac{1}{T} = \frac{1}{0.020} = 50\,\mathrm{Hz}$ です。` }
+  ],
+  st10: [
+    { q: raw`半減期が8日の放射性物質がある。24日後には、もとの量の何倍になっているか。`, opts: ["1/2倍", "1/4倍", "1/8倍", "1/16倍"], ans: 2, exp: raw`24日は半減期の3回分なので、$\left(\frac{1}{2}\right)^3 = \frac{1}{8}$ 倍になります。` },
+    { q: raw`振動数 $\nu$ の光子1個が持つエネルギーはどれか。ただしプランク定数を $h$ とする。`, opts: ["h/ν", "hν", "ν/h", "hν²"], ans: 1, exp: raw`光子1個のエネルギーは $E = h\nu$ で、振動数に比例します。` },
+    { q: raw`質量 $0.010\,\mathrm{kg}$ がすべてエネルギーに変わったとすると、そのエネルギーは何 $\mathrm{J}$ か。ただし光の速さを $3.0 \times 10^8\,\mathrm{m/s}$ とする。`, opts: ["3.0×10⁶ J", "9.0×10¹⁰ J", "3.0×10¹⁶ J", "9.0×10¹⁴ J"], ans: 3, exp: raw`$E = mc^2 = 0.010 \times (3.0 \times 10^8)^2 = 9.0 \times 10^{14}\,\mathrm{J}$ です。` },
+    { q: raw`原子核を構成している粒子の組み合わせはどれか。`, opts: ["陽子と中性子", "陽子と電子", "中性子と電子", "光子と陽子"], ans: 0, exp: raw`原子核は陽子と中性子からできていて、電子はそのまわりを運動しています。` },
+    { q: raw`原子力発電で利用されているウランの反応はどれか。`, opts: ["核融合", "核分裂", "化学燃焼", "中和反応"], ans: 1, exp: raw`原子力発電では、ウラン235の核分裂で生じるエネルギーを利用しています。` },
+    { q: raw`放射線のうち、α線の正体はどれか。`, opts: ["電子の流れ", "電磁波", "ヘリウムの原子核", "中性子"], ans: 2, exp: raw`α線はヘリウムの原子核（陽子2個と中性子2個）の流れです。β線は電子、γ線は電磁波です。` },
+    { q: raw`金属に光を当てて光電効果を起こすには、光の強さを変えるよりも何を大きくすることが重要か。`, opts: ["振動数", "波長", "振幅", "当てる時間"], ans: 0, exp: raw`光子1個のエネルギー $E = h\nu$ がしきい値より大きい、つまり振動数の大きい光でないと電子は飛び出しません。` }
+  ]
+};
+  STAGES.forEach(st => { if (EXTRA_QUESTIONS[st.id]) st.questions.push(...EXTRA_QUESTIONS[st.id]); });
+
+  // Sound Effects via Web Audio API (Safari & mobile safe)
+  let audioCtx = null;
+  function playTone(type) {
+    if (!appData.sound) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      if (type === "ok") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.08);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.start(now); osc.stop(now + 0.28);
+      } else if (type === "ng") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.setValueAtTime(175, now + 0.1);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.start(now); osc.stop(now + 0.25);
+      } else if (type === "clear") {
+        osc.type = "sine";
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => osc.frequency.setValueAtTime(f, now + i * 0.09));
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc.start(now); osc.stop(now + 0.5);
+      }
+    } catch (e) {}
+  }
+
+  // Persistence & Multi-Account System
+  const STORE_KEY = "physics_quest_accounts_v1";
+  // Daily reset boundary is Japan time (Asia/Tokyo) 00:00, regardless of device timezone.
+  function jstDateStr(offsetDays) {
+    const instant = new Date(Date.now() + (offsetDays || 0) * 86400000);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(instant);
+  }
+  function todayStr() { return jstDateStr(0); }
+  function yesterdayStr() { return jstDateStr(-1); }
+
+  let appData = {
+    activeId: "guest",
+    sound: true,
+    accounts: {
+      "guest": {
+        id: "guest",
+        name: "ゲスト",
+        avatar: "🚀",
+        xp: 0,
+        streak: 0,
+        lastActiveDate: null,
+        weekDates: [],
+        unlockedIndex: 0,
+        stars: {} // stageId -> 1..3
+      }
+    }
+  };
+
+  function loadData() {
+    try {
+      const s = localStorage.getItem(STORE_KEY);
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (parsed && parsed.accounts) appData = Object.assign({}, appData, parsed);
+      }
+    } catch (e) {}
+  }
+  function saveData() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(appData)); } catch (e) {}
+  }
+  function curAcc() {
+    return appData.accounts[appData.activeId] || appData.accounts["guest"];
+  }
+
+  function recordDailyActivity(xpGain) {
+    const acc = curAcc();
+    acc.xp += xpGain;
+    if (acc.id === "guest") { saveData(); return; } // ゲストはストリーク対象外（XPのみ加算）
+    const td = todayStr();
+    const yd = yesterdayStr();
+    if (acc.lastActiveDate !== td) {
+      if (acc.lastActiveDate === yd) acc.streak += 1;
+      else acc.streak = 1;
+      acc.lastActiveDate = td;
+    }
+    if (!acc.weekDates.includes(td)) acc.weekDates.push(td);
+    saveData();
+  }
+
+  // Math Renderer
+  function texToHtml(tex) {
+    let t = tex.trim();
+    const sym = {
+      "\\\\theta": "θ", "\\\\lambda": "λ", "\\\\nu": "ν", "\\\\pi": "π",
+      "\\\\Delta": "Δ", "\\\\Omega": "Ω", "\\\\times": "×", "\\\\cdot": "·",
+      "\\\\approx": "≈", "\\\\sqrt": "√"
+    };
+    t = t.replace(/\\(?:text|mathrm)\{([^{}]*)\}/g, "$1");
+    for (let p = 0; p < 2; p++) {
+      t = t.replace(/\\frac\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g,
+        '<span class="math-frac"><span class="num">$1</span><span class="den">$2</span></span>');
+      t = t.replace(/\\sqrt\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g,
+        '<span class="math-sqrt">√<span class="math-sqrt-body">$1</span></span>');
+    }
+    for (const [k, v] of Object.entries(sym)) t = t.replace(new RegExp(k + "(?![a-zA-Z])", "g"), v);
+    t = t.replace(/_\{([^{}]+)\}/g, "<sub>$1</sub>").replace(/\^\{([^{}]+)\}/g, "<sup>$1</sup>");
+    t = t.replace(/_([a-zA-Z0-9])/g, "<sub>$1</sub>").replace(/\^([a-zA-Z0-9])/g, "<sup>$1</sup>");
+    t = t.replace(/\\,/g, "&thinsp;").replace(/[{}]/g, "");
+    return t;
+  }
+
+  function renderMath(el) {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    const nodes = []; let n;
+    while ((n = walker.nextNode())) { if (n.nodeValue && n.nodeValue.includes("$")) nodes.push(n); }
+    nodes.forEach(tn => {
+      const parts = tn.nodeValue.split(/(\$[^$]+?\$)/g);
+      if (parts.length <= 1) return;
+      const frag = document.createDocumentFragment();
+      parts.forEach(p => {
+        if (p.startsWith("$") && p.endsWith("$")) {
+          const sp = document.createElement("span"); sp.className = "math-inline"; sp.innerHTML = texToHtml(p.slice(1, -1)); frag.appendChild(sp);
+        } else if (p) frag.appendChild(document.createTextNode(p));
+      });
+      tn.parentNode.replaceChild(frag, tn);
+    });
+  }
+
+  // Active Quiz Session
+  let session = null; // { mode: "stage"|"daily", stageIdx, qIdx, combo, correctCount, answered, chosenIdx }
+
+  function updateHUD() {
+    const acc = curAcc();
+    const pill = document.getElementById("hudStreakPill");
+    if (acc.id === "guest") {
+      pill.innerHTML = "🔒 ストリークはアカウント限定";
+      pill.title = "ストリークはアカウント作成で使えるようになります";
+    } else {
+      pill.innerHTML = `🔥 <span id="hudStreak">${acc.streak}</span>日`;
+      pill.title = "連続学習日数";
+    }
+    document.getElementById("hudXp").textContent = acc.xp;
+    document.getElementById("hudName").textContent = `${acc.avatar} ${acc.name}`;
+    document.getElementById("soundBtn").textContent = appData.sound ? "🔊" : "🔇";
+  }
+
+  function renderHome() {
+    updateHUD();
+    const acc = curAcc();
+    const td = todayStr();
+    const doneToday = acc.lastActiveDate === td;
+    const isGuest = acc.id === "guest";
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const ds = jstDateStr(-i);
+      const [yy, mm, dd] = ds.split("-").map(Number);
+      const wd = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay();
+      const label = i === 0 ? "今日" : ["日","月","火","水","木","金","土"][wd];
+      days.push({ label, done: acc.weekDates.includes(ds) });
+    }
+
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <section class="daily-card">
+        <div class="daily-top">
+          <div>
+            <span class="daily-badge">${isGuest ? "🔒 ストリークはアカウント限定" : doneToday ? "✅ 本日のストリーク達成済み！" : "🔥 本日のデイリーミッション"}</span>
+            <h1 style="margin:0; font-size:20px;">${isGuest ? "アカウントを作るとストリークが記録される" : doneToday ? `連続 ${acc.streak} 日達成中！` : "毎日1問解いてストリークを伸ばそう"}</h1>
+            <div style="font-size:13px; opacity:0.9; margin-top:4px;">
+              クリア済みステージ：${Object.keys(acc.stars).length} / ${STAGES.length}
+            </div>
+          </div>
+          <button id="startDailyBtn" class="btn-3d btn-amber">⚡ 今日の1問に挑む</button>
+        </div>
+        ${isGuest ? `
+        <div style="margin-top:14px; font-size:13px; opacity:0.92;">
+          🔒 ゲストではストリークは記録されません。アカウント作成は右上の「👤 ゲスト」ボタンから。
+        </div>` : `
+        <div class="week-dots">
+          ${days.map(d => `<div class="day-dot ${d.done ? "done" : ""}">${d.label}<br>${d.done ? "🔥" : "・"}</div>`).join("")}
+        </div>`}
+      </section>
+
+      <section class="home-nav">
+        <button class="nav-card" id="openWordsBtn">
+          <span class="nav-icon">📖</span>
+          <span class="nav-title">単語帳</span>
+          <span class="nav-sub">物理用語を覚えよう（全${TERMS.length}語）</span>
+        </button>
+        <button class="nav-card" id="openBookBtn">
+          <span class="nav-icon">📚</span>
+          <span class="nav-title">教科書</span>
+          <span class="nav-sub">ステージ対応のやさしい解説</span>
+        </button>
+      </section>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 4px;">
+        <h2 style="margin:0; font-size:17px;">🗺️ ステージマップ（クリアで次が解放）</h2>
+        <span style="font-size:12px; color:var(--text-light); font-weight:700;">全10ステージ</span>
+      </div>
+
+      <section class="stage-path">
+        ${STAGES.map((st, idx) => {
+          const unlocked = idx <= acc.unlockedIndex;
+          const stars = acc.stars[st.id] || 0;
+          const cls = stars > 0 ? "cleared" : unlocked ? "unlocked" : "locked";
+          const offset = (idx % 2 === 0 ? -14 : 14);
+          return `
+            <div class="stage-node-wrap" style="transform:translateX(${offset}px);">
+              <button class="stage-node ${cls}" data-st-idx="${idx}" ${!unlocked ? "disabled" : ""}>
+                <div class="stage-circle" style="background:${unlocked ? st.color : "#94a3b8"};">
+                  ${unlocked ? st.icon : "🔒"}
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:11.5px; font-weight:800; color:${unlocked ? st.color : "#64748b"};">STAGE ${st.num}</div>
+                  <div style="font-size:15.5px; font-weight:800;">${st.title}</div>
+                  <div style="font-size:12px; color:var(--text-muted);">${st.sub}</div>
+                  ${stars > 0 ? `<div class="stage-stars">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div>` : ""}
+                </div>
+                <div style="font-size:18px; color:var(--text-light);">${unlocked ? (stars > 0 ? "↻" : "▶") : ""}</div>
+              </button>
+            </div>
+          `;
+        }).join("")}
+      </section>
+    `;
+
+    document.getElementById("startDailyBtn").addEventListener("click", startDailyQuiz);
+    document.getElementById("openWordsBtn").addEventListener("click", () => renderWordList());
+    document.getElementById("openBookBtn").addEventListener("click", () => renderLessonList());
+    main.querySelectorAll(".stage-node").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-st-idx"));
+        if (idx <= curAcc().unlockedIndex) startStageQuiz(idx);
+      });
+    });
+  }
+
+  function startStageQuiz(stageIdx) {
+    session = { mode: "stage", stageIdx, questions: STAGES[stageIdx].questions, qIdx: 0, combo: 0, correctCount: 0, answered: false, chosenIdx: -1 };
+    renderQuiz();
+  }
+
+  function startDailyQuiz() {
+    const acc = curAcc();
+    const pool = [];
+    for (let i = 0; i <= Math.min(acc.unlockedIndex, STAGES.length - 1); i++) {
+      STAGES[i].questions.forEach(q => pool.push(q));
+    }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    session = { mode: "daily", stageIdx: 0, questions: [pick], qIdx: 0, combo: 0, correctCount: 0, answered: false, chosenIdx: -1 };
+    renderQuiz();
+  }
+
+  function renderQuiz() {
+    const q = session.questions[session.qIdx];
+    const total = session.questions.length;
+    const pct = Math.round(((session.qIdx + (session.answered ? 1 : 0)) / total) * 100);
+    const title = session.mode === "daily" ? "⚡ 今日の1問チャレンジ" : `STAGE ${STAGES[session.stageIdx].num}：${STAGES[session.stageIdx].title}`;
+
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="quiz-screen">
+        <div class="quiz-progress-row">
+          <button id="quitQuizBtn" class="stat-btn">✕ やめる</button>
+          <div class="q-bar-track"><div class="q-bar-fill" style="width:${pct}%;"></div></div>
+          <span style="font-size:12.5px; font-weight:800; color:var(--text-muted);">${session.qIdx + 1} / ${total}</span>
+        </div>
+
+        <div style="font-size:12px; font-weight:800; color:var(--blue); margin-bottom:6px;">${title}</div>
+        ${session.combo >= 2 ? `<div class="combo-badge">🔥 ${session.combo} 連続正解 COMBO!</div>` : ""}
+
+        <div class="q-text">${q.q}</div>
+
+        <div class="choices-grid">
+          ${q.opts.map((opt, i) => {
+            let cls = "";
+            if (session.answered) {
+              if (i === q.ans) cls = "correct";
+              else if (i === session.chosenIdx) cls = "wrong";
+            }
+            return `<button class="choice-btn ${cls}" data-oi="${i}" ${session.answered ? "disabled" : ""}>
+              <span style="color:var(--text-light);">${i + 1}.</span><span>${opt}</span>
+            </button>`;
+          }).join("")}
+        </div>
+
+        ${session.answered ? `
+          <div class="feedback-banner ${session.chosenIdx === q.ans ? "ok" : "ng"}">
+            <div style="font-weight:800; font-size:15px;">
+              ${session.chosenIdx === q.ans ? "🎉 正解！ (+10 XP)" : "💡 惜しい！解説を確認しよう"}
+            </div>
+            <div style="font-size:14px; color:var(--text-main);">${q.exp}</div>
+            <button id="nextQBtn" class="btn-3d ${session.chosenIdx === q.ans ? "btn-green" : "btn-blue"}" style="margin-top:6px;">
+              ${session.qIdx + 1 < total ? "つぎの問題へ →" : "結果を見る 🏆"}
+            </button>
+          </div>
+        ` : ""}
+      </div>
+    `;
+
+    document.getElementById("quitQuizBtn").addEventListener("click", () => { session = null; renderHome(); });
+    main.querySelectorAll(".choice-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (session.answered) return;
+        const oi = Number(btn.getAttribute("data-oi"));
+        session.answered = true;
+        session.chosenIdx = oi;
+        if (oi === q.ans) {
+          session.correctCount++;
+          session.combo++;
+          playTone("ok");
+        } else {
+          session.combo = 0;
+          playTone("ng");
+        }
+        renderQuiz();
+      });
+    });
+
+    if (session.answered) {
+      document.getElementById("nextQBtn").addEventListener("click", () => {
+        if (session.qIdx + 1 < total) {
+          session.qIdx++;
+          session.answered = false;
+          session.chosenIdx = -1;
+          renderQuiz();
+        } else {
+          finishQuiz();
+        }
+      });
+    }
+
+    renderMath(main);
+  }
+
+  function finishQuiz() {
+    const acc = curAcc();
+    const total = session.questions.length;
+    const earnedXp = session.correctCount * 10 + (session.correctCount === total ? 15 : 0);
+    recordDailyActivity(earnedXp);
+
+    let unlockedMsg = "";
+    if (session.mode === "stage") {
+      const st = STAGES[session.stageIdx];
+      const totalQ = session.questions.length;
+      const stars = session.correctCount >= Math.ceil(totalQ * 0.9) ? 3 : session.correctCount >= Math.ceil(totalQ * 0.7) ? 2 : session.correctCount >= Math.ceil(totalQ * 0.4) ? 1 : 0;
+      if (stars > 0) {
+        acc.stars[st.id] = Math.max(acc.stars[st.id] || 0, stars);
+        if (session.stageIdx === acc.unlockedIndex && acc.unlockedIndex < STAGES.length - 1) {
+          acc.unlockedIndex++;
+          unlockedMsg = `🔓 STAGE ${STAGES[acc.unlockedIndex].num}「${STAGES[acc.unlockedIndex].title}」が解放されました！`;
+        }
+        saveData();
+      }
+    }
+    playTone("clear");
+    updateHUD();
+
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="quiz-screen" style="text-align:center; padding:32px 20px;">
+        <div style="font-size:48px; margin-bottom:8px;">${session.correctCount === total ? "🏆" : "👍"}</div>
+        <h2 style="margin:0 0 8px; font-size:22px;">ステージ完了！</h2>
+        <div style="font-size:15px; color:var(--text-muted); margin-bottom:14px;">
+          正答数：<strong>${session.correctCount} / ${total} 問</strong>　｜　獲得：<strong>+${earnedXp} XP</strong>
+        </div>
+        <div style="background:#fff7ed; border:1.5px solid #fed7aa; color:#c2410c; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">
+          ${acc.id === "guest" ? "🔒 ストリークはアカウント作成で使えるようになります" : `🔥 ストリーク：${acc.streak} 日連続達成！`}
+        </div>
+        ${unlockedMsg ? `<div style="background:var(--green-soft); color:var(--green-dark); border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:18px;">${unlockedMsg}</div>` : ""}
+        <button id="backMapBtn" class="btn-3d btn-green" style="width:100%;">🗺️ マップへ戻る</button>
+      </div>
+    `;
+    document.getElementById("backMapBtn").addEventListener("click", () => { session = null; renderHome(); });
+  }
+
+  // Account Modal Logic
+  let pickedAvatar = "🚀";
+  function openAccountModal() {
+    const wrap = document.getElementById("existingAccountsWrap");
+    const list = Object.values(appData.accounts);
+    wrap.innerHTML = `<div style="font-weight:800; font-size:13.5px; margin-bottom:8px;">登録済みアカウント（タップで切替）</div>` +
+      list.map(a => `
+        <button class="stat-btn" data-acc-id="${a.id}" style="width:100%; justify-content:space-between; padding:10px 14px; margin-bottom:6px; border-radius:12px; ${a.id === appData.activeId ? "border-color:var(--blue); background:var(--blue-soft);" : ""}">
+          <span>${a.avatar} ${a.name}</span>
+          <span style="font-size:12px; color:var(--text-muted);">🔥${a.streak}日 / ⚡${a.xp}XP</span>
+        </button>
+      `).join("");
+
+    wrap.querySelectorAll("[data-acc-id]").forEach(b => {
+      b.addEventListener("click", () => {
+        appData.activeId = b.getAttribute("data-acc-id");
+        saveData();
+        document.getElementById("accountModal").classList.remove("open");
+        session = null;
+        renderHome();
+      });
+    });
+    document.getElementById("accountModal").classList.add("open");
+  }
+
+  document.getElementById("accountBtn").addEventListener("click", openAccountModal);
+  document.getElementById("closeAccountModal").addEventListener("click", () => document.getElementById("accountModal").classList.remove("open"));
+  document.getElementById("accountModal").addEventListener("click", (e) => { if (e.target.id === "accountModal") e.target.classList.remove("open"); });
+
+  document.getElementById("avatarPicker").addEventListener("click", (e) => {
+    const b = e.target.closest(".avatar-opt");
+    if (!b) return;
+    document.querySelectorAll(".avatar-opt").forEach(x => x.classList.remove("selected"));
+    b.classList.add("selected");
+    pickedAvatar = b.getAttribute("data-av");
+  });
+
+  document.getElementById("createAccBtn").addEventListener("click", () => {
+    const rawName = document.getElementById("newNickInput").value.trim();
+    const name = rawName || "チャレンジャー";
+    const id = "acc_" + Date.now();
+    appData.accounts[id] = {
+      id, name, avatar: pickedAvatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}
+    };
+    appData.activeId = id;
+    saveData();
+    document.getElementById("newNickInput").value = "";
+    document.getElementById("accountModal").classList.remove("open");
+    session = null;
+    renderHome();
+  });
+
+  document.getElementById("soundBtn").addEventListener("click", () => {
+    appData.sound = !appData.sound;
+    saveData();
+    updateHUD();
+  });
+
+  // ===== 単語帳データ（物理用語） =====
+  const TERMS = [
+    // 力学
+    { term: "速さ", reading: "はやさ", field: "力学", def: "ものがどれだけ速く進むかを表す量。電車のスピードメーターが示すのが速さで、進んだ距離をかかった時間で割って求めます。", formula: raw`$v = \frac{x}{t}$` },
+    { term: "加速度", reading: "かそくど", field: "力学", def: "速さがどれだけ速く変化するかを表す量。止まった車が発進するときや、ブレーキで減速するときに生まれます。", formula: raw`$a = \frac{\Delta v}{\Delta t}$` },
+    { term: "重力加速度", reading: "じゅうりょくかそくど", field: "力学", def: "落ちるものが1秒ごとに速くなる割合。地球ではおよそ毎秒9.8メートルずつ速くなり、重いものも軽いものも同じです。", formula: "" },
+    { term: "自由落下", reading: "じゆうらっか", field: "力学", def: "手をはなしたものが重力だけで落ちていく運動。空気の抵抗がなければ、ボールを落としても羽を落としても同じ速さで落ちます。", formula: "" },
+    { term: "力", reading: "ちから", field: "力学", def: "押す・引くといった、ものの運動を変えるはたらき。止まっているものを動かしたり、動いているものを止めたり、向きを変えたりします。", formula: "" },
+    { term: "質量", reading: "しつりょう", field: "力学", def: "ものそのものの量。場所が変わっても変わらず、月に行っても同じです。単位はキログラム（kg）。", formula: "" },
+    { term: "重さ", reading: "おもさ", field: "力学", def: "ものが重力に引かれる力の大きさ。月では地球の約6分の1になるなど、場所によって変わります。", formula: raw`$W = mg$` },
+    { term: "慣性", reading: "かんせい", field: "力学", def: "ものが今の状態を保とうとする性質。急ブレーキで体が前に倒れそうになるのは、体が進み続けようとするからです。", formula: "" },
+    { term: "運動方程式", reading: "うんどうほうていしき", field: "力学", def: "力と運動の関係を表す物理学の基本式。質量が大きいほど、同じ力でも加速しにくいことが分かります。", formula: raw`$ma = F$` },
+    { term: "摩擦力", reading: "まさつりょく", field: "力学", def: "触れ合う面の間で、滑ろうとする動きをじゃまする力。靴底の摩擦のおかげで私たちは滑らずに歩けます。", formula: "" },
+    { term: "フックの法則", reading: "ふっくのほうそく", field: "力学", def: "ばねの伸びは、引く力の大きさに比例するという法則。ばねばかりが重さを量れるのはこの法則のおかげです。", formula: raw`$F = kx$` },
+    { term: "仕事", reading: "しごと", field: "力学", def: "物理での仕事は、力を加えてものを動かした量のこと。重い荷物を持ち上げると大きな仕事をしたことになります。", formula: raw`$W = Fx$` },
+    { term: "運動エネルギー", reading: "うんどうえねるぎー", field: "力学", def: "動いているものが持つエネルギー。速いほど、重いほど大きく、速さが2倍になると4倍になります。", formula: raw`$K = \frac{1}{2}mv^2$` },
+    { term: "位置エネルギー", reading: "いちえねるぎー", field: "力学", def: "高いところにあるものが持つエネルギー。ダムの水やジェットコースターの頂上の車両が持っています。", formula: raw`$U = mgh$` },
+    { term: "力学的エネルギー保存", reading: "りきがくてきえねるぎーほぞん", field: "力学", def: "摩擦などがなければ、運動エネルギーと位置エネルギーの合計は変わらないという法則。ジェットコースターの動きを説明できます。", formula: "" },
+    { term: "運動量", reading: "うんどうりょう", field: "力学", def: "運動の勢いを表す量。重くて速いものほど大きく、トラックを止めるのが大変なのは運動量が大きいからです。", formula: raw`$p = mv$` },
+    { term: "力積", reading: "りきせき", field: "力学", def: "力を加えた時間まで含めた量。同じボールでも、長く押し続けるほど勢いが大きく変わります。", formula: raw`$I = Ft$` },
+    { term: "円運動", reading: "えんうんどう", field: "力学", def: "ものが円を描くように回る運動。洗濯機の脱水や、遊園地の回転ブランコが例です。", formula: "" },
+    { term: "向心力", reading: "こうしんりょく", field: "力学", def: "円運動するものを、円の中心の向きに引く力。ひもに付けたボールを回すとき、ひもが引く力が向心力です。", formula: raw`$F = m\frac{v^2}{r}$` },
+    { term: "万有引力", reading: "ばんゆういんりょく", field: "力学", def: "質量のあるもの同士が引き合う力。地球が月を引きつけ、私たちが地面に立っていられるのもこの力のおかげです。", formula: raw`$F = G\frac{Mm}{r^2}$` },
+    { term: "力のモーメント", reading: "ちからのもーめんと", field: "力学", def: "ものを回転させようとするはたらきの大きさ。ドアノブが蝶番から遠い位置にあるのは、小さい力で開けやすくするためです。", formula: raw`$M = Fl$` },
+    // 熱
+    { term: "絶対温度", reading: "ぜったいおんど", field: "熱", def: "分子の運動が止まる温度を0とする温度の表し方。単位はケルビン（K）で、普段の温度に273を足すと変換できます。", formula: raw`$T = t + 273$` },
+    { term: "熱量", reading: "ねつりょう", field: "熱", def: "移動する熱の量。お湯を沸かすときに水が受け取るエネルギーの量のことです。", formula: raw`$Q = mc\Delta T$` },
+    { term: "内部エネルギー", reading: "ないぶえねるぎー", field: "熱", def: "ものの中の分子が持つエネルギーの合計。温度が高いほど分子が激しく動き、内部エネルギーは大きくなります。", formula: "" },
+    { term: "熱力学第1法則", reading: "ねつりきがくだい1ほうそく", field: "熱", def: "エネルギーは消えたり生まれたりせず、形を変えるだけという法則。加えた熱は、内部エネルギーの増加と外への仕事に使われます。", formula: raw`$\Delta U = Q - W$` },
+    { term: "気体の状態方程式", reading: "きたいのじょうたいほうていしき", field: "熱", def: "気体の圧力・体積・温度の関係を表す式。風船を温めると膨らむ理由などを説明できます。", formula: raw`$pV = nRT$` },
+    // 波
+    { term: "波長", reading: "はちょう", field: "波", def: "波の山から次の山までの長さ。波長が長い波と短い波では、伝わり方や性質が変わります。", formula: "" },
+    { term: "振動数", reading: "しんどうすう", field: "波", def: "1秒間に繰り返される波の回数。音では振動数が大きいほど高い音に聞こえます。単位はヘルツ（Hz）。", formula: raw`$v = f\lambda$` },
+    { term: "うなり", reading: "うなり", field: "波", def: "少しだけ振動数の違う2つの音を同時に鳴らすと、音が大きくなったり小さくなったりを繰り返す現象。楽器の調律に使われます。", formula: "" },
+    { term: "ドップラー効果", reading: "どっぷらーこうか", field: "波", def: "救急車が近づくとサイレンが高く、遠ざかると低く聞こえる現象。音源の動きで波が詰まったり広がったりするために起こります。", formula: "" },
+    // 光
+    { term: "屈折", reading: "くっせつ", field: "光", def: "光が水やガラスに入るときに進む向きが曲がる現象。コップの水にさしたストローが折れて見えるのはこのためです。", formula: "" },
+    { term: "全反射", reading: "ぜんはんしゃ", field: "光", def: "光が境界面で外に出ず、すべて反射される現象。光ファイバーの中を光が遠くまで届くのはこの現象のおかげです。", formula: "" },
+    { term: "干渉", reading: "かんしょう", field: "光", def: "波同士が重なって強め合ったり弱め合ったりする現象。シャボン玉が虹色に見えるのは、光の干渉によるものです。", formula: "" },
+    { term: "凸レンズ", reading: "とつれんず", field: "光", def: "真ん中が膨らんだレンズで、光を集めるはたらきがあります。虫眼鏡やカメラ、目の中の水晶体も凸レンズです。", formula: "" },
+    // 電気
+    { term: "電流", reading: "でんりゅう", field: "電気", def: "電気の流れ。川の水の流れに例えられ、単位はアンペア（A）です。", formula: "" },
+    { term: "電圧", reading: "でんあつ", field: "電気", def: "電流を押し出す力の強さ。川の流れでいえば高低差にあたります。単位はボルト（V）。", formula: "" },
+    { term: "抵抗", reading: "ていこう", field: "電気", def: "電流の流れにくさ。細いホースに水が通りにくいのと同じで、単位はオーム（Ω）です。", formula: raw`$V = RI$` },
+    { term: "電力", reading: "でんりょく", field: "電気", def: "電気が1秒間にする仕事の量。ドライヤーや電子レンジの「ワット数」がこれで、大きいほどパワーが強い家電です。", formula: raw`$P = IV$` },
+    { term: "コンデンサー", reading: "こんでんさー", field: "電気", def: "電気をためて、必要なときに放出できる部品。カメラのフラッシュやスマホの中にも使われています。", formula: raw`$Q = CV$` },
+    // 磁気
+    { term: "磁場", reading: "じば", field: "磁気", def: "磁石の力がはたらく空間。磁石のまわりに鉄粉をまくと見える模様が、磁場の様子を表しています。", formula: "" },
+    { term: "ローレンツ力", reading: "ろーれんつりょく", field: "磁気", def: "磁場の中を動く電気を帯びた粒子が受ける力。モーターが回る仕組みやオーロラの発生に関係しています。", formula: raw`$f = qvB$` },
+    { term: "電磁誘導", reading: "でんじゆうどう", field: "磁気", def: "コイルのそばで磁石を動かすと電流が流れる現象。発電所の発電機も、ICカードの読み取りもこの現象を使っています。", formula: "" },
+    { term: "交流", reading: "こうりゅう", field: "磁気", def: "向きと大きさが周期的に変わる電流。家庭のコンセントの電気が交流で、日本では1秒に50回または60回向きが入れ替わります。", formula: "" },
+    // 原子
+    { term: "光子", reading: "こうし", field: "原子", def: "光の粒としての姿。光は波の性質と粒の性質をあわせ持ち、粒1つが持つエネルギーは光の色で決まります。", formula: raw`$E = h\nu$` },
+    { term: "光電効果", reading: "こうでんこうか", field: "原子", def: "金属に光を当てると電子が飛び出す現象。太陽電池や自動ドアのセンサーの原理になっています。", formula: "" },
+    { term: "半減期", reading: "はんげんき", field: "原子", def: "放射性物質の量が半分になるまでの時間。化石の年代測定などに使われます。", formula: "" },
+    { term: "核融合", reading: "かくゆうごう", field: "原子", def: "軽い原子核同士が結びついて重い原子核になる反応。太陽が莫大なエネルギーを出し続けているのはこの反応のおかげです。", formula: "" },
+    { term: "原子核", reading: "げんしかく", field: "原子", def: "原子の中心にある小さな粒で、陽子と中性子からできています。原子の質量のほとんどは原子核に集まっています。", formula: "" }
+  ];
+  const WORD_FIELDS = ["すべて", "力学", "熱", "波", "光", "電気", "磁気", "原子"];
+
+  // ===== 簡易教科書データ（ステージ対応レッスン） =====
+  const LESSONS = [
+    {
+      stage: 1, title: "運動のきほん",
+      intro: "電車が駅を出てだんだん速くなり、やがて一定の速さで走る。こんな身近な「ものの動き」を言葉と式で表すのが力学のはじめの一歩です。まずは速さと加速度という2つの言葉をおさえましょう。",
+      points: [
+        "速さは「進んだ距離 ÷ かかった時間」で求める",
+        "加速度は「速さの変化の割合」。速くなるのも遅くなるのも加速度",
+        "落下するものは、重い・軽いに関係なく同じ速さで落ちる（空気抵抗がないとき）",
+        "落下では1秒ごとに速さが約9.8 m/sずつ増える"
+      ],
+      formula: raw`$v = v_0 + at$`,
+      example: { q: "静止から一定の加速度 3.0 m/s² で走り出した自転車。5.0秒後の速さは？", a: "v = 0 + 3.0 × 5.0 = 15 m/s（時速にすると約54 km/h）" }
+    },
+    {
+      stage: 2, title: "力とニュートンの法則",
+      intro: "押せば動き、引けば止まる。私たちは毎日「力」と付き合っています。力のはたらきを3つの法則にまとめたのがニュートンで、ここが物理学全体の土台になります。",
+      points: [
+        "慣性の法則：力を受けなければ、ものは今の状態を保ち続ける",
+        "運動方程式 ma = F：質量が大きいほど加速しにくい",
+        "作用・反作用：壁を押すと、壁からも押し返されている",
+        "ばねはフックの法則 F = kx に従って伸びる"
+      ],
+      formula: raw`$ma = F$`,
+      example: { q: "質量 2.0 kg の台車を 6.0 N の力で押したときの加速度は？", a: "a = F / m = 6.0 / 2.0 = 3.0 m/s²" }
+    },
+    {
+      stage: 3, title: "仕事とエネルギー",
+      intro: "重い荷物を持ち上げると疲れますよね。その「疲れ具合」を数値にしたのが仕事とエネルギーの考え方です。エネルギーは形を変えて受け渡しされる、物理学の通貨のようなものです。",
+      points: [
+        "仕事は「力 × 動いた距離」。単位はジュール（J）",
+        "運動エネルギーは速さの2乗に比例する（速さ2倍で4倍）",
+        "位置エネルギーは高いところにあるものが持つ",
+        "摩擦がなければ、2つの合計（力学的エネルギー）は保存される"
+      ],
+      formula: raw`$K = \frac{1}{2}mv^2$`,
+      example: { q: "質量 1.0 kg のボールが速さ 4.0 m/s で飛んでいるときの運動エネルギーは？", a: "K = (1/2) × 1.0 × 4.0² = 8.0 J" }
+    },
+    {
+      stage: 4, title: "運動量と円運動",
+      intro: "ボウリングのボールとピンポン球、同じ速さでもぶつかったときの迫力が違います。この「運動の勢い」が運動量です。あわせて、ぐるぐる回る円運動のしくみも見ていきましょう。",
+      points: [
+        "運動量 p = mv は「重さ × 速さ」の勢いを表す",
+        "力を長く加えるほど運動量は大きく変わる（力積）",
+        "円運動には中心向きの力（向心力）が必要",
+        "惑星を回し続ける向心力の正体は万有引力"
+      ],
+      formula: raw`$p = mv$`,
+      example: { q: "質量 0.50 kg のボールが速さ 8.0 m/s で飛ぶときの運動量は？", a: "p = 0.50 × 8.0 = 4.0 kg·m/s" }
+    },
+    {
+      stage: 5, title: "熱と気体の法則",
+      intro: "お風呂のお湯、膨らむ風船、エアコンの効き。これらは全部、目に見えない小さな分子の運動で説明できます。熱の分野は「分子の目線」で考えるのがコツです。",
+      points: [
+        "温度は分子の運動の激しさ。絶対温度は摂氏に273を足す",
+        "熱は温度の高い方から低い方へ移動する",
+        "熱力学第1法則：熱は内部エネルギーの増加と仕事に使われる",
+        "気体は pV = nRT の関係に従う"
+      ],
+      formula: raw`$\Delta U = Q - W$`,
+      example: { q: "気体に 300 J の熱を加え、外に 100 J の仕事をした。内部エネルギーの増加は？", a: "ΔU = 300 − 100 = 200 J" }
+    },
+    {
+      stage: 6, title: "波の性質と音",
+      intro: "声、音楽、海の波。波は「振動が伝わっていく」現象です。音の高さや大きさの正体も、波の言葉で説明できます。",
+      points: [
+        "波の速さは「振動数 × 波長」で決まる",
+        "振動数が大きい音ほど高く聞こえる",
+        "近いうなりの回数は2つの音の振動数の差に等しい",
+        "救急車の音の高さが変わるのはドップラー効果"
+      ],
+      formula: raw`$v = f\lambda$`,
+      example: { q: "振動数 2.0 Hz、波長 3.0 m の波の速さは？", a: "v = 2.0 × 3.0 = 6.0 m/s" }
+    },
+    {
+      stage: 7, title: "光の干渉とレンズ",
+      intro: "シャボン玉の虹色、水にさしたストローの曲がり見え、虫眼鏡の拡大。光はまっすぐ進むだけでなく、曲がったり重なったりする面白い性質を持っています。",
+      points: [
+        "光は水やガラスに入ると屈折して曲がる",
+        "全反射は光ファイバーに応用されている",
+        "シャボン玉の色は薄い膜での光の干渉",
+        "凸レンズは焦点の内側で正立虚像を大きく見せる"
+      ],
+      formula: raw`$\frac{1}{a} + \frac{1}{b} = \frac{1}{f}$`,
+      example: { q: "虫眼鏡で文字が大きく見えるのは、文字をレンズのどこに置くから？", a: "焦点の内側に置くと、正立した大きな虚像が見えるから" }
+    },
+    {
+      stage: 8, title: "静電気と直流回路",
+      intro: "スマホの充電、家の照明、冬場の静電気パチッ。電気は現代生活そのものです。電流・電圧・抵抗の3つの言葉を押さえれば、回路の計算はぐっと身近になります。",
+      points: [
+        "オームの法則 V = RI が回路計算の基本",
+        "電力 P = IV で家電のパワーが分かる",
+        "直列では抵抗が足し算、並列では電流の通り道が増える",
+        "コンデンサーは Q = CV の電気をためられる"
+      ],
+      formula: raw`$V = RI$`,
+      example: { q: "抵抗 5.0 Ω に 1.5 A の電流が流れているときの電圧は？", a: "V = 5.0 × 1.5 = 7.5 V" }
+    },
+    {
+      stage: 9, title: "磁場と電磁誘導",
+      intro: "磁石をコイルに近づけるだけで電気が生まれる。この発見が発電所を生み、私たちの生活を一変させました。電気と磁気は、実は深くつながった一組の現象なのです。",
+      points: [
+        "磁場の中で動く荷電粒子はローレンツ力を受ける",
+        "コイルを貫く磁束が変わると電流が流れる（電磁誘導）",
+        "発電機もモーターも電磁誘導とローレンツ力の応用",
+        "家庭の交流100 V の最大値は約141 V"
+      ],
+      formula: raw`$f = qvB\sin\theta$`,
+      example: { q: "実効値 100 V の交流電圧の最大値はおよそ何 V？", a: "100 × 1.414 ≒ 141 V" }
+    },
+    {
+      stage: 10, title: "量子と原子核",
+      intro: "光は波であり粒でもある。原子の中では、私たちの常識が通用しない不思議なルールが支配しています。現代のスマホや太陽電池は、この量子の世界の発見の上に成り立っています。",
+      points: [
+        "光電効果は光が粒（光子）である証拠",
+        "光子のエネルギーは E = hν で色によって決まる",
+        "放射性物質は半減期ごとに半分ずつ減っていく",
+        "太陽のエネルギーの源は核融合反応"
+      ],
+      formula: raw`$E = h\nu$`,
+      example: { q: "半減期が4年の物質 80 g は、8年後に何 g になる？", a: "半減期2回分なので 80 × (1/2)² = 20 g" }
+    }
+  ];
+
+  // ===== 単語帳・教科書の画面 =====
+  let wordField = "すべて";
+  let flashDeck = [];
+  let flashPos = 0;
+  let flashFlipped = false;
+
+  function filteredTerms() {
+    return wordField === "すべて" ? TERMS.slice() : TERMS.filter(t => t.field === wordField);
+  }
+  function wordChipsHtml(mode) {
+    return `
+      <div class="chip-row">
+        ${WORD_FIELDS.map(f => `<button class="chip ${f === wordField ? "active" : ""}" data-word-field="${f}">${f}</button>`).join("")}
+      </div>
+      <div class="chip-row">
+        <button class="chip ${mode === "list" ? "active" : ""}" id="wordModeList">📖 一覧</button>
+        <button class="chip ${mode === "flash" ? "active" : ""}" id="wordModeFlash">🃏 フラッシュカード</button>
+      </div>`;
+  }
+  function bindWordChips(mode) {
+    document.querySelectorAll("[data-word-field]").forEach(b => {
+      b.addEventListener("click", () => {
+        wordField = b.getAttribute("data-word-field");
+        if (mode === "flash") renderFlashcards(true); else renderWordList();
+      });
+    });
+    document.getElementById("wordModeList").addEventListener("click", () => renderWordList());
+    document.getElementById("wordModeFlash").addEventListener("click", () => renderFlashcards(true));
+  }
+
+  function renderWordList() {
+    updateHUD();
+    const list = filteredTerms();
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="wordsBackBtn" class="stat-btn">← もどる</button>
+          <h2>📖 物理用語の単語帳</h2>
+        </div>
+        ${wordChipsHtml("list")}
+        <div style="font-size:12.5px; color:var(--text-light); font-weight:700; margin-bottom:10px;">${list.length} 語（タップで意味が開きます）</div>
+        ${list.map((t, i) => `
+          <button class="word-item" data-word-idx="${i}">
+            <span class="w-top">
+              <span class="w-term">${t.term}</span>
+              <span class="w-reading">${t.reading}</span>
+              <span class="field-tag">${t.field}</span>
+            </span>
+            <span class="w-def">
+              ${t.def}
+              ${t.formula ? `<span class="w-formula" style="display:block;">${t.formula}</span>` : ""}
+            </span>
+          </button>
+        `).join("")}
+      </div>
+    `;
+    document.getElementById("wordsBackBtn").addEventListener("click", () => renderHome());
+    bindWordChips("list");
+    main.querySelectorAll(".word-item").forEach(item => {
+      item.addEventListener("click", () => item.classList.toggle("open"));
+    });
+    renderMath(main);
+  }
+
+  function renderFlashcards(reset) {
+    updateHUD();
+    if (reset || flashDeck.length === 0) {
+      flashDeck = filteredTerms();
+      flashPos = 0;
+      flashFlipped = false;
+    }
+    const main = document.getElementById("appMain");
+    if (flashDeck.length === 0) {
+      main.innerHTML = `
+        <div class="sub-screen">
+          <div class="sub-head">
+            <button id="wordsBackBtn" class="stat-btn">← もどる</button>
+            <h2>🃏 フラッシュカード</h2>
+          </div>
+          ${wordChipsHtml("flash")}
+          <div style="color:var(--text-muted);">この分野の用語はまだありません。</div>
+        </div>`;
+      document.getElementById("wordsBackBtn").addEventListener("click", () => renderHome());
+      bindWordChips("flash");
+      return;
+    }
+    if (flashPos >= flashDeck.length) flashPos = 0;
+    const t = flashDeck[flashPos];
+    main.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="wordsBackBtn" class="stat-btn">← もどる</button>
+          <h2>🃏 フラッシュカード</h2>
+        </div>
+        ${wordChipsHtml("flash")}
+        <div style="font-size:12.5px; color:var(--text-light); font-weight:700; margin-bottom:10px;">${flashPos + 1} / ${flashDeck.length} 枚（カードをタップで裏返ります）</div>
+        <div class="flash-wrap">
+          <div class="flash-card ${flashFlipped ? "flipped" : ""}" id="flashCard">
+            <div class="flash-face front">
+              <span class="field-tag" style="margin:0;">${t.field}</span>
+              <div class="flash-term">${t.term}</div>
+              <div class="flash-reading">${t.reading}</div>
+              <div class="flash-hint">タップで意味を見る</div>
+            </div>
+            <div class="flash-face back">
+              <div class="flash-def">${t.def}</div>
+              ${t.formula ? `<div class="flash-formula">${t.formula}</div>` : ""}
+            </div>
+          </div>
+        </div>
+        <div class="flash-nav">
+          <button id="flashShuffleBtn" class="btn-3d btn-ghost">🔀 シャッフル</button>
+          <button id="flashNextBtn" class="btn-3d btn-blue">つぎへ →</button>
+        </div>
+      </div>
+    `;
+    document.getElementById("wordsBackBtn").addEventListener("click", () => renderHome());
+    bindWordChips("flash");
+    document.getElementById("flashCard").addEventListener("click", () => {
+      flashFlipped = !flashFlipped;
+      document.getElementById("flashCard").classList.toggle("flipped", flashFlipped);
+    });
+    document.getElementById("flashNextBtn").addEventListener("click", () => {
+      flashPos = (flashPos + 1) % flashDeck.length;
+      flashFlipped = false;
+      renderFlashcards(false);
+    });
+    document.getElementById("flashShuffleBtn").addEventListener("click", () => {
+      for (let i = flashDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [flashDeck[i], flashDeck[j]] = [flashDeck[j], flashDeck[i]];
+      }
+      flashPos = 0;
+      flashFlipped = false;
+      renderFlashcards(false);
+    });
+    renderMath(main);
+  }
+
+  function renderLessonList() {
+    updateHUD();
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="bookBackBtn" class="stat-btn">← もどる</button>
+          <h2>📚 簡易教科書</h2>
+        </div>
+        <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
+          クイズのステージに対応した、はじめて物理に触れる人向けの短いレッスンです。読んでから問題に挑むと効果的です。
+        </div>
+        ${LESSONS.map((ls, i) => {
+          const st = STAGES[ls.stage - 1];
+          return `
+            <button class="lesson-item" data-lesson-idx="${i}">
+              <div class="stage-circle" style="background:${st.color};">${st.icon}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:11.5px; font-weight:800; color:${st.color};">STAGE ${ls.stage} 対応</div>
+                <div style="font-size:15.5px; font-weight:800;">${ls.title}</div>
+                <div style="font-size:12px; color:var(--text-muted);">${st.sub}</div>
+              </div>
+              <div style="font-size:18px; color:var(--text-light);">▶</div>
+            </button>`;
+        }).join("")}
+      </div>
+    `;
+    document.getElementById("bookBackBtn").addEventListener("click", () => renderHome());
+    main.querySelectorAll(".lesson-item").forEach(btn => {
+      btn.addEventListener("click", () => renderLesson(Number(btn.getAttribute("data-lesson-idx"))));
+    });
+    renderMath(main);
+  }
+
+  function renderLesson(idx) {
+    updateHUD();
+    const ls = LESSONS[idx];
+    const st = STAGES[ls.stage - 1];
+    const unlocked = (ls.stage - 1) <= curAcc().unlockedIndex;
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="lessonBackBtn" class="stat-btn">← レッスン一覧</button>
+        </div>
+        <div class="quiz-screen">
+          <div style="font-size:12px; font-weight:800; color:${st.color}; margin-bottom:4px;">STAGE ${ls.stage} 対応 ${st.icon}</div>
+          <h2 style="margin:0 0 12px; font-size:21px;">${ls.title}</h2>
+          <div class="lesson-body">
+            <p style="margin:0;">${ls.intro}</p>
+            <h3>⭐ 重要ポイント</h3>
+            <ul>
+              ${ls.points.map(p => `<li>${p}</li>`).join("")}
+            </ul>
+            <h3>🧮 中心公式</h3>
+            <div class="formula-box">${ls.formula}</div>
+            <h3>✏️ 例題</h3>
+            <div class="example-box">
+              <div><strong>問題：</strong>${ls.example.q}</div>
+              <div style="margin-top:6px;"><strong>答え：</strong>${ls.example.a}</div>
+            </div>
+          </div>
+          <button id="lessonQuizBtn" class="btn-3d ${unlocked ? "btn-green" : "btn-ghost"}" style="width:100%; margin-top:8px;" ${unlocked ? "" : "disabled"}>
+            ${unlocked ? `▶ STAGE ${ls.stage} の問題を解く` : `🔒 STAGE ${ls.stage} はまだ解放されていません`}
+          </button>
+        </div>
+      </div>
+    `;
+    document.getElementById("lessonBackBtn").addEventListener("click", () => renderLessonList());
+    if (unlocked) {
+      document.getElementById("lessonQuizBtn").addEventListener("click", () => startStageQuiz(ls.stage - 1));
+    }
+    renderMath(main);
+  }
+
+  // ゲストで始める（モーダルを閉じてゲストのままホームへ）
+  document.getElementById("guestStartBtn").addEventListener("click", () => {
+    appData.activeId = "guest";
+    saveData();
+    document.getElementById("accountModal").classList.remove("open");
+    session = null;
+    renderHome();
+  });
+
+
+  loadData();
+  renderHome();
+  if (!appData.onboarded) {
+    appData.onboarded = true;
+    saveData();
+    openAccountModal();
+  }
+})();
+</script>
+</body>
+</html>
