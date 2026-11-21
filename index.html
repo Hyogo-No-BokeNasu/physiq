@@ -483,13 +483,18 @@
     .friend-code {
       font-size: 22px; font-weight: 900; letter-spacing: 2px;
       background: rgba(255,255,255,0.18); border-radius: 10px; padding: 6px 14px;
-      display: inline-block; margin-top: 6px;
+      display: inline-block; margin-top: 6px; max-width: 100%; overflow-wrap: anywhere;
     }
     .leader-row {
-      display: flex; align-items: center; gap: 10px;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
       background: var(--bg-card); border: 2px solid var(--border); border-radius: 14px;
       padding: 10px 14px; margin-bottom: 8px; box-shadow: 0 3px 0 var(--border);
+      min-width: 0;
     }
+    .leader-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; min-width: 0; }
+    .leader-actions .btn-3d { flex: 1 1 auto; white-space: nowrap; }
+    .friend-xp-row { display: flex; gap: 8px; }
+    .friend-xp-row input { flex: 1; min-width: 0; }
     .leader-row.me { border-color: var(--blue); background: var(--blue-soft); }
     .leader-rank { font-size: 18px; font-weight: 900; width: 28px; text-align: center; flex-shrink: 0; }
     .choice-btn.eliminated { opacity: 0.35; text-decoration: line-through; pointer-events: none; }
@@ -590,6 +595,23 @@
     .title-user { display: inline-flex; align-items: center; gap: 8px; margin-top: 26px; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 999px; padding: 8px 16px; font-weight: 800; font-size: 14px; max-width: 100%; }
     .title-start { margin-top: 46px; font-size: 17px; font-weight: 900; color: var(--blue-dark); animation: titlePulse 1.6s ease-in-out infinite; }
     @keyframes titlePulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.97); } }
+    @keyframes titleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes titleFadeUp { from { opacity: 0; translate: 0 14px; } to { opacity: 1; translate: 0 0; } }
+    @keyframes subjectPop { from { opacity: 0; transform: scale(.92) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .title-screen { animation: fadeUp .35s ease both; }
+    .title-logo-icon { animation: titleFloat 3.2s ease-in-out infinite, titleFadeUp .5s ease both; }
+    .title-logo-text { animation: titleFadeUp .5s .08s ease both; }
+    .title-tagline { animation: titleFadeUp .5s .16s ease both; }
+    .title-user { animation: titleFadeUp .5s .24s ease both; }
+    .title-start { animation: titleFadeUp .5s .32s ease both, titlePulse 1.6s .9s ease-in-out infinite; }
+    .subject-screen { animation: fadeUp .3s ease both; }
+    .subject-btn { animation: subjectPop .38s ease both; }
+    .subject-grid .subject-btn:nth-child(2) { animation-delay: .05s; }
+    .subject-grid .subject-btn:nth-child(3) { animation-delay: .1s; }
+    .subject-grid .subject-btn:nth-child(4) { animation-delay: .15s; }
+    .subject-grid .subject-btn:nth-child(5) { animation-delay: .2s; }
+    .subject-btn:hover:not(:disabled) { transform: translateY(-3px) scale(1.02); }
+    .subject-btn:active:not(:disabled) { transform: translateY(0) scale(.98); }
 
     /* Subject select screen */
     .subject-screen { padding-top: 6vh; }
@@ -706,7 +728,10 @@
       .btn-3d { font-size: 14px; padding: 10px 14px; }
       .title-strip { padding: 9px 11px; gap: 6px 10px; }
       .guide-step { flex-basis: 130px; padding: 9px 10px; }
-      .shop-item { padding: 12px; gap: 10px; }
+      .shop-item { padding: 12px; gap: 10px; flex-wrap: wrap; }
+      .friend-xp-row { flex-direction: column; }
+      .leader-actions { width: 100%; margin-left: 0; }
+      .leader-actions .btn-3d { flex: 1; }
       .shop-item .s-icon { font-size: 25px; }
     }
 
@@ -2126,6 +2151,7 @@ const EXTRA_QUESTIONS = {
   // ===== アプリからのお知らせ =====
   // 新しいお知らせはこの配列の先頭に追加する（id・日付・タイトル・本文）
   const ANNOUNCEMENTS = [
+    { id: "20261122-fix2", date: "2026-11-22", title: "🆕 11/22アップデート②：フレンド追加の横スクロール修正・タイトル画面のアニメーション・解答時間の列車ランク", body: "フレンド追加画面で横スクロールが必要だった問題を修正し、狭い画面でもボタンや入力欄が折り返して表示されるようになりました。タイトル画面と科目選択画面にアニメーションを追加しました。クイズの結果画面にかかった時間と獲得XPを表示し、3分以内は特急、3〜4分は急行、4〜5分は準急、それ以降は普通の列車ランクも表示します。割り算が「/div」と表示されるバグも修正し「÷」と表示されるようになりました。" },
     { id: "20261122-update", date: "2026-11-22", title: "🆕 11/22アップデート：ホーム画面追加でアプリ化・手書きメモ・フレンド機能", body: "Safariの「ホーム画面に追加」でPhysiQが単独アプリのように開けるようになりました。クイズの解答欄に手書きメモ（指・ペンで計算やメモ書き）が追加され、科目は化学・数学・英語・原付免許に整理されました。フレンド機能では招待コードで友だちを追加し、XPランキングで競ったり、応援（200XP）や7日間XPレース（500XP）でXPを使えます。クイズ開始時に画面が下に残ったままになる不具合も修正しました。" },
     { id: "20261121-darkmode", date: "2026-11-21", title: "🌙 ダークモード＆プロフィール設定が登場", body: "ヘッダーの自分のアイコン（アバター）から開けるプロフィールで、ユーザー名の変更やダークモードの切り替えができるようになりました。夜の学習にも目にやさしい暗い画面でどうぞ。" },
     { id: "20261121-news", date: "2026-11-21", title: "✉️ お知らせ機能を追加しました", body: "アプリからのお知らせは、ヘッダーの✉️ボタンからいつでも確認できます。アップデート内容などをここでお伝えしていきます。未読があると赤いバッジが付きます。" },
@@ -2371,8 +2397,10 @@ const EXTRA_QUESTIONS = {
               <div style="font-size:12px; color:var(--text-muted);">累計 ${r.xp} XP ／ 今週 ${r.weeklyXp} XP${r.cheers ? ` ／ 👏応援 ${r.cheers} 回` : ""}</div>
             </div>
             ${!r.me ? `
-              <button class="btn-3d btn-ghost" data-cheer="${r.id}" style="min-height:36px; padding:5px 10px; font-size:12.5px;" ${acc.xpBalance < CHEER_PRICE ? "disabled" : ""}>👏 応援 ${CHEER_PRICE}XP</button>
-              <button class="btn-3d btn-amber" data-race="${r.id}" style="min-height:36px; padding:5px 10px; font-size:12.5px;" ${acc.xpRace || acc.xpBalance < RACE_PRICE ? "disabled" : ""}>🏁 レース</button>
+              <div class="leader-actions">
+                <button class="btn-3d btn-ghost" data-cheer="${r.id}" style="min-height:36px; padding:5px 10px; font-size:12.5px;" ${acc.xpBalance < CHEER_PRICE ? "disabled" : ""}>👏 応援 ${CHEER_PRICE}XP</button>
+                <button class="btn-3d btn-amber" data-race="${r.id}" style="min-height:36px; padding:5px 10px; font-size:12.5px;" ${acc.xpRace || acc.xpBalance < RACE_PRICE ? "disabled" : ""}>🏁 レース</button>
+              </div>
             ` : ""}
           </div>`).join("")}
 
@@ -2381,7 +2409,7 @@ const EXTRA_QUESTIONS = {
           <div style="display:grid; gap:8px;">
             <input id="friendNameInput" placeholder="友だちの名前（例：たろう）" style="width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
             <input id="friendCodeInput" placeholder="フレンドコード（例：PQ-AB12）" style="width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
-            <div style="display:flex; gap:8px;">
+            <div class="friend-xp-row">
               <input id="friendXpInput" type="number" min="0" placeholder="相手の累計XP" style="flex:1; min-width:0; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
               <input id="friendWeeklyInput" type="number" min="0" placeholder="相手の今週XP" style="flex:1; min-width:0; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
             </div>
@@ -2555,7 +2583,7 @@ const EXTRA_QUESTIONS = {
     const sym = {
       "\\\\theta": "θ", "\\\\lambda": "λ", "\\\\nu": "ν", "\\\\pi": "π",
       "\\\\Delta": "Δ", "\\\\Omega": "Ω", "\\\\times": "×", "\\\\cdot": "·",
-      "\\\\approx": "≈", "\\\\sqrt": "√"
+      "\\\\approx": "≈", "\\\\sqrt": "√", "\\\\div": "÷"
     };
     t = t.replace(/\\(?:text|mathrm)\{([^{}]*)\}/g, "$1");
     for (let p = 0; p < 2; p++) {
@@ -2568,6 +2596,7 @@ const EXTRA_QUESTIONS = {
     t = t.replace(/_\{([^{}]+)\}/g, "<sub>$1</sub>").replace(/\^\{([^{}]+)\}/g, "<sup>$1</sup>");
     t = t.replace(/_([a-zA-Z0-9])/g, "<sub>$1</sub>").replace(/\^([a-zA-Z0-9])/g, "<sup>$1</sup>");
     t = t.replace(/\\,/g, "&thinsp;").replace(/[{}]/g, "");
+    t = t.replace(/\\+div/g, "÷"); // 念のため：変換されずに残った \div も ÷ にする
     return t;
   }
 
@@ -2590,6 +2619,19 @@ const EXTRA_QUESTIONS = {
 
   // Active Quiz Session
   let session = null; // { mode: "stage"|"daily", stageIdx, qIdx, combo, correctCount, answered, chosenIdx }
+
+  // 解答時間の計測と「列車ランク」（結果画面で表示）
+  function formatElapsed(totalSec) {
+    const s = Math.max(0, Math.round(totalSec));
+    const m = Math.floor(s / 60);
+    return m > 0 ? `${m}分${s % 60}秒` : `${s}秒`;
+  }
+  function trainRank(totalSec) {
+    if (totalSec <= 180) return { icon: "🚄", name: "特急", text: "3分以内に解ききったよ！特急ペース！" };
+    if (totalSec <= 240) return { icon: "🚆", name: "急行", text: "3〜4分でゴール！急行ペース！" };
+    if (totalSec <= 300) return { icon: "🚃", name: "準急", text: "4〜5分でゴール！準急ペース！" };
+    return { icon: "🚋", name: "普通", text: "5分以上かかったよ。ゆっくり確実にいこう！普通ペース" };
+  }
 
   function updateHUD() {
     const acc = curAcc();
@@ -2828,7 +2870,7 @@ const EXTRA_QUESTIONS = {
   function startStageQuiz(stageIdx) {
     const st = STAGES[stageIdx];
     const refs = st.questions.map((q, i) => ({ stageId: st.id, qIndex: i }));
-    session = { mode: "stage", stageIdx, questions: st.questions, refs, qIdx: 0, combo: 0, correctCount: 0, answered: false, chosenIdx: -1 };
+    session = { mode: "stage", stageIdx, questions: st.questions, refs, qIdx: 0, combo: 0, correctCount: 0, answered: false, chosenIdx: -1, startedAt: Date.now(), questionStartedAt: Date.now() };
     renderQuiz();
   }
 
@@ -2843,7 +2885,7 @@ const EXTRA_QUESTIONS = {
       const j = STAGES[i].questions.indexOf(pick);
       if (j >= 0) { pickStageIdx = i; pickRef = { stageId: STAGES[i].id, qIndex: j }; break; }
     }
-    session = { mode: "daily", stageIdx: pickStageIdx, questions: [pick], refs: [pickRef], qIdx: 0, combo: 0, correctCount: 0, answered: false, chosenIdx: -1 };
+    session = { mode: "daily", stageIdx: pickStageIdx, questions: [pick], refs: [pickRef], qIdx: 0, combo: 0, correctCount: 0, answered: false, chosenIdx: -1, startedAt: Date.now(), questionStartedAt: Date.now() };
     renderQuiz();
   }
 
@@ -2860,7 +2902,7 @@ const EXTRA_QUESTIONS = {
       }
     });
     if (questions.length === 0) { renderMain(); return; }
-    session = { mode: "review", stageIdx: 0, questions, refs, qIdx: 0, combo: 0, correctCount: 0, answered: false, chosenIdx: -1 };
+    session = { mode: "review", stageIdx: 0, questions, refs, qIdx: 0, combo: 0, correctCount: 0, answered: false, chosenIdx: -1, startedAt: Date.now(), questionStartedAt: Date.now() };
     renderQuiz();
   }
 
@@ -2869,6 +2911,8 @@ const EXTRA_QUESTIONS = {
     window.scrollTo(0, 0); // 次の問題でもヒント・問題文が画面上部から見えるようにする
     const q = session.questions[session.qIdx];
     if (!Array.isArray(session.eliminated)) session.eliminated = [];
+    if (!session.startedAt) session.startedAt = Date.now();
+    if (!session.questionStartedAt) session.questionStartedAt = Date.now();
     const acc = curAcc();
     const total = session.questions.length;
     const pct = Math.round(((session.qIdx + (session.answered ? 1 : 0)) / total) * 100);
@@ -2932,6 +2976,7 @@ const EXTRA_QUESTIONS = {
             <div style="font-weight:800; font-size:15px;">
               ${session.chosenIdx === q.ans ? "🎉 正解！ (+10 XP)" : "💡 惜しい！解説を確認しよう"}
             </div>
+            <div style="font-size:12.5px; font-weight:700; color:var(--text-muted);">⏱ この問題：${typeof session.lastAnswerSec === "number" ? session.lastAnswerSec + "秒" : "—"}で回答</div>
             <div style="font-size:14px; color:var(--text-main);">${q.exp}</div>
             ${session.chosenIdx === q.ans ? "" : `<button id="bookReviewBtn" class="btn-3d btn-ghost" style="margin-top:6px;">📚 教科書で復習する</button>`}
             <button id="nextQBtn" class="btn-3d ${session.chosenIdx === q.ans ? "btn-green" : "btn-blue"}" style="margin-top:6px;">
@@ -3017,6 +3062,7 @@ const EXTRA_QUESTIONS = {
         const oi = Number(btn.getAttribute("data-oi"));
         session.answered = true;
         session.chosenIdx = oi;
+        session.lastAnswerSec = Math.max(0, Math.round((Date.now() - (session.questionStartedAt || session.startedAt || Date.now())) / 1000));
         const ref = session.refs[session.qIdx];
         if (oi === q.ans) {
           session.correctCount++;
@@ -3049,6 +3095,7 @@ const EXTRA_QUESTIONS = {
           session.qIdx++;
           session.answered = false;
           session.chosenIdx = -1;
+          session.questionStartedAt = Date.now();
           session.eliminated = [];
           session.hintUsed = false;
           renderQuiz();
@@ -3101,13 +3148,17 @@ const EXTRA_QUESTIONS = {
     checkBadges();
     if (dailyRewardMsgs.length) showToast("🎁 デイリー報酬をもらいました！結果画面で確認できます");
 
+    const totalSec = session.startedAt ? Math.round((Date.now() - session.startedAt) / 1000) : 0;
+    const rank = trainRank(totalSec);
     const main = document.getElementById("appMain");
     main.innerHTML = `
       <div class="quiz-screen" style="text-align:center; padding:32px 20px;">
         <div style="font-size:48px; margin-bottom:8px;">${session.correctCount === total ? "🏆" : "👍"}</div>
         <h2 style="margin:0 0 8px; font-size:22px;">${session.mode === "review" ? "復習完了！" : session.mode === "daily" ? "チャレンジ完了！" : "ステージ完了！"}</h2>
         <div style="font-size:15px; color:var(--text-muted); margin-bottom:14px;">
-          正答数：<strong>${session.correctCount} / ${total} 問</strong>　｜　獲得：<strong>+${earnedXp} XP</strong>
+          正答数：<strong>${session.correctCount} / ${total} 問</strong>　｜　獲得：<strong>+${earnedXp} XP</strong><br>
+          ⏱ かかった時間：<strong>${formatElapsed(totalSec)}（${totalSec}秒）</strong>
+          <div style="font-size:12.5px; margin-top:4px;">${rank.icon} ${rank.name}ペース ― ${rank.text}</div>
         </div>
         <div style="background:#fff7ed; border:1.5px solid #fed7aa; color:#c2410c; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">
           ${acc.id === "guest" ? "🔒 ストリークはアカウント作成で使えるようになります" : `🔥 ストリーク：${acc.streak} 日連続達成！`}
