@@ -541,6 +541,29 @@
     @keyframes tabFromRight { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes tabFromLeft { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes tabFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* Chrome (HUD / tab bar) hidden: quiz immersion + title/subject flow screens */
+    body.chrome-off .hud, body.chrome-off .tab-bar { display: none; }
+    body.chrome-off .container { padding-bottom: 24px; }
+
+    /* Title screen */
+    .title-screen { text-align: center; padding: 12vh 8px 30px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .title-logo-icon { font-size: 76px; line-height: 1.1; display: block; }
+    .title-logo-text { font-size: 52px; font-weight: 900; letter-spacing: 1px; color: var(--blue); line-height: 1.1; }
+    .title-tagline { font-size: 14px; font-weight: 700; color: var(--text-muted); margin-top: 8px; }
+    .title-user { display: inline-flex; align-items: center; gap: 8px; margin-top: 26px; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 999px; padding: 8px 16px; font-weight: 800; font-size: 14px; max-width: 100%; }
+    .title-start { margin-top: 46px; font-size: 17px; font-weight: 900; color: var(--blue-dark); animation: titlePulse 1.6s ease-in-out infinite; }
+    @keyframes titlePulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.97); } }
+
+    /* Subject select screen */
+    .subject-screen { padding-top: 6vh; }
+    .subject-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .subject-btn { background: var(--bg-card); border: 2px solid var(--border); border-radius: 18px; padding: 22px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font-family: inherit; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); }
+    .subject-btn .s-icon { font-size: 40px; line-height: 1.1; }
+    .subject-btn .s-name { font-size: 19px; font-weight: 900; color: var(--text-main); }
+    .subject-btn .s-sub { font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-align: center; }
+    .subject-btn.active-subject { border-color: var(--blue); }
+    .subject-btn:disabled { opacity: .5; cursor: default; box-shadow: none; }
+
     @media (prefers-reduced-motion: reduce) {
       .tab-indicator { transition: none; }
       .tab-btn, .tab-btn .tab-icon { transition: none; }
@@ -2091,6 +2114,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function renderShop() {
+    setChromeVisible(true);
     updateHUD();
     const acc = curAcc();
     const isGuest = acc.id === "guest";
@@ -2523,6 +2547,7 @@ const EXTRA_QUESTIONS = {
 
   // ===== ステージ開始前解説（イントロ）画面 =====
   function renderStageIntro(stageIdx) {
+    setChromeVisible(false); // イントロからクイズ終了まで没入モード（HUD/タブバーを隠す）
     updateHUD();
     const st = STAGES[stageIdx];
     const intro = st.intro || { concept: st.sub, what: "", terms: [], points: [], formula: "" };
@@ -2628,6 +2653,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function renderQuiz() {
+    setChromeVisible(false); // クイズ中は没入モード
     const q = session.questions[session.qIdx];
     if (!Array.isArray(session.eliminated)) session.eliminated = [];
     const acc = curAcc();
@@ -2757,6 +2783,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function finishQuiz() {
+    setChromeVisible(true); // 結果画面ではクロームを再表示
     const acc = curAcc();
     const total = session.questions.length;
     let earnedXp = session.correctCount * 10 + (session.correctCount === total ? 15 : 0);
@@ -2933,7 +2960,7 @@ const EXTRA_QUESTIONS = {
         saveData();
         document.getElementById("accountModal").classList.remove("open");
         session = null;
-        renderMain();
+        if (appStarted) renderMain(); else renderTitleScreen();
       });
     });
     document.getElementById("accountModal").classList.add("open");
@@ -2971,7 +2998,7 @@ const EXTRA_QUESTIONS = {
     document.getElementById("newNickInput").value = "";
     document.getElementById("accountModal").classList.remove("open");
     session = null;
-    renderMain();
+    if (appStarted) renderMain(); else renderTitleScreen();
   });
 
   document.getElementById("soundBtn").addEventListener("click", () => {
@@ -2984,7 +3011,75 @@ const EXTRA_QUESTIONS = {
   let currentTab = "home";
   const TAB_ORDER = ["home", "study", "data"];
 
+  // クローム（上部HUD／下部タブバー）の表示切替。クイズ中とタイトル/科目選択フローでは隠す
+  function setChromeVisible(v) {
+    document.body.classList.toggle("chrome-off", !v);
+  }
+
+  // 起動フロー：アカウント → タイトル → 科目選択 → ホーム（appStarted が true になるまでホームに入らない）
+  let appStarted = false;
+
+  function renderTitleScreen() {
+    setChromeVisible(false);
+    session = null;
+    const acc = curAcc();
+    updateHUD();
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="title-screen" id="titleScreen">
+        <span class="title-logo-icon">⚛️</span>
+        <div class="title-logo-text">PhysiQ</div>
+        <div class="title-tagline">あそんで学べる、物理クイズアプリ</div>
+        <div><span class="title-user">${acc.avatar} ${acc.name} でログイン中</span></div>
+        <div class="title-start">▶ タップしてスタート</div>
+      </div>
+    `;
+    document.getElementById("titleScreen").addEventListener("click", () => renderSubjectSelect());
+    window.scrollTo(0, 0);
+  }
+
+  function renderSubjectSelect() {
+    setChromeVisible(false);
+    session = null;
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="subject-screen">
+        <h2 style="margin:0; font-size:21px; text-align:center;">📚 科目をえらぼう</h2>
+        <div style="text-align:center; font-size:12.5px; color:var(--text-muted); font-weight:700; margin-top:6px;">学びたい科目をタップしてね</div>
+        <div class="subject-grid">
+          <button class="subject-btn active-subject" id="subjectPhysicsBtn">
+            <span class="s-icon">⚛️</span>
+            <span class="s-name">物理</span>
+            <span class="s-sub">全${STAGES.length}ステージの問題に挑戦</span>
+          </button>
+          <button class="subject-btn" disabled>
+            <span class="s-icon">🔢</span>
+            <span class="s-name">数学</span>
+            <span class="s-sub">🔒 近日公開</span>
+          </button>
+          <button class="subject-btn" disabled>
+            <span class="s-icon">🧪</span>
+            <span class="s-name">化学</span>
+            <span class="s-sub">🔒 近日公開</span>
+          </button>
+          <button class="subject-btn" disabled>
+            <span class="s-icon">🔤</span>
+            <span class="s-name">英語</span>
+            <span class="s-sub">🔒 近日公開</span>
+          </button>
+        </div>
+      </div>
+    `;
+    document.getElementById("subjectPhysicsBtn").addEventListener("click", () => {
+      appStarted = true;
+      currentTab = "home";
+      renderMain();
+    });
+    window.scrollTo(0, 0);
+  }
+
   function renderMain() {
+    setChromeVisible(true);
     document.querySelectorAll(".tab-btn").forEach(b => {
       b.classList.toggle("active", b.getAttribute("data-tab") === currentTab);
     });
@@ -3020,6 +3115,8 @@ const EXTRA_QUESTIONS = {
     updateHUD();
     const main = document.getElementById("appMain");
     main.innerHTML = `
+      <button id="changeSubjectBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:12px;">🎛️ 科目を変える（科目選択にもどる）</button>
+
       <section class="guide-card">
         <div style="font-weight:800; font-size:14.5px; margin-bottom:10px;">🌱 物理が初めての人は「まずはここから」</div>
         <div class="guide-steps">
@@ -3055,6 +3152,7 @@ const EXTRA_QUESTIONS = {
         単語帳で用語を覚えてから教科書を読むと、ステージの問題がぐっと解きやすくなります。
       </div>
     `;
+    document.getElementById("changeSubjectBtn").addEventListener("click", () => renderSubjectSelect());
     document.getElementById("openWordsBtn").addEventListener("click", () => renderWordList());
     document.getElementById("openBookBtn").addEventListener("click", () => renderLessonList());
     document.getElementById("guideWordsBtn").addEventListener("click", () => renderWordList());
@@ -3418,6 +3516,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function renderWordList() {
+    setChromeVisible(true);
     updateHUD();
     const list = filteredTerms();
     const main = document.getElementById("appMain");
@@ -3453,6 +3552,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function renderFlashcards(reset) {
+    setChromeVisible(true);
     updateHUD();
     if (reset || flashDeck.length === 0) {
       flashDeck = filteredTerms();
@@ -3534,6 +3634,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function renderLessonList() {
+    setChromeVisible(true);
     updateHUD();
     const main = document.getElementById("appMain");
     main.innerHTML = `
@@ -3568,6 +3669,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function renderLesson(idx) {
+    setChromeVisible(true);
     updateHUD();
     const ls = LESSONS[idx];
     const st = STAGES.find(s => s.id === ls.stageId);
@@ -3609,18 +3711,18 @@ const EXTRA_QUESTIONS = {
     renderMath(main);
   }
 
-  // ゲストで始める（モーダルを閉じてゲストのままホームへ）
+  // ゲストで始める（モーダルを閉じてゲストのままタイトル画面へ）
   document.getElementById("guestStartBtn").addEventListener("click", () => {
     appData.activeId = "guest";
     saveData();
     document.getElementById("accountModal").classList.remove("open");
     session = null;
-    renderMain();
+    if (appStarted) renderMain(); else renderTitleScreen();
   });
 
 
   loadData();
-  renderMain();
+  renderTitleScreen();
   if (!appData.onboarded) {
     appData.onboarded = true;
     saveData();
