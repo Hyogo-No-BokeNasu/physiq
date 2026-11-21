@@ -455,6 +455,68 @@
     .hint-bar { margin-bottom: 12px; }
     .choice-btn.eliminated { opacity: 0.35; text-decoration: line-through; pointer-events: none; }
 
+    /* XP Boost banner (home) */
+    .boost-banner {
+      display: flex; align-items: center; gap: 10px;
+      background: #fef9c3; border: 2px solid #fde047; border-radius: 16px;
+      padding: 10px 14px; margin-bottom: 14px; font-size: 13.5px; font-weight: 800; color: #854d0e;
+      box-shadow: 0 4px 0 #fde047;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    /* Weekly daily-bonus board */
+    .bonus-board-card {
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: 18px;
+      padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 5px 0 var(--border);
+      animation: fadeUp 0.35s ease both;
+    }
+    .bonus-cells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+    .bonus-cell {
+      border: 2px solid var(--border); border-radius: 12px; padding: 8px 2px 6px;
+      text-align: center; background: var(--bg-subtle); min-width: 0;
+    }
+    .bonus-cell .bc-icon { font-size: 19px; line-height: 1.25; }
+    .bonus-cell .bc-label { font-size: 9.5px; font-weight: 800; color: var(--text-muted); line-height: 1.3; overflow-wrap: anywhere; }
+    .bonus-cell .bc-day { font-size: 9px; font-weight: 800; color: var(--text-light); }
+    .bonus-cell.done { background: var(--green-soft); border-color: #22c55e; }
+    .bonus-cell.done .bc-label { color: var(--green-dark); }
+    .bonus-cell.next { border-color: var(--gold); background: #fefce8; box-shadow: 0 0 0 2px #fef08a; }
+    .bonus-complete {
+      margin-top: 10px; border: 2px dashed #f59e0b; background: #fffbeb; border-radius: 12px;
+      padding: 8px 12px; font-size: 13px; font-weight: 800; color: #92400e; text-align: center;
+    }
+    .bonus-complete.got { border-style: solid; background: var(--green-soft); border-color: #22c55e; color: var(--green-dark); }
+
+    /* Gacha */
+    .gacha-machine {
+      text-align: center; padding: 26px 16px 20px;
+      background: linear-gradient(160deg, #fdf4ff, #eff6ff);
+      border: 2px solid var(--border); border-radius: 20px; margin-bottom: 16px;
+    }
+    .gacha-emoji { font-size: 76px; line-height: 1.2; display: inline-block; }
+    .gacha-emoji.spinning { animation: gachaShake 0.12s linear infinite; }
+    @keyframes gachaShake {
+      0% { transform: rotate(-7deg) scale(1.04); }
+      50% { transform: rotate(7deg) scale(0.97); }
+      100% { transform: rotate(-7deg) scale(1.04); }
+    }
+    .gacha-result { margin-top: 14px; font-size: 17px; font-weight: 800; min-height: 26px; animation: popIn 0.3s ease both; }
+    .gacha-results-box {
+      margin-top: 14px; text-align: left; background: rgba(255,255,255,0.78);
+      border: 1.5px solid #f0abfc; border-radius: 14px; padding: 12px 14px;
+      animation: popIn 0.3s ease both;
+    }
+    .gacha-results-list { margin: 0; padding-left: 20px; font-size: 13.5px; font-weight: 700; line-height: 1.75; }
+    .prob-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .prob-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+    .prob-table td:last-child { text-align: right; font-weight: 800; white-space: nowrap; }
+
+    @media (max-width: 430px) {
+      .bonus-cells { gap: 4px; }
+      .bonus-cell .bc-icon { font-size: 16px; }
+      .gacha-emoji { font-size: 62px; }
+    }
+
     .toast { overflow-wrap: anywhere; }
 
     /* Small screens (smartphone): prevent horizontal overflow */
@@ -1116,7 +1178,12 @@ const EXTRA_QUESTIONS = {
         streakFreezes: 0, // ストリークフリーズ所持数
         unlockedAvatars: [], // ショップで解放した追加アバター
         themesOwned: [], // ショップで解放したテーマカラーid
-        themeColor: "blue" // 選択中のテーマカラーid
+        themeColor: "blue", // 選択中のテーマカラーid
+        xpBoost: 0, // XPブースト所持数（デイリー報酬／次のクイズ1回分の獲得XP×1.5）
+        gachaTickets: 0, // ガチャチケット所持数
+        lastDailyRewardDate: null, // デイリー報酬を最後に受け取った日 (JST "YYYY-MM-DD")
+        rareTitles: [], // ガチャで当てたレア称号
+        weeklyBonus: { weekKey: null, progress: 0, completed: false } // 週間デイリーボーナス進捗
       }
     }
   };
@@ -1143,6 +1210,15 @@ const EXTRA_QUESTIONS = {
         if (!Array.isArray(a.unlockedAvatars)) a.unlockedAvatars = [];
         if (!Array.isArray(a.themesOwned)) a.themesOwned = [];
         if (typeof a.themeColor !== "string") a.themeColor = "blue";
+        // デイリー報酬（ブースト/ガチャ/週間ボーナス）用フィールド
+        if (typeof a.xpBoost !== "number") a.xpBoost = 0;
+        if (typeof a.gachaTickets !== "number") a.gachaTickets = 0;
+        if (typeof a.lastDailyRewardDate !== "string") a.lastDailyRewardDate = null;
+        if (!Array.isArray(a.rareTitles)) a.rareTitles = [];
+        if (!a.weeklyBonus || typeof a.weeklyBonus !== "object") a.weeklyBonus = { weekKey: null, progress: 0, completed: false };
+        if (typeof a.weeklyBonus.weekKey !== "string") a.weeklyBonus.weekKey = null;
+        if (typeof a.weeklyBonus.progress !== "number") a.weeklyBonus.progress = 0;
+        if (typeof a.weeklyBonus.completed !== "boolean") a.weeklyBonus.completed = false;
       });
     } catch (e) {}
   }
@@ -1410,6 +1486,270 @@ const EXTRA_QUESTIONS = {
     renderShop();
   }
 
+  // ===== デイリー報酬（XPブースト / ガチャチケット / 週間ボーナス） =====
+  const BOOST_MULTIPLIER = 1.5; // XPブーストの倍率（次のクイズ1回分・端数は切り上げ）
+
+  // ISO週キー（JST基準）。{ key: "2026-W47", num: 47 } を返す
+  function jstWeekKey() {
+    const p = todayStr().split("-").map(Number);
+    const date = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+    const dayNum = (date.getUTCDay() + 6) % 7; // 月曜=0
+    date.setUTCDate(date.getUTCDate() - dayNum + 3); // その週の木曜に寄せる
+    const isoYear = date.getUTCFullYear();
+    const firstThu = new Date(Date.UTC(isoYear, 0, 4));
+    const fDay = (firstThu.getUTCDay() + 6) % 7;
+    firstThu.setUTCDate(firstThu.getUTCDate() - fDay + 3); // その年の最初の木曜
+    const week = 1 + Math.round((date - firstThu) / 604800000);
+    return { key: isoYear + "-W" + String(week).padStart(2, "0"), num: week };
+  }
+
+  // 週間ボーナスの報酬セット（週番号で3種類をローテーション）
+  const WEEKLY_BONUS_SETS = [
+    {
+      name: "ヒント週間", complete: { type: "gacha", amount: 2 },
+      cells: [
+        { type: "hint", amount: 1 }, { type: "xp", amount: 30 }, { type: "gacha", amount: 1 },
+        { type: "hint", amount: 1 }, { type: "xp", amount: 50 }, { type: "freeze", amount: 1 },
+        { type: "gacha", amount: 1 }
+      ]
+    },
+    {
+      name: "フリーズ週間", complete: { type: "gacha", amount: 2 },
+      cells: [
+        { type: "xp", amount: 30 }, { type: "freeze", amount: 1 }, { type: "gacha", amount: 1 },
+        { type: "hint", amount: 1 }, { type: "boost", amount: 1 }, { type: "freeze", amount: 1 },
+        { type: "xp", amount: 80 }
+      ]
+    },
+    {
+      name: "ブースト週間", complete: { type: "gacha", amount: 3 },
+      cells: [
+        { type: "gacha", amount: 1 }, { type: "xp", amount: 40 }, { type: "hint", amount: 1 },
+        { type: "boost", amount: 1 }, { type: "freeze", amount: 1 }, { type: "xp", amount: 60 },
+        { type: "gacha", amount: 1 }
+      ]
+    }
+  ];
+  function weeklySet() {
+    const wk = jstWeekKey();
+    return { set: WEEKLY_BONUS_SETS[wk.num % WEEKLY_BONUS_SETS.length], key: wk.key, num: wk.num };
+  }
+  function rewardLabel(r) {
+    if (r.type === "hint") return `💡 ヒントチケット ×${r.amount}`;
+    if (r.type === "freeze") return `🧊 ストリークフリーズ ×${r.amount}`;
+    if (r.type === "gacha") return `🎰 ガチャチケット ×${r.amount}`;
+    if (r.type === "boost") return `⚡ XPブースト ×${r.amount}`;
+    if (r.type === "xp") return `⚡ ${r.amount} XP`;
+    return "🎁 報酬";
+  }
+  function rewardIcon(r) {
+    return { hint: "💡", freeze: "🧊", gacha: "🎰", boost: "⚡", xp: "⚡" }[r.type] || "🎁";
+  }
+  function rewardShort(r) {
+    return r.type === "xp" ? r.amount + "XP" : "×" + r.amount;
+  }
+  // 報酬をアカウントへ付与（XP報酬は累計XPと残高の両方に加算し、称号判定とそろえる）
+  function applyReward(acc, r) {
+    if (r.type === "hint") acc.hintTickets += r.amount;
+    else if (r.type === "freeze") acc.streakFreezes += r.amount;
+    else if (r.type === "gacha") acc.gachaTickets += r.amount;
+    else if (r.type === "boost") acc.xpBoost += r.amount;
+    else if (r.type === "xp") { acc.xp += r.amount; acc.xpBalance += r.amount; }
+  }
+  // 週が変わっていたら週間ボーナス進捗をリセットする（リセットしたら true）
+  function syncWeeklyBonus(acc) {
+    const wk = weeklySet();
+    if (!acc.weeklyBonus || acc.weeklyBonus.weekKey !== wk.key) {
+      acc.weeklyBonus = { weekKey: wk.key, progress: 0, completed: false };
+      return true;
+    }
+    return false;
+  }
+
+  // デイリー初回完了時の報酬付与。付与内容の説明文リストを返す（同日2回目以降は空配列＝付与なし）
+  function grantDailyRewards() {
+    const acc = curAcc();
+    const td = todayStr();
+    if (acc.lastDailyRewardDate === td) return [];
+    acc.lastDailyRewardDate = td;
+    const msgs = [];
+    acc.xpBoost += 1;
+    msgs.push("⚡ XPブースト ×1（次のクイズの獲得XPが1.5倍）");
+    acc.gachaTickets += 1;
+    msgs.push("🎰 ガチャチケット ×1");
+    // 週間ボーナスボードを1マス進める（週替わりなら先にリセット）
+    syncWeeklyBonus(acc);
+    const wk = weeklySet();
+    if (acc.weeklyBonus.progress < wk.set.cells.length) {
+      const cell = wk.set.cells[acc.weeklyBonus.progress];
+      acc.weeklyBonus.progress += 1;
+      applyReward(acc, cell);
+      msgs.push(`📅 週間ボーナス ${acc.weeklyBonus.progress}マス目：${rewardLabel(cell)}`);
+      if (acc.weeklyBonus.progress >= wk.set.cells.length && !acc.weeklyBonus.completed) {
+        acc.weeklyBonus.completed = true;
+        applyReward(acc, wk.set.complete);
+        msgs.push(`🎉 週間コンプリート報酬：${rewardLabel(wk.set.complete)}`);
+      }
+    }
+    saveData();
+    return msgs;
+  }
+
+  // ===== ガチャ =====
+  const RARE_TITLES = ["⚡ 電磁気の申し子", "🍎 万有引力の使い手", "🌊 波動マスター", "🔭 星空の観測者", "🧲 磁界の支配者"];
+  // 現在の排出プール。解放済みカテゴリ（アバター/テーマ/称号）は除外し、その分は他に割り振られる
+  function gachaPool(acc) {
+    const pool = [
+      { kind: "xp", amount: 30, weight: 24, label: "⚡ 30 XP" },
+      { kind: "hint", amount: 1, weight: 20, label: "💡 ヒントチケット ×1" },
+      { kind: "xp", amount: 80, weight: 13, label: "⚡ 80 XP" },
+      { kind: "freeze", amount: 1, weight: 12, label: "🧊 ストリークフリーズ ×1" },
+      { kind: "boost", amount: 1, weight: 10, label: "⚡ XPブースト ×1" },
+      { kind: "hint", amount: 2, weight: 8, label: "💡 ヒントチケット ×2" },
+      { kind: "xp", amount: 150, weight: 3, label: "⚡ 150 XP（大当たり！）" }
+    ];
+    if (SHOP_AVATARS.some(a => !acc.unlockedAvatars.includes(a))) {
+      pool.push({ kind: "avatar", weight: 5, label: "🎭 限定アバター（ランダムで1つ解放）" });
+    }
+    if (THEMES.some(t => t.id !== "blue" && !acc.themesOwned.includes(t.id))) {
+      pool.push({ kind: "theme", weight: 3, label: "🎨 テーマカラー（ランダムで1つ解放）" });
+    }
+    if (RARE_TITLES.some(t => !acc.rareTitles.includes(t))) {
+      pool.push({ kind: "title", weight: 2, label: "🎖️ レア称号（ランダムで1つ）" });
+    }
+    return pool;
+  }
+
+  let gachaSpinning = false;
+  let gachaLastResults = []; // 直近の抽選結果ラベル（1連なら1件、10連なら10件）
+  let gachaLastWasMulti = false;
+  // 1回分の抽選を行い、当選アイテムを付与して結果ラベルを返す。
+  // プールは毎回再計算するので、10連の途中で全解放されたカテゴリは以降の抽選から外れる
+  function rollGachaOnce(acc) {
+    const pool = gachaPool(acc);
+    const totalW = pool.reduce((s, p) => s + p.weight, 0);
+    let roll = Math.random() * totalW;
+    let prize = pool[pool.length - 1];
+    for (const p of pool) { roll -= p.weight; if (roll < 0) { prize = p; break; } }
+    let resultLabel = prize.label;
+    if (prize.kind === "avatar") {
+      const locked = SHOP_AVATARS.filter(a => !acc.unlockedAvatars.includes(a));
+      const got = locked[Math.floor(Math.random() * locked.length)];
+      acc.unlockedAvatars.push(got);
+      resultLabel = `🎭 限定アバター「${got}」を解放！`;
+    } else if (prize.kind === "theme") {
+      const locked = THEMES.filter(t => t.id !== "blue" && !acc.themesOwned.includes(t.id));
+      const got = locked[Math.floor(Math.random() * locked.length)];
+      acc.themesOwned.push(got.id);
+      resultLabel = `🎨 テーマカラー「${got.name}」を解放！`;
+    } else if (prize.kind === "title") {
+      const locked = RARE_TITLES.filter(t => !acc.rareTitles.includes(t));
+      const got = locked[Math.floor(Math.random() * locked.length)];
+      acc.rareTitles.push(got);
+      resultLabel = `🎖️ レア称号「${got}」をゲット！`;
+    } else {
+      applyReward(acc, { type: prize.kind, amount: prize.amount });
+    }
+    return resultLabel;
+  }
+
+  // 1連：チケット1枚で1回抽選
+  function drawGacha() {
+    const acc = curAcc();
+    if (gachaSpinning || acc.gachaTickets <= 0) return;
+    acc.gachaTickets -= 1; // チケットは抽選開始時に消費
+    saveData();
+    gachaSpinning = true;
+    gachaLastResults = [];
+    gachaLastWasMulti = false;
+    renderGacha();
+    setTimeout(() => {
+      const resultLabel = rollGachaOnce(acc);
+      saveData();
+      gachaSpinning = false;
+      gachaLastResults = [resultLabel];
+      playTone("clear");
+      renderGacha();
+      showToast(`🎰 ガチャ結果：${resultLabel}`);
+    }, 900);
+  }
+
+  // 10連：チケット10枚で10回抽選し、結果を一覧表示する
+  function drawGacha10() {
+    const acc = curAcc();
+    if (gachaSpinning || acc.gachaTickets < 10) return;
+    acc.gachaTickets -= 10; // チケットは抽選開始時に10枚まとめて消費
+    saveData();
+    gachaSpinning = true;
+    gachaLastResults = [];
+    gachaLastWasMulti = true;
+    renderGacha();
+    setTimeout(() => {
+      const results = [];
+      for (let i = 0; i < 10; i++) results.push(rollGachaOnce(acc));
+      saveData();
+      gachaSpinning = false;
+      gachaLastResults = results;
+      playTone("clear");
+      renderGacha();
+      showToast("🎰 10連ガチャ完了！結果一覧をチェックしよう");
+    }, 1400);
+  }
+
+  function renderGacha() {
+    updateHUD();
+    const acc = curAcc();
+    const pool = gachaPool(acc);
+    const totalW = pool.reduce((s, p) => s + p.weight, 0);
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="gachaBackBtn" class="stat-btn">← もどる</button>
+          <h2>🎰 デイリーガチャ</h2>
+        </div>
+        <div class="gacha-machine">
+          <div class="gacha-emoji ${gachaSpinning ? "spinning" : ""}">🎰</div>
+          <div style="font-size:14px; font-weight:800; margin-top:6px;">所持チケット：🎟️ ${acc.gachaTickets} 枚</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">チケットはデイリー完了（毎日1枚）や週間ボーナスでもらえます</div>
+          ${gachaSpinning ? `<div class="gacha-result">抽選中…</div>` : gachaLastResults.length === 1 ? `<div class="gacha-result">🎉 ${gachaLastResults[0]}</div>` : ""}
+          ${!gachaSpinning && gachaLastResults.length > 1 ? `
+          <div class="gacha-results-box">
+            <div style="font-weight:800; font-size:14.5px; margin-bottom:6px;">🎉 ${gachaLastResults.length}連の結果一覧</div>
+            <ol class="gacha-results-list">
+              ${gachaLastResults.map(r => `<li>${r}</li>`).join("")}
+            </ol>
+          </div>` : ""}
+          <div style="display:flex; gap:10px; margin-top:14px;">
+            <button id="gachaDrawBtn" class="btn-3d btn-amber" style="flex:1;" ${acc.gachaTickets < 1 || gachaSpinning ? "disabled" : ""}>
+              ${gachaSpinning ? "抽選中…" : "🎰 1連（チケット1枚）"}
+            </button>
+            <button id="gachaDraw10Btn" class="btn-3d btn-blue" style="flex:1;" ${acc.gachaTickets < 10 || gachaSpinning ? "disabled" : ""}>
+              ${gachaSpinning ? "抽選中…" : "🎰✨ 10連（チケット10枚）"}
+            </button>
+          </div>
+          ${!gachaSpinning && acc.gachaTickets < 10 ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:8px;">10連まであと ${10 - acc.gachaTickets} 枚（チケットはデイリー完了などで貯まります）</div>` : ""}
+        </div>
+        <div class="shop-item" style="display:block;">
+          <div class="s-name" style="margin-bottom:8px;">📋 排出アイテムと確率</div>
+          <table class="prob-table">
+            ${pool.map(p => `<tr><td>${p.label}</td><td>${(p.weight / totalW * 100).toFixed(1)}%</td></tr>`).join("")}
+          </table>
+          <div style="font-size:11.5px; color:var(--text-light); margin-top:8px; line-height:1.55;">
+            ※限定アバター・テーマカラー・レア称号を全部集めると、その枠は抽選から外れて他のアイテムの確率が上がります。
+          </div>
+        </div>
+        ${acc.rareTitles.length ? `<div style="font-size:13px; font-weight:800;">🎖️ 所持レア称号：${acc.rareTitles.join(" ／ ")}</div>` : ""}
+      </div>
+    `;
+    document.getElementById("gachaBackBtn").addEventListener("click", () => renderHome());
+    const drawBtn = document.getElementById("gachaDrawBtn");
+    if (drawBtn) drawBtn.addEventListener("click", drawGacha);
+    const draw10Btn = document.getElementById("gachaDraw10Btn");
+    if (draw10Btn) draw10Btn.addEventListener("click", drawGacha10);
+    renderMath(main);
+  }
+
   // Math Renderer
   function texToHtml(tex) {
     let t = tex.trim();
@@ -1471,6 +1811,9 @@ const EXTRA_QUESTIONS = {
   function renderHome() {
     updateHUD();
     const acc = curAcc();
+    if (syncWeeklyBonus(acc)) saveData(); // 週が変わっていたら週間ボードをリセット
+    const wk = weeklySet();
+    const wb = acc.weeklyBonus;
     const td = todayStr();
     const doneToday = acc.lastActiveDate === td;
     const isGuest = acc.id === "guest";
@@ -1507,6 +1850,12 @@ const EXTRA_QUESTIONS = {
           ${days.map(d => `<div class="day-dot ${d.done ? "done" : ""}">${d.label}<br>${d.done ? "🔥" : "・"}</div>`).join("")}
         </div>`}
       </section>
+
+      ${acc.xpBoost > 0 ? `
+      <section class="boost-banner">
+        <span style="font-size:20px;">⚡</span>
+        <span>XPブースト所持中 ×${acc.xpBoost}：次のクイズの獲得XPが<strong>1.5倍</strong>になります</span>
+      </section>` : ""}
 
       <section class="title-strip">
         <span>${ti.cur.icon} 称号：<strong>${ti.cur.name}</strong></span>
@@ -1550,9 +1899,35 @@ const EXTRA_QUESTIONS = {
         🔁 復習モード（あと${acc.wrongList.length}問）${acc.wrongList.length ? "" : " ― 間違えた問題がここにたまります"}
       </button>
 
-      <button id="shopBtn" class="btn-3d btn-amber" style="width:100%; margin-bottom:16px;">
+      <button id="shopBtn" class="btn-3d btn-amber" style="width:100%; margin-bottom:12px;">
         🛒 XPショップ（使えるXP ⚡${acc.xpBalance}）
       </button>
+
+      <button id="gachaBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">
+        🎰 ガチャを回す（チケット ${acc.gachaTickets} 枚）
+      </button>
+
+      <section class="bonus-board-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div style="font-weight:800; font-size:15px;">📅 週間デイリーボーナス</div>
+          <span style="font-size:11.5px; font-weight:800; color:var(--blue-dark); background:var(--blue-soft); padding:2px 9px; border-radius:999px;">今週は「${wk.set.name}」</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">デイリーをクリアするたびに1マス進みます（現在 ${wb.progress} / 7 マス）。報酬セットは毎週ローテーションし、進捗は翌週リセットされます。</div>
+        <div class="bonus-cells">
+          ${wk.set.cells.map((c, i) => {
+            const done = i < wb.progress;
+            const next = i === wb.progress && !wb.completed;
+            return `<div class="bonus-cell ${done ? "done" : ""} ${next ? "next" : ""}">
+              <div class="bc-day">${i + 1}日目</div>
+              <div class="bc-icon">${done ? "✅" : rewardIcon(c)}</div>
+              <div class="bc-label">${rewardShort(c)}</div>
+            </div>`;
+          }).join("")}
+        </div>
+        <div class="bonus-complete ${wb.completed ? "got" : ""}">
+          ${wb.completed ? `🎉 今週コンプリート達成！（報酬：${rewardLabel(wk.set.complete)} ゲット済み）` : `🏆 7マスコンプリート報酬：${rewardLabel(wk.set.complete)}`}
+        </div>
+      </section>
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 4px;">
         <h2 style="margin:0; font-size:17px;">🗺️ ステージマップ（クリアで次が解放）</h2>
@@ -1597,6 +1972,7 @@ const EXTRA_QUESTIONS = {
     const reviewBtn = document.getElementById("reviewBtn");
     if (reviewBtn && acc.wrongList.length) reviewBtn.addEventListener("click", startReviewQuiz);
     document.getElementById("shopBtn").addEventListener("click", () => renderShop());
+    document.getElementById("gachaBtn").addEventListener("click", () => renderGacha());
     main.querySelectorAll(".stage-node").forEach(btn => {
       btn.addEventListener("click", () => {
         const idx = Number(btn.getAttribute("data-st-idx"));
@@ -1854,7 +2230,17 @@ const EXTRA_QUESTIONS = {
     const total = session.questions.length;
     let earnedXp = session.correctCount * 10 + (session.correctCount === total ? 15 : 0);
     if (session.mode === "review") earnedXp = Math.floor(earnedXp / 2); // 復習モードはXP半分
+    // XPブースト所持中は、このクイズ1回分だけ獲得XP×1.5（端数は切り上げ）。獲得XPが0のときは消費しない
+    const baseXp = earnedXp;
+    let boostUsed = false;
+    if (earnedXp > 0 && acc.xpBoost > 0) {
+      acc.xpBoost -= 1;
+      earnedXp = Math.ceil(earnedXp * BOOST_MULTIPLIER);
+      boostUsed = true;
+    }
     recordDailyActivity(earnedXp);
+    // デイリー初回完了の報酬（XPブースト＋ガチャチケット＋週間ボーナス1マス）。今日もらったブーストは次回から効く
+    const dailyRewardMsgs = session.mode === "daily" ? grantDailyRewards() : [];
 
     let unlockedMsg = "";
     if (session.mode === "stage") {
@@ -1873,6 +2259,7 @@ const EXTRA_QUESTIONS = {
     playTone("clear");
     updateHUD();
     checkBadges();
+    if (dailyRewardMsgs.length) showToast("🎁 デイリー報酬をもらいました！結果画面で確認できます");
 
     const main = document.getElementById("appMain");
     main.innerHTML = `
@@ -1885,6 +2272,8 @@ const EXTRA_QUESTIONS = {
         <div style="background:#fff7ed; border:1.5px solid #fed7aa; color:#c2410c; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">
           ${acc.id === "guest" ? "🔒 ストリークはアカウント作成で使えるようになります" : `🔥 ストリーク：${acc.streak} 日連続達成！`}
         </div>
+        ${boostUsed ? `<div style="background:#fef9c3; border:1.5px solid #fde047; color:#854d0e; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">⚡ XPブースト発動！獲得XPが ${baseXp} → ${earnedXp} XP（×1.5）になりました</div>` : ""}
+        ${dailyRewardMsgs.length ? `<div style="background:#fdf4ff; border:1.5px solid #f0abfc; color:#86198f; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px; text-align:left;">🎁 デイリー報酬ゲット！<br>${dailyRewardMsgs.map(m => "・" + m).join("<br>")}</div>` : ""}
         ${unlockedMsg ? `<div style="background:var(--green-soft); color:var(--green-dark); border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:18px;">${unlockedMsg}</div>` : ""}
         ${session.mode === "review" ? `<div style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">復習モードのXPは通常の半分です。残りの復習はあと ${acc.wrongList.length} 問です。</div>` : ""}
         <button id="backMapBtn" class="btn-3d btn-green" style="width:100%;">🗺️ マップへ戻る</button>
@@ -1904,9 +2293,11 @@ const EXTRA_QUESTIONS = {
       <div style="font-weight:800; font-size:13.5px; margin-bottom:8px;">${acc.avatar} ${acc.name} のプロフィール</div>
       <div style="font-size:13.5px; margin-bottom:4px;">${ti.cur.icon} 称号：<strong>${ti.cur.name}</strong>（⚡ 累計 ${acc.xp} XP）</div>
       <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">${ti.next ? `次の称号「${ti.next.icon} ${ti.next.name}」まで あと ${ti.next.xp - acc.xp} XP` : "最高ランク到達！🎉"}　｜　累計正解 ${acc.totalCorrect} 問　｜　復習待ち ${acc.wrongList.length} 問</div>
-      <div style="font-size:12.5px; margin-bottom:10px;">🛒 使えるXP：<strong>⚡ ${acc.xpBalance} XP</strong>　｜　💡 ヒント ${acc.hintTickets} 枚　｜　🧊 フリーズ ${acc.streakFreezes} 個
+      <div style="font-size:12.5px; margin-bottom:10px;">🛒 使えるXP：<strong>⚡ ${acc.xpBalance} XP</strong>　｜　💡 ヒント ${acc.hintTickets} 枚　｜　🧊 フリーズ ${acc.streakFreezes} 個　｜　⚡ ブースト ${acc.xpBoost} 個　｜　🎰 チケット ${acc.gachaTickets} 枚
         <button id="profileShopBtn" class="glossary-link" style="padding:0; margin-left:6px;">XPショップへ →</button>
+        <button id="profileGachaBtn" class="glossary-link" style="padding:0; margin-left:6px;">ガチャへ →</button>
       </div>
+      ${acc.rareTitles.length ? `<div style="font-size:12.5px; margin-bottom:10px;">🎖️ レア称号：<strong>${acc.rareTitles.join(" ／ ")}</strong></div>` : ""}
       <div style="font-weight:800; font-size:13px; margin-bottom:6px;">アバターを変更</div>
       <div class="avatar-grid" style="margin:0 0 14px;">
         ${availAvatars.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-change-av="${a}">${a}</button>`).join("")}
@@ -1934,6 +2325,14 @@ const EXTRA_QUESTIONS = {
         document.getElementById("accountModal").classList.remove("open");
         session = null;
         renderShop();
+      });
+    }
+    const gachaBtn = document.getElementById("profileGachaBtn");
+    if (gachaBtn) {
+      gachaBtn.addEventListener("click", () => {
+        document.getElementById("accountModal").classList.remove("open");
+        session = null;
+        renderGacha();
       });
     }
     const wrap = document.getElementById("existingAccountsWrap");
@@ -1977,7 +2376,8 @@ const EXTRA_QUESTIONS = {
     appData.accounts[id] = {
       id, name, avatar: pickedAvatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {},
       wrongList: [], badges: {}, totalCorrect: 0, flashFlips: 0,
-      xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue"
+      xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue",
+      xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }
     };
     appData.activeId = id;
     saveData();
