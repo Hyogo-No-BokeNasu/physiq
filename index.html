@@ -70,7 +70,8 @@
       max-width: 820px; margin: 0 auto; min-height: 60px; padding: 6px 14px;
       display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
     }
-    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--blue-dark); flex-shrink: 0; }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--blue-dark); flex-shrink: 0; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-sans); }
+    .brand:hover { opacity: 0.75; }
     .brand-icon {
       width: 34px; height: 34px; border-radius: 10px;
       background: linear-gradient(135deg, var(--blue), #16a34a);
@@ -754,12 +755,12 @@
 <div class="app-shell">
   <header class="hud">
     <div class="hud-inner">
-      <div class="brand">
+      <button id="brandHomeBtn" class="brand" type="button" title="タップして科目を変える" aria-label="PhysiQ：科目を変える">
         <img id="brandIconImg" class="brand-icon-img" src="./icon-192.png?v=20261122" alt="PhysiQ" />
         <span>PhysiQ</span>
-      </div>
+      </button>
       <div class="hud-stats">
-        <span class="stat-pill stat-streak" id="hudStreakPill" title="連続学習日数">🔥 <span id="hudStreak">0</span>日</span>
+        <span class="stat-pill stat-streak" id="hudStreakPill" title="連続学習日数（全教科共通）">🔥 <span id="hudStreak">0</span>日</span>
         <span class="stat-pill stat-xp" title="獲得XP">⚡ <span id="hudXp">0</span></span>
         <button id="shopBtnHeader" class="stat-btn" title="XPショップ">🛒</button>
         <button id="soundBtn" class="stat-btn" title="効果音 ON/OFF">🔊</button>
@@ -824,7 +825,7 @@
       <button id="closeCreateModal" class="stat-btn">✕</button>
     </div>
     <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">ユーザーIDとパスワードでアカウントを作ります。この端末でサインインできるほか、設定の「データ移行」で他の端末へ進捗を移せます。</div>
-    <div class="auth-field"><label>ユーザーID（半角英数字・_・-、3〜20文字）</label><input id="createLoginId" class="text-input" type="text" maxlength="20" placeholder="例：sora_210" autocomplete="username" /></div>
+    <div class="auth-field"><label>ユーザーID（半角英数字・_・-、3〜20文字）</label><input id="createLoginId" class="text-input" type="text" maxlength="20" placeholder="例：physiq_123" autocomplete="username" /></div>
     <div class="auth-field"><label>パスワード（6文字以上）</label><input id="createPassword" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="new-password" /></div>
     <div class="auth-field"><label>パスワード（確認）</label><input id="createPassword2" class="text-input" type="password" maxlength="64" placeholder="もう一度入力" autocomplete="new-password" /></div>
     <div class="auth-field"><label>ニックネーム（本名不要）</label><input id="createNick" class="text-input" type="text" maxlength="16" placeholder="例：ニュートン見習い" /></div>
@@ -1518,7 +1519,7 @@
   PHYSICS_STAGES.forEach((st, i) => { st.num = i + 1; });
   let STAGES = PHYSICS_STAGES;
   // ===== 他教科（数学・化学）:物理と同じ形のステージデータ =====
-  // 各教科 30問（単元3つ×10問）＋チャレンジ15問＝45問
+  // 各教科 45問（単元3つ×15問）＋チャレンジ20問＝65問
   const MATH_STAGES = [
     {
       id: "m1", num: 1, title: "計算と文字式", sub: "四則計算・文字式・割合", icon: "🔢", color: "#2563eb",
@@ -1533,7 +1534,12 @@
         { q: "12と18の最大公約数はいくつか。", opts: ["3", "6", "9", "36"], ans: 1, exp: "12の約数は 1,2,3,4,6,12、18の約数は 1,2,3,6,9,18。共通する最大の数は 6 です。" },
         { q: raw`$\frac{3}{4} + \frac{1}{2}$ を計算しなさい。`, opts: ["4/6", "5/4", "1", "3/8"], ans: 1, exp: raw`通分して $\frac{3}{4} + \frac{2}{4} = \frac{5}{4}$ です。` },
         { q: raw`$0.2 \times 30$ を計算しなさい。`, opts: ["0.6", "6", "60", "0.06"], ans: 1, exp: raw`$0.2 \times 30 = 6$ です。小数点を1つ左にずらす感覚で計算できます。` },
-        { q: "100の25%はいくつか。", opts: ["2.5", "250", "25", "0.25"], ans: 2, exp: "25% は 100分の25 なので、100 × 0.25 = 25 です。" }
+        { q: "100の25%はいくつか。", opts: ["2.5", "250", "25", "0.25"], ans: 2, exp: "25% は 100分の25 なので、100 × 0.25 = 25 です。" },
+        { q: raw`$5^2 - 3^2$ を計算しなさい。`, opts: ["16", "22", "8", "34"], ans: 0, exp: raw`$5^2 = 25$、$3^2 = 9$ なので、$25 - 9 = 16$ です。` },
+        { q: raw`$(-4) \times (-3)$ を計算しなさい。`, opts: ["-12", "12", "7", "-7"], ans: 1, exp: raw`負の数どうしのかけ算は正の数になります。$(-4) \times (-3) = 12$ です。` },
+        { q: raw`$x = 5$ のとき、$2x - 3$ の値はいくつか。`, opts: ["7", "13", "10", "2"], ans: 0, exp: raw`$2 \times 5 - 3 = 10 - 3 = 7$ です。` },
+        { q: raw`$3(a + 2)$ を展開しなさい。`, opts: ["3a + 2", "3a + 6", "3a + 5", "a + 6"], ans: 1, exp: raw`分配法則より、$3(a + 2) = 3a + 6$ です。` },
+        { q: "240円の30%はいくらか。", opts: ["72円", "30円", "80円", "120円"], ans: 0, exp: "240 × 0.3 = 72 なので、72円です。" }
       ]
     },
     {
@@ -1549,7 +1555,12 @@
         { q: raw`一次関数 $y = 3x + 2$ のグラフが y軸と交わる点の y座標（切片）はいくつか。`, opts: ["3", "2", "5", "0"], ans: 1, exp: raw`$y = ax + b$ の b が切片です。ここでは $b = 2$ です。` },
         { q: raw`比例の関係 $y = 5x$ で、$x = 4$ のとき $y$ の値はいくつか。`, opts: ["9", "20", "1.25", "45"], ans: 1, exp: raw`$y = 5 \times 4 = 20$ です。` },
         { q: raw`方程式 $2x + 3 = 3x - 1$ の解はいくつか。`, opts: ["2", "4", "-4", "1"], ans: 1, exp: raw`$3 + 1 = 3x - 2x$ より $x = 4$ です。` },
-        { q: "方程式の「解」とは何か。", opts: ["式の答えの数", "等式を成り立たせる文字の値", "式を簡単にする方法", "グラフの傾き"], ans: 1, exp: "解とは、その値を代入すると等式が成り立つ文字の値のことです。" }
+        { q: "方程式の「解」とは何か。", opts: ["式の答えの数", "等式を成り立たせる文字の値", "式を簡単にする方法", "グラフの傾き"], ans: 1, exp: "解とは、その値を代入すると等式が成り立つ文字の値のことです。" },
+        { q: raw`方程式 $x - 7 = 3$ の解はいくつか。`, opts: ["-4", "4", "10", "21"], ans: 2, exp: raw`両辺に7をたすと $x = 3 + 7 = 10$ です。` },
+        { q: raw`方程式 $4x + 1 = 17$ の解はいくつか。`, opts: ["3", "4", "5", "4.5"], ans: 1, exp: raw`$4x = 17 - 1 = 16$ なので、$x = 4$ です。` },
+        { q: raw`連立方程式 $x + y = 8$、$x - y = 4$ のとき、$y$ の値はいくつか。`, opts: ["2", "4", "6", "8"], ans: 0, exp: raw`2式をたすと $2x = 12$ より $x = 6$。$y = 8 - 6 = 2$ です。` },
+        { q: raw`一次関数 $y = -3x + 5$ で、$x = 2$ のとき $y$ の値はいくつか。`, opts: ["-1", "1", "11", "-11"], ans: 0, exp: raw`$y = -3 \times 2 + 5 = -6 + 5 = -1$ です。` },
+        { q: raw`一次関数 $y = 2x - 1$ の傾きはいくつか。`, opts: ["-1", "1", "2", "-2"], ans: 2, exp: raw`$y = ax + b$ の $a$ が傾きです。ここでは $a = 2$ です。` }
       ]
     },
     {
@@ -1565,7 +1576,12 @@
         { q: raw`半径 $r$ の円の円周の長さを表す式はどれか。`, opts: ["πr", "2πr", "πr²", "2r"], ans: 1, exp: raw`円周は $2\pi r$（直径 × 円周率）です。` },
         { q: "縦 3cm、横 4cm の長方形の対角線の長さは何cmか。", opts: ["5cm", "6cm", "7cm", "12cm"], ans: 0, exp: "対角線は直角三角形の斜辺です。三平方の定理より √(3²+4²) = 5cm です。" },
         { q: "2つのさいころの目の和が7になる確率はいくつか。", opts: ["1/6", "1/12", "1/36", "7/36"], ans: 0, exp: "和が7になるのは (1,6)(2,5)(3,4)(4,3)(5,2)(6,1) の6通り、全体36通りなので 6/36 = 1/6 です。" },
-        { q: "相似な図形で、相似比が2倍になると、面積比は何倍になるか。", opts: ["2倍", "4倍", "8倍", "変わらない"], ans: 1, exp: "面積比は相似比の2乗になるので、2² = 4倍です。" }
+        { q: "相似な図形で、相似比が2倍になると、面積比は何倍になるか。", opts: ["2倍", "4倍", "8倍", "変わらない"], ans: 1, exp: "面積比は相似比の2乗になるので、2² = 4倍です。" },
+        { q: "直角三角形の直角をはさむ2辺が 5cm と 12cm のとき、斜辺の長さは何cmか。", opts: ["13cm", "17cm", "10cm", "7cm"], ans: 0, exp: "三平方の定理より、斜辺² = 5² + 12² = 169 なので、斜辺は 13cm です。" },
+        { q: raw`半径 $4\,\mathrm{cm}$ の円の円周の長さはいくつか。ただし円周率を $\pi$ とする。`, opts: ["4π cm", "8π cm", "16π cm", "2π cm"], ans: 1, exp: raw`円周は $2\pi r = 2 \times \pi \times 4 = 8\pi\,\mathrm{cm}$ です。` },
+        { q: "さいころを1回ふって、3の倍数の目が出る確率はいくつか。", opts: ["1/6", "1/3", "1/2", "2/3"], ans: 1, exp: "3の倍数の目は 3, 6 の2通り、全体は6通りなので、確率は 2/6 = 1/3 です。" },
+        { q: "底辺が 8cm、高さが 5cm の三角形の面積は何cm²か。", opts: ["13cm²", "20cm²", "40cm²", "26cm²"], ans: 1, exp: "三角形の面積は 底辺 × 高さ ÷ 2 = 8 × 5 ÷ 2 = 20cm² です。" },
+        { q: "相似な立体で、相似比が3倍になると、体積比は何倍になるか。", opts: ["3倍", "9倍", "27倍", "6倍"], ans: 2, exp: "体積比は相似比の3乗になるので、3³ = 27倍です。" }
       ]
     },
     {
@@ -1586,7 +1602,12 @@
         { q: "赤玉3個、白玉2個の袋から1個取り出すとき、赤玉が出る確率はいくつか。", opts: ["2/5", "3/5", "1/3", "1/2"], ans: 1, exp: "全体5個のうち赤玉は3個なので、確率は 3/5 です。" },
         { q: raw`$x^2 - 9$ を因数分解しなさい。`, opts: ["(x-3)(x-3)", "(x+3)(x-3)", "(x+9)(x-1)", "(x-9)(x+1)"], ans: 1, exp: raw`$x^2 - 9 = x^2 - 3^2 = (x+3)(x-3)$ です。` },
         { q: "1辺が 5cm の正方形の対角線の長さはいくつか。", opts: ["5√2 cm", "10cm", "5cm", "25cm"], ans: 0, exp: "三平方の定理より、対角線² = 5² + 5² = 50 なので、対角線は 5√2 cm です。" },
-        { q: raw`関数 $y = -2x + 1$ について、$x$ が1増えると $y$ はどう変わるか。`, opts: ["2増える", "2減る", "1増える", "変わらない"], ans: 1, exp: "傾きが -2 なので、x が1増えると y は2減ります。" }
+        { q: raw`関数 $y = -2x + 1$ について、$x$ が1増えると $y$ はどう変わるか。`, opts: ["2増える", "2減る", "1増える", "変わらない"], ans: 1, exp: "傾きが -2 なので、x が1増えると y は2減ります。" },
+        { q: raw`$x^2 + 7x + 12$ を因数分解しなさい。`, opts: ["(x+3)(x+4)", "(x+2)(x+6)", "(x+1)(x+12)", "(x-3)(x-4)"], ans: 0, exp: raw`$3 + 4 = 7$、$3 \times 4 = 12$ なので $(x+3)(x+4)$ です。` },
+        { q: raw`二次方程式 $x^2 - 4x - 5 = 0$ の解はどれか。`, opts: ["x = 5, -1", "x = -5, 1", "x = 5, 1", "x = -5, -1"], ans: 0, exp: raw`$(x-5)(x+1) = 0$ より、$x = 5, -1$ です。` },
+        { q: raw`$(2x + 3)^2$ を展開しなさい。`, opts: ["4x² + 12x + 9", "4x² + 6x + 9", "2x² + 12x + 9", "4x² + 12x + 6"], ans: 0, exp: raw`$(2x+3)^2 = 4x^2 + 2 \times 2x \times 3 + 9 = 4x^2 + 12x + 9$ です。` },
+        { q: "数列 2, 5, 8, 11, … の第20項はいくつか。", opts: ["59", "62", "56", "65"], ans: 0, exp: "公差3の等差数列です。第n項は 3n - 1 なので、第20項は 59 です。" },
+        { q: raw`関数 $y = x^2$ で、$x = -3$ のとき $y$ の値はいくつか。`, opts: ["-9", "9", "-6", "6"], ans: 1, exp: raw`$y = (-3)^2 = 9$ です。マイナスを2回かけると正になります。` }
       ]
     }
   ];
@@ -1606,7 +1627,12 @@
         { q: "氷がとけて水になるとき、変化するのはどれか。", opts: ["水の分子そのもの", "分子の並び方・運動", "水素原子の数", "酸素原子の数"], ans: 1, exp: "状態変化では分子そのものは変わらず、分子の並び方や運動の激しさが変わります。" },
         { q: "次のうち、純物質はどれか。", opts: ["空気", "食塩水", "酸素", "海水"], ans: 2, exp: "酸素は1種類の物質だけからなる純物質です。空気や食塩水は混合物です。" },
         { q: "金属の性質として正しいのはどれか。", opts: ["電気を通さない", "みがくと光る（金属光沢）", "水に必ずとける", "もろくて割れやすい"], ans: 1, exp: "金属は電気や熱をよく通し、みがくと光ります。" },
-        { q: "原子番号が8の元素はどれか。", opts: ["水素", "窒素", "酸素", "炭素"], ans: 2, exp: "原子番号8は酸素です。陽子が8個あります。" }
+        { q: "原子番号が8の元素はどれか。", opts: ["水素", "窒素", "酸素", "炭素"], ans: 2, exp: "原子番号8は酸素です。陽子が8個あります。" },
+        { q: "元素記号 Na は何という元素か。", opts: ["窒素", "ナトリウム", "ニッケル", "鉛"], ans: 1, exp: "Na はナトリウム（Natrium）の元素記号です。" },
+        { q: "酸素原子の陽子の数はいくつか。", opts: ["6", "8", "16", "2"], ans: 1, exp: "酸素の原子番号は8なので、陽子は8個あります。" },
+        { q: "水素分子 H₂ は何個の水素原子からできているか。", opts: ["1個", "2個", "3個", "4個"], ans: 1, exp: "H₂ の右下の「2」は、水素原子が2個結びついていることを表します。" },
+        { q: "ドライアイスは何が固体になったものか。", opts: ["酸素", "水", "二酸化炭素", "窒素"], ans: 2, exp: "ドライアイスは二酸化炭素 CO₂ を冷やして固体にしたものです。" },
+        { q: "次のうち、混合物はどれか。", opts: ["水", "酸素", "空気", "鉄"], ans: 2, exp: "空気は窒素や酸素など何種類かの気体がまざった混合物です。水・酸素・鉄は1種類の物質からなる純物質です。" }
       ]
     },
     {
@@ -1622,7 +1648,12 @@
         { q: "化学変化の例として正しいのはどれか。", opts: ["氷がとける", "鉄がさびる", "水が蒸発する", "食塩が水にとける"], ans: 1, exp: "鉄がさびるのは、鉄が酸素と結びついて別の物質になる化学変化です。" },
         { q: "酸素の原子量を16とすると、酸素分子 O₂ の分子量はいくつか。", opts: ["16", "32", "8", "48"], ans: 1, exp: "O₂ は酸素原子2個分なので、分子量は 16 × 2 = 32 です。" },
         { q: "標準状態で、気体 1 mol の体積はおよそ何 L か。", opts: ["1.0 L", "22.4 L", "100 L", "6.0 L"], ans: 1, exp: "0℃・1気圧（標準状態）では、気体 1 mol の体積は約 22.4 L です。" },
-        { q: raw`化学反応式 $\mathrm{C} + \mathrm{O_2} \to \mathrm{CO_2}$ について正しいのはどれか。`, opts: ["炭素原子の数が左右で違う", "酸素原子の数が左右で違う", "左右の原子の数がそろっている", "反応前後で質量が減る"], ans: 2, exp: "左辺は C 1個・O 2個、右辺も C 1個・O 2個で、原子の数はそろっています。" }
+        { q: raw`化学反応式 $\mathrm{C} + \mathrm{O_2} \to \mathrm{CO_2}$ について正しいのはどれか。`, opts: ["炭素原子の数が左右で違う", "酸素原子の数が左右で違う", "左右の原子の数がそろっている", "反応前後で質量が減る"], ans: 2, exp: "左辺は C 1個・O 2個、右辺も C 1個・O 2個で、原子の数はそろっています。" },
+        { q: "水素 2g は何 mol か。ただし H=1 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "4 mol"], ans: 1, exp: "水素分子 H₂ の分子量は 1×2 = 2 なので、2g は 1 mol です。" },
+        { q: "酸素分子 O₂ 16g は何 mol か。ただし O=16 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "16 mol"], ans: 0, exp: "O₂ の分子量は32なので、16g は 16 ÷ 32 = 0.5 mol です。" },
+        { q: "標準状態で、44.8 L の気体は何 mol か。", opts: ["1 mol", "2 mol", "4 mol", "0.5 mol"], ans: 1, exp: "標準状態では気体 1 mol が 22.4 L なので、44.8 ÷ 22.4 = 2 mol です。" },
+        { q: "炭素 12g を完全燃焼させたときにできる二酸化炭素は何 mol か。ただし C=12 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "12 mol"], ans: 1, exp: "炭素 12g は 1 mol。C + O₂ → CO₂ より、二酸化炭素も 1 mol できます。" },
+        { q: raw`反応式 $2\mathrm{H_2} + \mathrm{O_2} \to 2\mathrm{H_2O}$ で、水素 4 mol と反応する酸素は何 mol か。`, opts: ["1 mol", "2 mol", "4 mol", "8 mol"], ans: 1, exp: raw`係数比は水素：酸素 = 2：1 なので、水素 4 mol に対して酸素は 2 mol です。` }
       ]
     },
     {
@@ -1638,7 +1669,12 @@
         { q: "塩酸と水酸化ナトリウム水溶液を中和させたときにできる塩はどれか。", opts: ["塩化ナトリウム", "炭酸カルシウム", "硫酸", "水酸化カルシウム"], ans: 0, exp: "HCl + NaOH → NaCl + H₂O で、塩として塩化ナトリウムができます。" },
         { q: "食塩水に電気を流すと、陰極（－極）で発生する気体はどれか。", opts: ["酸素", "水素", "塩素", "二酸化炭素"], ans: 1, exp: "食塩水の電気分解では、陰極で水素、陽極で塩素が発生します。" },
         { q: "次のうち、酸性の水溶液はどれか。", opts: ["石けん水", "レモン汁", "重曹水", "アンモニア水"], ans: 1, exp: "レモン汁にはクエン酸が含まれ、酸性です。石けん水やアンモニア水は塩基性です。" },
-        { q: "ナトリウムイオンのイオン式はどれか。", opts: ["Na", "Na⁺", "Na⁻", "Na²⁺"], ans: 1, exp: "ナトリウム原子は電子を1個失って Na⁺ になります。" }
+        { q: "ナトリウムイオンのイオン式はどれか。", opts: ["Na", "Na⁺", "Na⁻", "Na²⁺"], ans: 1, exp: "ナトリウム原子は電子を1個失って Na⁺ になります。" },
+        { q: "pH が3の水溶液の性質はどれか。", opts: ["酸性", "塩基性", "中性", "どれでもない"], ans: 0, exp: "pH は7より小さいと酸性です。pH3 は酸性です。" },
+        { q: "酸性の水溶液に青色リトマス紙をつけるとどうなるか。", opts: ["青のまま", "赤に変わる", "緑に変わる", "白くなる"], ans: 1, exp: "青色リトマス紙は酸性で赤色に変わります。赤色リトマス紙は塩基性で青色に変わります。" },
+        { q: "水酸化カルシウム Ca(OH)₂ の水溶液の性質はどれか。", opts: ["酸性", "中性", "塩基性", "電気を通さない"], ans: 2, exp: "Ca(OH)₂ は水にとけて OH⁻ を出す塩基で、アルカリ性を示します（石灰水）。" },
+        { q: "硫酸 H₂SO₄ が水にとけて出す陽イオンはどれか。", opts: ["SO₄²⁻", "H⁺", "OH⁻", "Na⁺"], ans: 1, exp: "硫酸は H⁺ と SO₄²⁻ に電離します。酸は H⁺ を出す物質です。" },
+        { q: "塩酸に亜鉛を入れると発生する気体はどれか。", opts: ["酸素", "水素", "二酸化炭素", "塩素"], ans: 1, exp: "亜鉛などの金属と酸が反応すると、水素が発生します。" }
       ]
     },
     {
@@ -1659,7 +1695,12 @@
         { q: "鉄を空気中で加熱すると、質量はどうなるか。", opts: ["変わらない", "軽くなる", "重くなる", "0になる"], ans: 2, exp: "鉄が酸素と結びついて酸化鉄になるので、結びついた酸素の分だけ重くなります。" },
         { q: "気体の性質として正しいのはどれか。", opts: ["温度が上がると体積は小さくなる", "圧力を上げると体積は小さくなる", "圧力を上げると体積は大きくなる", "温度と体積は関係ない"], ans: 1, exp: "ボイルの法則により、温度一定で圧力を上げると体積は小さくなります。" },
         { q: "酸素原子の電子配置として正しいのはどれか。", opts: ["2, 6", "2, 8", "2, 4", "2, 8, 6"], ans: 0, exp: "酸素の原子番号は8で、電子は内側の殻に2個、外側の殻に6個配置されます。" },
-        { q: "水素と酸素の混合気体に火をつけると起こる反応はどれか。", opts: ["水ができる燃焼", "水が分解する反応", "何も起こらない", "水素だけが燃える"], ans: 0, exp: "2H₂ + O₂ → 2H₂O の燃焼反応で、水ができます。" }
+        { q: "水素と酸素の混合気体に火をつけると起こる反応はどれか。", opts: ["水ができる燃焼", "水が分解する反応", "何も起こらない", "水素だけが燃える"], ans: 0, exp: "2H₂ + O₂ → 2H₂O の燃焼反応で、水ができます。" },
+        { q: "硫酸 H₂SO₄ 98g は何 mol か。ただし H=1、S=32、O=16 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "98 mol"], ans: 1, exp: "H₂SO₄ の分子量は 1×2 + 32 + 16×4 = 98 なので、98g は 1 mol です。" },
+        { q: "0.5 mol/L の食塩水 200mL に含まれる塩化ナトリウムは何 mol か。", opts: ["0.1 mol", "0.25 mol", "1 mol", "0.05 mol"], ans: 0, exp: "200mL は 0.2 L なので、0.5 mol/L × 0.2 L = 0.1 mol です。" },
+        { q: "塩酸 HCl 0.1 mol を中和するのに必要な水酸化カルシウム Ca(OH)₂ は何 mol か。", opts: ["0.1 mol", "0.05 mol", "0.2 mol", "1 mol"], ans: 1, exp: "Ca(OH)₂ 1個は OH⁻ を2個出すので、H⁺ 0.1 mol を中和するには 0.05 mol で十分です。" },
+        { q: "アンモニア NH₃ 17g は何 mol か。ただし N=14、H=1 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "17 mol"], ans: 1, exp: "NH₃ の分子量は 14 + 1×3 = 17 なので、17g は 1 mol です。" },
+        { q: "標準状態で 11.2 L の酸素は何 mol か。", opts: ["0.25 mol", "0.5 mol", "1 mol", "2 mol"], ans: 1, exp: "標準状態では気体 1 mol が 22.4 L なので、11.2 ÷ 22.4 = 0.5 mol です。" }
       ]
     }
   ];
@@ -1674,6 +1715,7 @@
   SUBJECTS.physics.stages = PHYSICS_STAGES;
   let currentSubject = "physics";
   function setSubject(id, silent) {
+    // ストリーク・XP・進捗はアカウント単位で全教科共通。科目を変えてもリセットされない
     const meta = SUBJECTS[id];
     if (!meta) return;
     currentSubject = id;
@@ -2148,6 +2190,12 @@ const EXTRA_QUESTIONS = {
           a.unlockedIds = Array.from(uset);
         }
         if (!Array.isArray(a.weekDates)) a.weekDates = [];
+        // ストリークは全教科共通（アカウント単位で1本）。科目別に保存された古いデータがあれば最大値を引き継ぐ
+        if (a.streakBySubject && typeof a.streakBySubject === "object") {
+          const best = Math.max.apply(null, [a.streak || 0].concat(Object.values(a.streakBySubject).filter(v => typeof v === "number")));
+          if (best > (a.streak || 0)) a.streak = best;
+          delete a.streakBySubject;
+        }
         // XPショップ用フィールド（残高は既存の累計XPを引き継ぐ）
         if (typeof a.xpBalance !== "number") a.xpBalance = a.xp || 0;
         if (typeof a.hintTickets !== "number") a.hintTickets = 0;
@@ -2201,6 +2249,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function recordDailyActivity(xpGain) {
+    // ストリークは全教科共通：どの科目のクイズでも、その日の初回完了で1日分伸びる（科目別に持たない）
     const acc = curAcc();
     acc.xp += xpGain; // 累計XP（称号判定用）
     acc.xpBalance += xpGain; // 使えるXP残高（ショップ用）
@@ -2391,6 +2440,7 @@ const EXTRA_QUESTIONS = {
   // ===== アプリからのお知らせ =====
   // 新しいお知らせはこの配列の先頭に追加する（id・日付・タイトル・本文）
   const ANNOUNCEMENTS = [
+    { id: "20261122-update4", date: "2026-11-22", title: "🆕 11/22アップデート④：数学・化学を各65問に増量、ロゴから科目切替、ストリーク全教科共通", body: "アカウント新規作成のユーザーIDの例を、本名を連想させるものから「physiq_123」に変えました。ヘッダーのPhysiQのロゴと名前をタップしても、科目選択画面に移動できるようになりました（ホームと学習タブの「科目を変える」ボタンはそのまま使えます）。数学と化学の問題を各45問から各65問に増やしました（単元ステージが各10問→15問、チャレンジが15問→20問）。ストリークは全教科共通です：物理・数学・化学のどの科目で解いても同じストリークが伸び、科目を変えてもリセットされません。" },
     { id: "20261122-update3", date: "2026-11-22", title: "🆕 11/22アップデート③：アカウント専用画面・数学と化学を追加", body: "アカウント作成が専用画面になり、ユーザーIDとパスワードでサインインできるようになりました（データは端末内に保存され、他の端末へは設定の「データ移行（バックアップコード）」で移します）。プロフィールと設定を分け、設定画面にダークモード・効果音・テーマカラー・アプリアイコン・更新・データ移行をまとめました。ホームはデイリー・ステージマップ・復習モードだけのシンプルな表示に整理し、称号はプロフィールで見られます。数学と化学を追加しました（各45問：単元30問＋チャレンジ15問）。科目はホームの「科目を変える」ボタンや学習タブから切り替えられます。ホーム画面に追加したアプリが更新されないときは、設定の「最新版を読み込む」ボタンを使ってください。それでも古い場合は、ホーム画面のアイコンを一度削除してSafariから追加し直してください。" },
     { id: "20261122-fix2", date: "2026-11-22", title: "🆕 11/22アップデート②：フレンド追加の横スクロール修正・タイトル画面のアニメーション・解答時間の列車ランク", body: "フレンド追加画面で横スクロールが必要だった問題を修正し、狭い画面でもボタンや入力欄が折り返して表示されるようになりました。タイトル画面と科目選択画面にアニメーションを追加しました。クイズの結果画面にかかった時間と獲得XPを表示し、3分以内は特急、3〜4分は急行、4〜5分は準急、それ以降は普通の列車ランクも表示します。割り算が「/div」と表示されるバグも修正し「÷」と表示されるようになりました。" },
     { id: "20261122-update", date: "2026-11-22", title: "🆕 11/22アップデート：ホーム画面追加でアプリ化・手書きメモ・フレンド機能", body: "Safariの「ホーム画面に追加」でPhysiQが単独アプリのように開けるようになりました。クイズの解答欄に手書きメモ（指・ペンで計算やメモ書き）が追加され、科目は化学・数学・英語・原付免許に整理されました。フレンド機能では招待コードで友だちを追加し、XPランキングで競ったり、応援（200XP）や7日間XPレース（500XP）でXPを使えます。クイズ開始時に画面が下に残ったままになる不具合も修正しました。" },
@@ -2883,7 +2933,7 @@ const EXTRA_QUESTIONS = {
       pill.title = "ストリークはアカウント作成で使えるようになります";
     } else {
       pill.innerHTML = `🔥 <span id="hudStreak">${acc.streak}</span>日`;
-      pill.title = "連続学習日数";
+      pill.title = "連続学習日数（全教科共通）";
     }
     document.getElementById("hudXp").textContent = acc.xp;
     document.getElementById("hudAvatar").textContent = acc.avatar;
@@ -2919,7 +2969,8 @@ const EXTRA_QUESTIONS = {
             <span class="daily-badge">${isGuest ? "🔒 ストリークはアカウント限定" : doneToday ? "✅ 本日のストリーク達成済み！" : "🔥 本日のデイリーミッション"}</span>
             <h1 style="margin:0; font-size:20px;">${isGuest ? "アカウントを作るとストリークが記録される" : doneToday ? `連続 ${acc.streak} 日達成中！` : "毎日1問解いてストリークを伸ばそう"}</h1>
             <div style="font-size:13px; opacity:0.9; margin-top:4px;">
-              クリア済みステージ：${Object.keys(acc.stars).length} / ${STAGES.length}
+              クリア済みステージ：${Object.keys(acc.stars).length} / ${STAGES.length}<br>
+              🔥 ストリークは全教科共通：どの科目で解いても伸びます
             </div>
           </div>
           <button id="startDailyBtn" class="btn-3d btn-amber">⚡ 今日の1問に挑む</button>
@@ -3368,7 +3419,7 @@ const EXTRA_QUESTIONS = {
           <div style="font-size:12.5px; margin-top:4px;">${rank.icon} ${rank.name}ペース ― ${rank.text}</div>
         </div>
         <div style="background:#fff7ed; border:1.5px solid #fed7aa; color:#c2410c; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">
-          ${acc.id === "guest" ? "🔒 ストリークはアカウント作成で使えるようになります" : `🔥 ストリーク：${acc.streak} 日連続達成！`}
+          ${acc.id === "guest" ? "🔒 ストリークはアカウント作成で使えるようになります" : `🔥 ストリーク：${acc.streak} 日連続達成！（全教科共通）`}
         </div>
         ${boostUsed ? `<div style="background:#fef9c3; border:1.5px solid #fde047; color:#854d0e; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">⚡ XPブースト発動！獲得XPが ${baseXp} → ${earnedXp} XP（×1.5）になりました</div>` : ""}
         ${dailyRewardMsgs.length ? `<div style="background:#fdf4ff; border:1.5px solid #f0abfc; color:#86198f; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px; text-align:left;">🎁 デイリー報酬ゲット！<br>${dailyRewardMsgs.map(m => "・" + m).join("<br>")}</div>` : ""}
@@ -3505,7 +3556,7 @@ const EXTRA_QUESTIONS = {
   // 注意：PhysiQ は GitHub Pages の静的サイトのため、サーバー側にデータを保存する
   // 本物のクラウド同期はできません。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.3";
+  const APP_VERSION = "2026-11-22.4";
   const APP_ICONS = [
     { id: "default", name: "ブルー×グリーン", file180: "./icon-180.png?v=20261122", file512: "./icon-512.png?v=20261122" },
     { id: "violet", name: "バイオレット", file180: "./icon-violet-180.png?v=20261122", file512: "./icon-violet-512.png?v=20261122" },
@@ -3683,7 +3734,7 @@ const EXTRA_QUESTIONS = {
         サインイン用ID：<strong>${acc.loginId ? acc.loginId : "未設定"}</strong><br>
         <span style="color:var(--text-muted);">データはこの端末のブラウザ内に保存されます。他の端末で使うには、下のバックアップコードで移行してください。</span>
       </div>
-      <div class="auth-field"><label>サインイン用ID（半角英数字・_・-、3〜20文字）</label><input id="setLoginId" class="text-input" type="text" maxlength="20" value="${acc.loginId || ""}" placeholder="例：sora_210" /></div>
+      <div class="auth-field"><label>サインイン用ID（半角英数字・_・-、3〜20文字）</label><input id="setLoginId" class="text-input" type="text" maxlength="20" value="${acc.loginId || ""}" placeholder="例：physiq_123" /></div>
       <div class="auth-field"><label>パスワード（6文字以上・変更するときだけ入力）</label><input id="setPassword" class="text-input" type="password" maxlength="64" placeholder="新しいパスワード" autocomplete="new-password" /></div>
       <div id="setCredMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin-bottom:4px;"></div>
       <button id="setCredBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">IDとパスワードを設定・変更する</button>
@@ -3876,12 +3927,12 @@ const EXTRA_QUESTIONS = {
           <button class="subject-btn" id="subjectChemBtn">
             <span class="s-icon">🧪</span>
             <span class="s-name">化学</span>
-            <span class="s-sub">全45問（30問＋チャレンジ15問）</span>
+            <span class="s-sub">全65問（45問＋チャレンジ20問）</span>
           </button>
           <button class="subject-btn" id="subjectMathBtn">
             <span class="s-icon">🔢</span>
             <span class="s-name">数学</span>
-            <span class="s-sub">全45問（30問＋チャレンジ15問）</span>
+            <span class="s-sub">全65問（45問＋チャレンジ20問）</span>
           </button>
           <button class="subject-btn" disabled>
             <span class="s-icon">🔤</span>
@@ -4020,7 +4071,7 @@ const EXTRA_QUESTIONS = {
         <h2 style="margin:0 0 12px; font-size:19px;">📊 学習データ</h2>
         <div class="stat-grid">
           <div class="stat-card">
-            <div class="sc-label">🔥 現在のストリーク</div>
+            <div class="sc-label">🔥 現在のストリーク（全教科共通）</div>
             <div class="sc-value">${acc.id === "guest" ? "―" : acc.streak + " 日"}</div>
             <div class="sc-sub">最長 ${acc.maxStreak || 0} 日${acc.id === "guest" ? "（アカウント作成で記録されます）" : ""}</div>
           </div>
@@ -4133,6 +4184,9 @@ const EXTRA_QUESTIONS = {
   });
   const headerShopBtn = document.getElementById("shopBtnHeader");
   if (headerShopBtn) headerShopBtn.addEventListener("click", () => { session = null; renderShop(); });
+  // ヘッダーのPhysiQロゴ・名前をタップしても科目選択へ（「科目を変える」ボタンと同じ）
+  const brandHomeBtn = document.getElementById("brandHomeBtn");
+  if (brandHomeBtn) brandHomeBtn.addEventListener("click", () => { session = null; renderSubjectSelect(); });
 
   // ===== 単語帳データ（物理用語） =====
   const TERMS = [
