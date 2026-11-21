@@ -27,6 +27,7 @@
       --red: #e11d48;
       --red-soft: #ffe4e6;
       --gold: #eab308;
+      --bg-bar: rgba(255,255,255,0.92);
       /* Theme accent (XPショップのテーマカラーで切り替わる) */
       --accent-light: #3b82f6;
       --accent-ring: #bfdbfe;
@@ -51,7 +52,7 @@
     /* Top HUD */
     .hud {
       position: sticky; top: 0; z-index: 40;
-      background: rgba(255,255,255,0.92);
+      background: var(--bg-bar);
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
       border-bottom: 2px solid var(--border);
@@ -145,7 +146,7 @@
     .stage-node:hover:not(.locked) { transform: translateY(-2px); border-color: var(--blue); }
     .stage-node.unlocked { border-color: var(--accent-light); box-shadow: 0 5px 0 var(--accent-ring); }
     .stage-node.cleared { border-color: #22c55e; box-shadow: 0 5px 0 #bbf7d0; }
-    .stage-node.locked { opacity: 0.58; cursor: not-allowed; background: #f1f5f9; }
+    .stage-node.locked { opacity: 0.58; cursor: not-allowed; background: var(--bg-subtle); }
 
     .stage-circle {
       width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
@@ -231,6 +232,7 @@
     .text-input {
       width: 100%; padding: 11px 14px; border: 2px solid var(--border); border-radius: 12px;
       font-size: 15px; font-family: var(--font-sans); -webkit-appearance: none;
+      background: var(--bg-card); color: var(--text-main);
     }
     .text-input:focus { outline: none; border-color: var(--blue); }
 
@@ -501,7 +503,7 @@
     .tab-bar {
       position: fixed; left: 50%; transform: translateX(-50%); bottom: 0;
       width: 100%; max-width: 720px; z-index: 45;
-      display: flex; background: rgba(255,255,255,0.97);
+      display: flex; background: var(--bg-bar);
       border-top: 1.5px solid var(--border); padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
       box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
     }
@@ -509,24 +511,105 @@
       flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
       background: none; border: none; border-radius: 12px; padding: 6px 2px;
       font-size: 11px; font-weight: 800; color: var(--text-light); cursor: pointer;
+      position: relative; z-index: 1;
+      transition: color 0.25s ease, transform 0.12s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    .tab-btn .tab-icon { font-size: 20px; line-height: 1.15; }
-    .tab-btn.active { color: var(--blue-dark); background: var(--blue-soft); }
+    .tab-btn:active { transform: scale(0.94); }
+    .tab-btn .tab-icon { font-size: 20px; line-height: 1.15; display: inline-block; transition: transform 0.25s ease; }
+    .tab-btn.active { color: var(--blue-dark); }
+    .tab-btn.active .tab-icon { transform: translateY(-1px) scale(1.12); animation: tabIconBounce 0.38s ease; }
+    @keyframes tabIconBounce {
+      0% { transform: translateY(0) scale(1); }
+      35% { transform: translateY(-4px) scale(1.3); }
+      65% { transform: translateY(0) scale(0.93); }
+      100% { transform: translateY(-1px) scale(1.12); }
+    }
+    /* Sliding pill indicator behind the active tab */
+    .tab-indicator {
+      position: absolute; z-index: 0; pointer-events: none;
+      top: 6px; bottom: calc(6px + env(safe-area-inset-bottom));
+      left: 8px; width: calc((100% - 16px) / 3);
+      background: var(--blue-soft); border-radius: 12px;
+      transition: transform 0.32s cubic-bezier(0.25, 0.9, 0.3, 1.05);
+      will-change: transform;
+    }
+    /* Screen transition when switching tabs (transform/opacity only, light on iOS) */
+    #appMain.tab-anim-right { animation: tabFromRight 0.26s ease-out both; }
+    #appMain.tab-anim-left { animation: tabFromLeft 0.26s ease-out both; }
+    #appMain.tab-anim-fade { animation: tabFadeIn 0.2s ease-out both; }
+    @keyframes tabFromRight { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes tabFromLeft { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes tabFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .tab-indicator { transition: none; }
+      .tab-btn, .tab-btn .tab-icon { transition: none; }
+      .tab-btn.active .tab-icon { animation: none; }
+      #appMain.tab-anim-right, #appMain.tab-anim-left, #appMain.tab-anim-fade { animation: none; }
+    }
     .container { padding-bottom: 104px; }
 
     /* Data tab */
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
-    .stat-card { background: #fff; border: 1.5px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+    .stat-card { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 14px; padding: 12px 14px; }
     .stat-card .sc-label { font-size: 11.5px; font-weight: 800; color: var(--text-muted); }
     .stat-card .sc-value { font-size: 21px; font-weight: 900; margin-top: 2px; }
     .stat-card .sc-sub { font-size: 11.5px; color: var(--text-light); font-weight: 700; margin-top: 1px; }
     .data-section-title { font-size: 15px; font-weight: 900; margin: 18px 0 8px; }
-    .daily-log-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
+    .daily-log-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--bg-card); }
     .daily-log-table th, .daily-log-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: right; }
     .daily-log-table th:first-child, .daily-log-table td:first-child { text-align: left; }
     .feedback-box {
       border: 1.5px solid var(--border); border-radius: 14px; padding: 14px; margin-top: 18px; background: var(--accent-bg);
     }
+
+    /* Profile settings (toggle switches) */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 0; border-bottom: 1px dashed var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-switch {
+      position: relative; width: 52px; height: 30px; flex: none; border-radius: 999px;
+      background: var(--border); border: none; cursor: pointer; padding: 0;
+      transition: background 0.2s;
+    }
+    .toggle-switch::after {
+      content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+      border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: left 0.2s;
+    }
+    .toggle-switch.on { background: var(--green); }
+    .toggle-switch.on::after { left: 25px; }
+
+    /* News (お知らせ) */
+    #newsBtn { position: relative; }
+    .news-badge {
+      position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px;
+      padding: 0 4px; border-radius: 999px; background: var(--red); color: #fff;
+      font-size: 10.5px; font-weight: 800; line-height: 18px; text-align: center;
+      display: none; pointer-events: none;
+    }
+    .news-badge.show { display: block; }
+    .news-item {
+      border: 1.5px solid var(--border); border-radius: 14px; padding: 12px 14px;
+      margin-bottom: 10px; background: var(--bg-subtle); text-align: left;
+    }
+    .news-item.unread { border-color: var(--blue); background: var(--accent-bg); }
+    .news-item .n-date { font-size: 11px; font-weight: 800; color: var(--text-light); }
+    .news-item .n-title { font-size: 14.5px; font-weight: 800; margin: 2px 0 4px; }
+    .news-item .n-body { font-size: 12.5px; color: var(--text-muted); line-height: 1.65; }
+
+    /* Dark mode: hardcoded-color components (CSS変数はJSの applyAppearance で切替) */
+    html.dark .stat-streak { background: #431407; border-color: #9a3412; color: #fdba74; }
+    html.dark .stage-node.challenge-node { background: #2a1215; border-color: #7f1d1d; box-shadow: 0 5px 0 #450a0a; }
+    html.dark .stage-node.challenge-node.cleared { background: var(--bg-card); border-color: #22c55e; box-shadow: 0 5px 0 #14532d; }
+    html.dark .badge-item.earned { background: #422006; }
+    html.dark .bonus-cell.next { background: #422006; box-shadow: 0 0 0 2px #a16207; }
+    html.dark .bonus-complete { background: #451a03; color: #fcd34d; }
+    html.dark .boost-banner { background: #422006; border-color: #a16207; color: #fde68a; box-shadow: 0 4px 0 #713f12; }
+    html.dark .choice-btn:hover:not(:disabled) { background: #1e293b; }
+    html.dark .toast { background: #f1f5f9; color: #0f172a; }
 
     @media (max-width: 430px) {
       .bonus-cells { gap: 4px; }
@@ -585,7 +668,8 @@
         <span class="stat-pill stat-xp" title="獲得XP">⚡ <span id="hudXp">0</span></span>
         <button id="shopBtnHeader" class="stat-btn" title="XPショップ">🛒</button>
         <button id="soundBtn" class="stat-btn" title="効果音 ON/OFF">🔊</button>
-        <button id="accountBtn" class="stat-btn">👤 <span id="hudName">ゲスト</span></button>
+        <button id="newsBtn" class="stat-btn" title="アプリからのお知らせ">✉️<span id="newsBadge" class="news-badge"></span></button>
+        <button id="accountBtn" class="stat-btn" title="プロフィール・設定"><span id="hudAvatar">🚀</span> <span id="hudName">ゲスト</span></button>
       </div>
     </div>
   </header>
@@ -593,6 +677,7 @@
   <main id="appMain" class="container"></main>
 
   <nav id="tabBar" class="tab-bar" aria-label="画面切り替え">
+    <div class="tab-indicator" id="tabIndicator" aria-hidden="true"></div>
     <button class="tab-btn active" data-tab="home"><span class="tab-icon">🏠</span><span>ホーム</span></button>
     <button class="tab-btn" data-tab="study"><span class="tab-icon">📚</span><span>学習</span></button>
     <button class="tab-btn" data-tab="data"><span class="tab-icon">📊</span><span>データ</span></button>
@@ -662,6 +747,20 @@
 
     <div style="margin-top:14px; font-size:11.5px; color:var(--text-light); line-height:1.5;">
       ※アカウント・ストリーク・進捗データはお使いの端末のブラウザ内に安全に保存されます（個人情報やパスワードは不要です）。
+    </div>
+  </div>
+</div>
+
+<!-- News / Announcements Modal -->
+<div id="newsModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="margin:0; font-size:18px;">✉️ アプリからのお知らせ</h2>
+      <button id="closeNewsModal" class="stat-btn">✕</button>
+    </div>
+    <div id="newsListWrap"></div>
+    <div style="font-size:11.5px; color:var(--text-light); line-height:1.5;">
+      ※アップデート内容などのお知らせはここに届きます。
     </div>
   </div>
 </div>
@@ -1703,6 +1802,8 @@ const EXTRA_QUESTIONS = {
         unlockedAvatars: [], // ショップで解放した追加アバター
         themesOwned: [], // ショップで解放したテーマカラーid
         themeColor: "blue", // 選択中のテーマカラーid
+        darkMode: false, // ダークモード（プロフィール設定で切替・アカウントごとに保存）
+        readAnnouncements: [], // 既読のお知らせid
         xpBoost: 0, // XPブースト所持数（デイリー報酬／次のクイズ1回分の獲得XP×1.5）
         gachaTickets: 0, // ガチャチケット所持数
         lastDailyRewardDate: null, // デイリー報酬を最後に受け取った日 (JST "YYYY-MM-DD")
@@ -1746,6 +1847,9 @@ const EXTRA_QUESTIONS = {
         if (!Array.isArray(a.unlockedAvatars)) a.unlockedAvatars = [];
         if (!Array.isArray(a.themesOwned)) a.themesOwned = [];
         if (typeof a.themeColor !== "string") a.themeColor = "blue";
+        // ダークモード／お知らせ既読用フィールド
+        if (typeof a.darkMode !== "boolean") a.darkMode = false;
+        if (!Array.isArray(a.readAnnouncements)) a.readAnnouncements = [];
         // デイリー報酬（ブースト/ガチャ/週間ボーナス）用フィールド
         if (typeof a.xpBoost !== "number") a.xpBoost = 0;
         if (typeof a.gachaTickets !== "number") a.gachaTickets = 0;
@@ -1766,9 +1870,11 @@ const EXTRA_QUESTIONS = {
   }
 
   // ステージが解放されているか（id基準の記録＋「前のステージをクリアしたら次が開く」フォールバック）
+  // 難問チャレンジ（challenge: true）は進捗に関係なく初回から常時挑戦可能
   function isStageUnlocked(acc, idx) {
-    if (idx <= 0) return true;
     const st = STAGES[idx];
+    if (st && st.challenge) return true;
+    if (idx <= 0) return true;
     if (st && Array.isArray(acc.unlockedIds) && acc.unlockedIds.includes(st.id)) return true;
     const prev = STAGES[idx - 1];
     return !!(prev && (acc.stars[prev.id] || 0) > 0);
@@ -1904,16 +2010,84 @@ const EXTRA_QUESTIONS = {
   const SHOP_AVATARS = ["👑", "🦖", "🍕", "🎧", "🛸"];
   const SHOP_PRICES = { hint: 100, freeze: 300, avatars: 500, theme: 300 };
   const THEMES = [
-    { id: "blue", name: "ブルー", vars: { "--blue": "#2563eb", "--blue-dark": "#1d4ed8", "--blue-soft": "#dbeafe", "--accent-light": "#3b82f6", "--accent-ring": "#bfdbfe", "--accent-deep": "#1e3a8a", "--accent-bg": "#eff6ff" } },
-    { id: "violet", name: "バイオレット", vars: { "--blue": "#7c3aed", "--blue-dark": "#6d28d9", "--blue-soft": "#ede9fe", "--accent-light": "#8b5cf6", "--accent-ring": "#ddd6fe", "--accent-deep": "#4c1d95", "--accent-bg": "#f5f3ff" } },
-    { id: "rose", name: "ローズ", vars: { "--blue": "#e11d48", "--blue-dark": "#be123c", "--blue-soft": "#ffe4e6", "--accent-light": "#f43f5e", "--accent-ring": "#fecdd3", "--accent-deep": "#881337", "--accent-bg": "#fff1f2" } },
-    { id: "amber", name: "アンバー", vars: { "--blue": "#d97706", "--blue-dark": "#b45309", "--blue-soft": "#fef3c7", "--accent-light": "#f59e0b", "--accent-ring": "#fde68a", "--accent-deep": "#78350f", "--accent-bg": "#fffbeb" } }
+    { id: "blue", name: "ブルー", vars: { "--blue": "#2563eb", "--blue-dark": "#1d4ed8", "--blue-soft": "#dbeafe", "--accent-light": "#3b82f6", "--accent-ring": "#bfdbfe", "--accent-deep": "#1e3a8a", "--accent-bg": "#eff6ff" },
+      darkVars: { "--blue-soft": "#1e3a5f", "--accent-bg": "#0d2242", "--accent-ring": "#1d4ed8", "--blue-dark": "#93c5fd" } },
+    { id: "violet", name: "バイオレット", vars: { "--blue": "#7c3aed", "--blue-dark": "#6d28d9", "--blue-soft": "#ede9fe", "--accent-light": "#8b5cf6", "--accent-ring": "#ddd6fe", "--accent-deep": "#4c1d95", "--accent-bg": "#f5f3ff" },
+      darkVars: { "--blue-soft": "#2e1065", "--accent-bg": "#1d1145", "--accent-ring": "#6d28d9", "--blue-dark": "#c4b5fd" } },
+    { id: "rose", name: "ローズ", vars: { "--blue": "#e11d48", "--blue-dark": "#be123c", "--blue-soft": "#ffe4e6", "--accent-light": "#f43f5e", "--accent-ring": "#fecdd3", "--accent-deep": "#881337", "--accent-bg": "#fff1f2" },
+      darkVars: { "--blue-soft": "#4c0519", "--accent-bg": "#33060f", "--accent-ring": "#9f1239", "--blue-dark": "#fda4af" } },
+    { id: "amber", name: "アンバー", vars: { "--blue": "#d97706", "--blue-dark": "#b45309", "--blue-soft": "#fef3c7", "--accent-light": "#f59e0b", "--accent-ring": "#fde68a", "--accent-deep": "#78350f", "--accent-bg": "#fffbeb" },
+      darkVars: { "--blue-soft": "#451a03", "--accent-bg": "#2d1503", "--accent-ring": "#b45309", "--blue-dark": "#fcd34d" } }
   ];
   function themeById(id) { return THEMES.find(t => t.id === id) || THEMES[0]; }
   function applyTheme(id) {
     const th = themeById(id);
     const root = document.documentElement;
     Object.entries(th.vars).forEach(([k, v]) => root.style.setProperty(k, v));
+  }
+
+  // ダークモード用の中立色セット（テーマカラーのアクセントとは独立に切り替える）
+  const LIGHT_NEUTRAL = {
+    "--bg-app": "#f0f7ff", "--bg-card": "#ffffff", "--bg-subtle": "#f8fafc",
+    "--text-main": "#0f172a", "--text-muted": "#475569", "--text-light": "#64748b",
+    "--border": "#e2e8f0", "--bg-bar": "rgba(255,255,255,0.92)",
+    "--green-soft": "#dcfce7", "--red-soft": "#ffe4e6", "--orange-soft": "#ffedd5"
+  };
+  const DARK_NEUTRAL = {
+    "--bg-app": "#0b1120", "--bg-card": "#1e293b", "--bg-subtle": "#16213a",
+    "--text-main": "#f1f5f9", "--text-muted": "#cbd5e1", "--text-light": "#94a3b8",
+    "--border": "#334155", "--bg-bar": "rgba(15,23,42,0.92)",
+    "--green-soft": "#14532d", "--red-soft": "#4c0519", "--orange-soft": "#431407"
+  };
+  // テーマカラー＋ダークモードをまとめて適用する（現在のアカウントの設定に基づく）
+  function applyAppearance() {
+    const acc = curAcc();
+    applyTheme(acc.themeColor || "blue");
+    const dark = !!acc.darkMode;
+    const root = document.documentElement;
+    root.classList.toggle("dark", dark);
+    const neutral = dark ? DARK_NEUTRAL : LIGHT_NEUTRAL;
+    Object.entries(neutral).forEach(([k, v]) => root.style.setProperty(k, v));
+    if (dark) {
+      const th = themeById(acc.themeColor || "blue");
+      Object.entries(th.darkVars || {}).forEach(([k, v]) => root.style.setProperty(k, v));
+    }
+  }
+
+  // ===== アプリからのお知らせ =====
+  // 新しいお知らせはこの配列の先頭に追加する（id・日付・タイトル・本文）
+  const ANNOUNCEMENTS = [
+    { id: "20261121-darkmode", date: "2026-11-21", title: "🌙 ダークモード＆プロフィール設定が登場", body: "ヘッダーの自分のアイコン（アバター）から開けるプロフィールで、ユーザー名の変更やダークモードの切り替えができるようになりました。夜の学習にも目にやさしい暗い画面でどうぞ。" },
+    { id: "20261121-news", date: "2026-11-21", title: "✉️ お知らせ機能を追加しました", body: "アプリからのお知らせは、ヘッダーの✉️ボタンからいつでも確認できます。アップデート内容などをここでお伝えしていきます。未読があると赤いバッジが付きます。" },
+    { id: "20261121-stages45", date: "2026-11-21", title: "🎉 全45ステージに拡大！難問チャレンジは最初から挑戦OK", body: "ステージが14→45に大幅アップしました。最後尾の「🔥 難問チャレンジ」15ステージは、進捗に関係なく初回からいつでも挑戦できます。腕試しにぜひどうぞ。" },
+    { id: "20261121-tabs", date: "2026-11-21", title: "📱 タブUIに刷新＆ガチャ終了のお知らせ", body: "画面下のタブ（ホーム／学習／データ）で切り替える新しいUIになりました。あわせてガチャは終了し、デイリー報酬はXPブースト、コンプリート報酬は週間ボーナスにまとめました。" }
+  ];
+  function unreadAnnouncements(acc) {
+    const read = Array.isArray(acc.readAnnouncements) ? acc.readAnnouncements : [];
+    return ANNOUNCEMENTS.filter(n => !read.includes(n.id));
+  }
+  function updateNewsBadge() {
+    const badge = document.getElementById("newsBadge");
+    if (!badge) return;
+    const n = unreadAnnouncements(curAcc()).length;
+    badge.textContent = n > 0 ? String(n) : "";
+    badge.classList.toggle("show", n > 0);
+  }
+  function openNewsModal() {
+    const acc = curAcc();
+    const read = new Set(Array.isArray(acc.readAnnouncements) ? acc.readAnnouncements : []);
+    const wrap = document.getElementById("newsListWrap");
+    wrap.innerHTML = ANNOUNCEMENTS.map(n => `
+      <div class="news-item ${read.has(n.id) ? "" : "unread"}">
+        <div class="n-date">${n.date}${read.has(n.id) ? "" : " ・ 🆕 未読"}</div>
+        <div class="n-title">${n.title}</div>
+        <div class="n-body">${n.body}</div>
+      </div>`).join("");
+    // 開いたら全て既読にする（バッジは消える）
+    acc.readAnnouncements = ANNOUNCEMENTS.map(n => n.id);
+    saveData();
+    updateNewsBadge();
+    document.getElementById("newsModal").classList.add("open");
   }
 
   function renderShop() {
@@ -2193,7 +2367,7 @@ const EXTRA_QUESTIONS = {
 
   function updateHUD() {
     const acc = curAcc();
-    applyTheme(acc.themeColor || "blue");
+    applyAppearance();
     const pill = document.getElementById("hudStreakPill");
     if (acc.id === "guest") {
       pill.innerHTML = "🔒 アカウント限定";
@@ -2203,8 +2377,10 @@ const EXTRA_QUESTIONS = {
       pill.title = "連続学習日数";
     }
     document.getElementById("hudXp").textContent = acc.xp;
-    document.getElementById("hudName").textContent = `${acc.avatar} ${acc.name}`;
+    document.getElementById("hudAvatar").textContent = acc.avatar;
+    document.getElementById("hudName").textContent = acc.name;
     document.getElementById("soundBtn").textContent = appData.sound ? "🔊" : "🔇";
+    updateNewsBadge();
   }
 
   function renderHome() {
@@ -2301,7 +2477,7 @@ const EXTRA_QUESTIONS = {
           const cls = stars > 0 ? "cleared" : unlocked ? "unlocked" : "locked";
           const offset = (idx % 2 === 0 ? -14 : 14);
           const challengeHead = st.challenge && (idx === 0 || !STAGES[idx - 1].challenge)
-            ? `<div class="challenge-head">🔥 難問チャレンジ<span>難易度高めの発展ステージ（全${STAGES.filter(s => s.challenge).length}ステージ）</span></div>` : "";
+            ? `<div class="challenge-head">🔥 難問チャレンジ<span>難易度高めの発展ステージ（全${STAGES.filter(s => s.challenge).length}ステージ）― 最初からいつでも挑戦できます</span></div>` : "";
           return `
             ${challengeHead}
             <div class="stage-node-wrap" style="transform:translateX(${offset}px);">
@@ -2422,7 +2598,8 @@ const EXTRA_QUESTIONS = {
   function startDailyQuiz() {
     const acc = curAcc();
     const pool = [];
-    STAGES.forEach((st, i) => { if (isStageUnlocked(acc, i)) st.questions.forEach(q => pool.push(q)); });
+    // デイリーは通常ステージの解放済み範囲から出題（難問チャレンジは専用ステージとしてマップから挑戦）
+    STAGES.forEach((st, i) => { if (!st.challenge && isStageUnlocked(acc, i)) st.questions.forEach(q => pool.push(q)); });
     const pick = pool[Math.floor(Math.random() * pool.length)];
     let pickStageIdx = 0, pickRef = { stageId: STAGES[0].id, qIndex: 0 };
     for (let i = 0; i < STAGES.length; i++) {
@@ -2645,6 +2822,7 @@ const EXTRA_QUESTIONS = {
     const acc = curAcc();
     const ti = titleInfo(acc);
     const prof = document.getElementById("myProfileWrap");
+    const escAttr = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
     const availAvatars = BASE_AVATARS.concat(acc.unlockedAvatars.filter(a => !BASE_AVATARS.includes(a)));
     prof.innerHTML = `
       <div style="font-weight:800; font-size:13.5px; margin-bottom:8px;">${acc.avatar} ${acc.name} のプロフィール</div>
@@ -2654,9 +2832,31 @@ const EXTRA_QUESTIONS = {
         <button id="profileShopBtn" class="glossary-link" style="padding:0; margin-left:6px;">XPショップへ →</button>
       </div>
       ${acc.rareTitles.length ? `<div style="font-size:12.5px; margin-bottom:10px;">🎖️ レア称号：<strong>${acc.rareTitles.join(" ／ ")}</strong></div>` : ""}
+      <div style="font-weight:800; font-size:13px; margin-bottom:6px;">✏️ ユーザー名を変更</div>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <input id="profileNameInput" class="text-input" type="text" maxlength="16" value="${escAttr(acc.name)}" style="flex:1;" />
+        <button id="profileNameSaveBtn" class="btn-3d btn-blue" style="min-height:44px; padding:8px 16px; flex:none;">保存</button>
+      </div>
       <div style="font-weight:800; font-size:13px; margin-bottom:6px;">アバターを変更</div>
       <div class="avatar-grid" style="margin:0 0 14px;">
         ${availAvatars.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-change-av="${a}">${a}</button>`).join("")}
+      </div>
+      <div style="font-weight:800; font-size:13px; margin-bottom:4px;">⚙️ アプリ設定</div>
+      <div style="margin-bottom:14px;">
+        <div class="toggle-row">
+          <div>
+            <div style="font-weight:800; font-size:13.5px;">🌙 ダークモード</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">画面全体を暗い配色に切り替えます（このアカウントに保存）</div>
+          </div>
+          <button id="darkModeToggle" class="toggle-switch ${acc.darkMode ? "on" : ""}" aria-label="ダークモード切替"></button>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div style="font-weight:800; font-size:13.5px;">🔊 効果音</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">正解・不正解・クリア時の効果音</div>
+          </div>
+          <button id="soundToggle" class="toggle-switch ${appData.sound ? "on" : ""}" aria-label="効果音切替"></button>
+        </div>
       </div>
       <div style="font-weight:800; font-size:13px; margin-bottom:8px;">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
       <div class="badge-grid">
@@ -2670,10 +2870,42 @@ const EXTRA_QUESTIONS = {
       ${feedbackFormHtml()}
     `;
     bindFeedbackForm(prof);
+    const nameSaveBtn = document.getElementById("profileNameSaveBtn");
+    if (nameSaveBtn) {
+      nameSaveBtn.addEventListener("click", () => {
+        const v = document.getElementById("profileNameInput").value.trim();
+        if (!v) { showToast("名前を入力してください"); return; }
+        curAcc().name = v;
+        saveData();
+        updateHUD();
+        openAccountModal();
+        showToast("✏️ ユーザー名を変更しました");
+      });
+    }
+    const dmToggle = document.getElementById("darkModeToggle");
+    if (dmToggle) {
+      dmToggle.addEventListener("click", () => {
+        const a = curAcc();
+        a.darkMode = !a.darkMode;
+        saveData();
+        applyAppearance();
+        openAccountModal();
+      });
+    }
+    const sndToggle = document.getElementById("soundToggle");
+    if (sndToggle) {
+      sndToggle.addEventListener("click", () => {
+        appData.sound = !appData.sound;
+        saveData();
+        updateHUD();
+        openAccountModal();
+      });
+    }
     prof.querySelectorAll("[data-change-av]").forEach(b => {
       b.addEventListener("click", () => {
         curAcc().avatar = b.getAttribute("data-change-av");
         saveData();
+        updateHUD();
         openAccountModal();
       });
     });
@@ -2710,6 +2942,9 @@ const EXTRA_QUESTIONS = {
   document.getElementById("accountBtn").addEventListener("click", openAccountModal);
   document.getElementById("closeAccountModal").addEventListener("click", () => document.getElementById("accountModal").classList.remove("open"));
   document.getElementById("accountModal").addEventListener("click", (e) => { if (e.target.id === "accountModal") e.target.classList.remove("open"); });
+  document.getElementById("newsBtn").addEventListener("click", openNewsModal);
+  document.getElementById("closeNewsModal").addEventListener("click", () => document.getElementById("newsModal").classList.remove("open"));
+  document.getElementById("newsModal").addEventListener("click", (e) => { if (e.target.id === "newsModal") e.target.classList.remove("open"); });
 
   document.getElementById("avatarPicker").addEventListener("click", (e) => {
     const b = e.target.closest(".avatar-opt");
@@ -2728,7 +2963,8 @@ const EXTRA_QUESTIONS = {
       wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0,
       unlockedIds: ["jr1"],
       xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue",
-      xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }
+      xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false },
+      darkMode: false, readAnnouncements: []
     };
     appData.activeId = id;
     saveData();
@@ -2746,21 +2982,37 @@ const EXTRA_QUESTIONS = {
 
   // ===== 画面タブ（ホーム／学習／データ）とフィードバック =====
   let currentTab = "home";
+  const TAB_ORDER = ["home", "study", "data"];
 
   function renderMain() {
     document.querySelectorAll(".tab-btn").forEach(b => {
       b.classList.toggle("active", b.getAttribute("data-tab") === currentTab);
     });
+    const ind = document.getElementById("tabIndicator");
+    if (ind) {
+      const i = Math.max(0, TAB_ORDER.indexOf(currentTab));
+      ind.style.transform = `translateX(${i * 100}%)`;
+    }
     if (currentTab === "study") renderStudy();
     else if (currentTab === "data") renderData();
     else renderHome();
   }
 
   function switchTab(tab) {
+    const prevIdx = TAB_ORDER.indexOf(currentTab);
+    const nextIdx = TAB_ORDER.indexOf(tab);
     currentTab = tab;
     session = null;
     renderMain();
     window.scrollTo(0, 0);
+    const main = document.getElementById("appMain");
+    if (main) {
+      main.classList.remove("tab-anim-right", "tab-anim-left", "tab-anim-fade");
+      void main.offsetWidth; // restart the CSS animation
+      if (nextIdx > prevIdx) main.classList.add("tab-anim-right");
+      else if (nextIdx < prevIdx) main.classList.add("tab-anim-left");
+      else main.classList.add("tab-anim-fade");
+    }
   }
 
   // 学習タブ：単語帳・教科書への導線と「まずはここから」ガイド
