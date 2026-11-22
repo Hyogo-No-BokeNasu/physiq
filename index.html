@@ -449,6 +449,25 @@
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    /* Update notice (アップデート後の初回起動時だけタイトル画面に出す小さなお知らせ) */
+    .update-notice {
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+      z-index: 210; width: max-content; max-width: 92vw;
+      background: var(--bg-card); color: var(--text-main);
+      border: 2px solid var(--border); border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      padding: 9px 36px 9px 14px; cursor: pointer;
+      animation: toastIn 0.3s ease both;
+    }
+    .update-notice .un-main { font-size: 13.5px; font-weight: 900; }
+    .update-notice .un-ver { font-size: 11.5px; font-weight: 800; color: var(--text-muted); }
+    .update-notice .un-note { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-top: 2px; line-height: 1.45; }
+    .update-notice .un-close {
+      position: absolute; top: 4px; right: 6px; border: none; background: none;
+      font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 4px; line-height: 1;
+    }
+    .update-notice.hide { opacity: 0; transform: translateX(-50%) translateY(-8px); transition: opacity 0.35s, transform 0.35s; }
+
     /* XP Shop */
     .shop-item {
       background: var(--bg-card); border: 2px solid var(--border); border-radius: 16px;
@@ -767,6 +786,10 @@
       *, *::before, *::after { animation-duration: 0.01s !important; transition-duration: 0.01s !important; }
     }
   </style>
+  <!-- Firebase（フレンドのサーバー共有・リアルタイムレース用 compat SDK。読み込み失敗時はローカル機能のみで動作） -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -3511,6 +3534,9 @@ const EXTRA_QUESTIONS = {
         // フレンド機能用フィールド（既存アカウントにも後付けで発行）
         if (typeof a.friendCode !== "string" || !a.friendCode) a.friendCode = "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase();
         if (!Array.isArray(a.friends)) a.friends = [];
+        // サーバーフレンド（Firebase共有）用フィールド
+        if (typeof a.serverCode !== "string") a.serverCode = "";
+        if (!Array.isArray(a.serverFriends)) a.serverFriends = [];
         if (typeof a.cheersSent !== "number") a.cheersSent = 0;
         if (!("xpRace" in a)) a.xpRace = null;
         if (!a.weeklyBonus || typeof a.weeklyBonus !== "object") a.weeklyBonus = { weekKey: null, progress: 0, completed: false };
@@ -3526,6 +3552,8 @@ const EXTRA_QUESTIONS = {
       localStorage.setItem(STORE_KEY, s);
       localStorage.setItem(STORE_BACKUP_KEY, s);
     } catch (e) {}
+    // Firebase 連携：XPやプロフィールの変化をサーバーへ間引き同期（未接続時は無音で何もしない）
+    try { fbScheduleProfileSync(); } catch (e) {}
   }
   function curAcc() {
     return appData.accounts[appData.activeId] || appData.accounts["guest"];
@@ -3882,8 +3910,242 @@ const EXTRA_QUESTIONS = {
   }
 
 
+  // ===== Firebase 連携（フレンドのサーバー共有・XPレースのリアルタイム更新） =====
+  // 設計：SDK読み込み失敗・オフライン・未ログイン時は例外を出さず、従来のローカルフレンド機能のみで動く。
+  // ログイン中（ゲスト以外）のユーザーは裏で匿名サインインし、users/{uid} にプロフィールを公開する。
+  // フレンドコードは codes/{code} = {uid} の対応表で引き、相手の users ドキュメントを onSnapshot で購読する。
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCoEe0fREx6JCMZTwDgYyDx41rqquHS83Y",
+    authDomain: "physiq-d2fee.firebaseapp.com",
+    projectId: "physiq-d2fee",
+    storageBucket: "physiq-d2fee.firebasestorage.app",
+    messagingSenderId: "102814571773",
+    appId: "1:102814571773:web:183c8bda537d8e57d2b294"
+  };
+  let fbDb = null;            // Firestore ハンドル（未接続時は null）
+  let fbUser = null;          // 匿名認証ユーザー
+  let fbReady = false;        // 初期化＋匿名サインイン完了
+  let fbFailed = false;       // SDK読み込み失敗など、サーバー共有が使えない状態
+  let fbInitStarted = false;
+  let fbSigningIn = false;
+  let fbUnsubs = [];          // フレンド購読の解除関数リスト
+  let fbSubSig = "";          // 現在購読中のフレンドuid集合の署名（無駄な再購読を防ぐ）
+  const fbFriendData = {};    // uid -> {name, avatar, xp, streak, code}（onSnapshot の最新値）
+  let fbLastAccId = null;     // 最後にセッション処理したローカルアカウントid
+  let fbCodeEnsured = false;  // 現アカウントのコード発行・登録が済んだか
+  let fbSyncTimer = null;
+  let fbLastSyncAt = 0;
+  let fbLastPayloadSig = "";
+  let friendsScreenActive = false; // フレンド画面を表示中か（購読の開始/解除の管理）
+  let fbFormDraft = null;          // リアルタイム再描画時に入力中の下書きを保持
+
+  function fbEsc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function fbGenCode() {
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 紛らわしい文字（I,L,O,0,1）を除いた英数字
+    let code = "";
+    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+  function fbStatusText() {
+    const acc = curAcc();
+    if (acc && acc.id === "guest") return "🔒 ゲストはサーバー共有の対象外です（アカウントを作るとフレンドとXPを共有できます）";
+    if (fbFailed) return "📴 サーバーに接続できませんでした（ローカルフレンドのみ使えます）";
+    if (fbReady) return "🌐 サーバー接続中：フレンドのXPはリアルタイムで更新されます";
+    return "🌐 サーバーに接続中…";
+  }
+  function fbInit() {
+    if (fbInitStarted) return;
+    fbInitStarted = true;
+    try {
+      if (typeof firebase === "undefined" || !firebase.initializeApp || !firebase.auth || !firebase.firestore) { fbFailed = true; return; }
+      firebase.initializeApp(FIREBASE_CONFIG);
+      fbDb = firebase.firestore();
+      const auth = firebase.auth();
+      auth.onAuthStateChanged(u => {
+        fbUser = u || null;
+        if (u) {
+          fbReady = true;
+          try { fbScheduleProfileSync(); } catch (e) {}
+          if (friendsScreenActive) { try { renderFriends(); } catch (e) {} }
+        } else {
+          fbReady = false;
+          fbSignInAnon();
+        }
+      });
+      fbSignInAnon();
+    } catch (e) {
+      fbFailed = true; fbReady = false; fbDb = null;
+    }
+  }
+  function fbSignInAnon() {
+    if (fbSigningIn) return;
+    try {
+      const auth = (typeof firebase !== "undefined" && firebase.auth) ? firebase.auth() : null;
+      if (!auth || auth.currentUser) return;
+      fbSigningIn = true;
+      auth.signInAnonymously().catch(() => {}).then(() => { fbSigningIn = false; });
+    } catch (e) { fbSigningIn = false; }
+  }
+  // 自分のプロフィールを users/{uid} へ保存（friends 配列＝サーバーフレンドの uid 一覧も一緒に同期）
+  function fbPublishProfile() {
+    if (!fbReady || !fbDb || !fbUser) return;
+    const acc = curAcc();
+    if (!acc || acc.id === "guest") return;
+    fbLastSyncAt = Date.now();
+    const friendUids = (Array.isArray(acc.serverFriends) ? acc.serverFriends : []).map(s => s.uid);
+    const sig = [acc.name, acc.avatar, acc.xp || 0, acc.streak || 0, acc.serverCode || "", friendUids.join(",")].join("|");
+    if (sig === fbLastPayloadSig) return;
+    fbLastPayloadSig = sig;
+    try {
+      const payload = {
+        name: acc.name, avatar: acc.avatar, xp: acc.xp || 0, streak: acc.streak || 0,
+        code: acc.serverCode || "", friends: friendUids,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      fbDb.collection("users").doc(fbUser.uid).set(payload, { merge: true }).catch(() => { fbLastPayloadSig = ""; });
+    } catch (e) { fbLastPayloadSig = ""; }
+  }
+  // saveData から呼ばれる間引き同期。アカウント切替を検知したらコード発行からやり直す
+  function fbScheduleProfileSync() {
+    if (!fbReady || !fbDb || !fbUser) return;
+    const acc = curAcc();
+    if (!acc) return;
+    if (acc.id !== fbLastAccId) {
+      fbLastAccId = acc.id;
+      fbCodeEnsured = false;
+      fbLastPayloadSig = "";
+      fbUnsubscribeFriends();
+      if (acc.id !== "guest") fbEnsureCodeAndPublish();
+      return;
+    }
+    if (acc.id === "guest") return;
+    if (!fbCodeEnsured) { fbEnsureCodeAndPublish(); return; }
+    const now = Date.now();
+    if (now - fbLastSyncAt >= 4000) { fbPublishProfile(); return; }
+    if (!fbSyncTimer) {
+      fbSyncTimer = setTimeout(() => { fbSyncTimer = null; try { fbPublishProfile(); } catch (e) {} }, 4000 - (now - fbLastSyncAt));
+    }
+  }
+  // フレンドコードの発行・登録（codes/{code} = {uid}）とプロフィール公開
+  async function fbEnsureCodeAndPublish() {
+    const acc = curAcc();
+    if (!fbReady || !fbDb || !fbUser || !acc || acc.id === "guest") return;
+    if (fbCodeEnsured) { fbPublishProfile(); return; }
+    fbCodeEnsured = true; // 並行実行を防ぐ（失敗時は次回 saveData で再挑戦されるよう下で戻す）
+    try {
+      if (acc.serverCode) {
+        // 既存コードの対応表を念のため再登録（冪等）
+        await fbDb.collection("codes").doc(acc.serverCode).set({ uid: fbUser.uid });
+        fbPublishProfile();
+        return;
+      }
+      for (let i = 0; i < 8; i++) {
+        const code = fbGenCode();
+        const snap = await fbDb.collection("codes").doc(code).get();
+        if (snap.exists && snap.data() && snap.data().uid !== fbUser.uid) continue; // 他人のコードと重複
+        await fbDb.collection("codes").doc(code).set({ uid: fbUser.uid });
+        acc.serverCode = code;
+        saveData();
+        fbPublishProfile();
+        if (friendsScreenActive) { try { renderFriends(); } catch (e) {} }
+        return;
+      }
+      fbCodeEnsured = false;
+    } catch (e) {
+      fbCodeEnsured = false;
+    }
+  }
+  // フレンド画面に入ったとき：セッション確認＋購読開始
+  function fbEnterFriendsScreen() {
+    friendsScreenActive = true;
+    fbInit();
+    try { fbScheduleProfileSync(); } catch (e) {}
+    if (curAcc() && curAcc().id !== "guest" && fbReady && !fbCodeEnsured) fbEnsureCodeAndPublish();
+    fbSubscribeFriends();
+  }
+  // フレンド画面を離れたとき：購読解除
+  function fbLeaveFriendsScreen() {
+    friendsScreenActive = false;
+    fbUnsubscribeFriends();
+  }
+  function fbUnsubscribeFriends() {
+    fbUnsubs.forEach(u => { try { u(); } catch (e) {} });
+    fbUnsubs = [];
+    fbSubSig = "";
+  }
+  // サーバーフレンド全員の users ドキュメントを購読し、変化したらフレンド画面を即時再描画
+  function fbSubscribeFriends() {
+    if (!fbReady || !fbDb) return;
+    const acc = curAcc();
+    if (!acc || acc.id === "guest") return;
+    const list = Array.isArray(acc.serverFriends) ? acc.serverFriends : [];
+    const sig = acc.id + ":" + list.map(s => s.uid).join(",");
+    if (sig === fbSubSig && fbUnsubs.length) return; // 同じ相手集合なら購読を維持
+    fbUnsubscribeFriends();
+    fbSubSig = sig;
+    list.forEach(sf => {
+      try {
+        const un = fbDb.collection("users").doc(sf.uid).onSnapshot(snap => {
+          const d = snap && snap.exists ? snap.data() : null;
+          const prev = fbFriendData[sf.uid];
+          const next = d ? { name: d.name || "フレンド", avatar: d.avatar || "🚀", xp: d.xp || 0, streak: d.streak || 0, code: d.code || sf.code || "" } : null;
+          fbFriendData[sf.uid] = next;
+          const changed = JSON.stringify(prev || null) !== JSON.stringify(next || null);
+          // ローカル側のキャッシュも最新化（オフライン表示用。saveData は呼ばず次の保存で永続化）
+          const a2 = curAcc();
+          const entry = (a2 && Array.isArray(a2.serverFriends)) ? a2.serverFriends.find(x => x.uid === sf.uid) : null;
+          if (entry && fbFriendData[sf.uid]) {
+            entry.name = fbFriendData[sf.uid].name; entry.avatar = fbFriendData[sf.uid].avatar;
+            entry.xp = fbFriendData[sf.uid].xp; entry.streak = fbFriendData[sf.uid].streak;
+          }
+          if (friendsScreenActive && changed) {
+            // 入力中の追加フォームの下書きを退避してから再描画し、renderFriends 側で復元する
+            const draft = {};
+            ["friendNameInput", "friendCodeInput", "friendXpInput", "friendWeeklyInput", "serverCodeInput"].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) draft[id] = el.value;
+            });
+            fbFormDraft = draft;
+            try { renderFriends(); } catch (e) {}
+          }
+        }, () => {});
+        fbUnsubs.push(un);
+      } catch (e) {}
+    });
+  }
+  // コードからサーバーフレンドを追加
+  async function fbAddServerFriend(rawCode) {
+    const acc = curAcc();
+    if (!acc || acc.id === "guest") { showToast("🔒 ゲストはサーバーフレンドを追加できません。アカウントを作ってね"); return; }
+    if (!fbReady || !fbDb || !fbUser) { showToast("📴 サーバーに接続できていません。通信環境を確認して、もう一度試してね"); return; }
+    const code = String(rawCode || "").trim().toUpperCase();
+    if (!code) { showToast("⚠️ フレンドコードを入力してください"); return; }
+    if (acc.serverCode && code === acc.serverCode) { showToast("⚠️ それは自分のコードです"); return; }
+    if (!Array.isArray(acc.serverFriends)) acc.serverFriends = [];
+    if (acc.serverFriends.some(s => s.code === code)) { showToast("⚠️ そのフレンドはもう追加されています"); return; }
+    try {
+      const codeSnap = await fbDb.collection("codes").doc(code).get();
+      if (!codeSnap.exists) { showToast("⚠️ そのコードのフレンドが見つかりませんでした"); return; }
+      const uid = codeSnap.data() && codeSnap.data().uid;
+      if (!uid || uid === fbUser.uid) { showToast("⚠️ それは自分のコードです"); return; }
+      if (acc.serverFriends.some(s => s.uid === uid)) { showToast("⚠️ そのフレンドはもう追加されています"); return; }
+      const userSnap = await fbDb.collection("users").doc(uid).get();
+      const d = userSnap.exists ? userSnap.data() : {};
+      const entry = { uid, code, name: d.name || "フレンド", avatar: d.avatar || "🚀", xp: d.xp || 0, streak: d.streak || 0, cheers: 0 };
+      acc.serverFriends.push(entry);
+      saveData(); // users/{uid} の friends 配列にも同期される
+      fbSubscribeFriends();
+      showToast(`👥 ${entry.name} をフレンドに追加しました！`);
+      renderFriends();
+    } catch (e) {
+      showToast("⚠️ 追加できませんでした。通信環境を確認してね");
+    }
+  }
+
   // ===== フレンド機能（XPの使い道：ランキング・応援・XPレース） =====
-  // ※サーバーなし・この端末内のローカル保存のみ。フレンドのXPは本人が聞いて入力する自己申告値です。
+  // サーバーフレンド（Firebase共有・リアルタイム）と、従来のローカルフレンド（XP手入力）を統合表示する。
   const CHEER_PRICE = 200; // 応援1回
   const RACE_PRICE = 500;  // XPレース挑戦料
   const RACE_GOAL = 300;   // 7日間で稼ぐ目標XP
@@ -3907,14 +4169,33 @@ const EXTRA_QUESTIONS = {
     updateHUD();
     const acc = curAcc();
     if (!Array.isArray(acc.friends)) acc.friends = [];
+    if (!Array.isArray(acc.serverFriends)) acc.serverFriends = [];
+    const serverFriends = acc.serverFriends;
     const myWeekly = weeklyXp(acc);
     const board = [{ id: "__me__", name: acc.name + "（あなた）", xp: acc.xp, weeklyXp: myWeekly, me: true }]
       .concat(acc.friends.map(f => ({ id: f.id, name: f.name, xp: f.xp || 0, weeklyXp: f.weeklyXp || 0, cheers: f.cheers || 0 })))
+      .concat(serverFriends.map(sf => {
+        const live = fbFriendData[sf.uid];
+        const nm = live ? live.name : (sf.name || "フレンド");
+        const av = live ? live.avatar : (sf.avatar || "🚀");
+        const xp = live ? live.xp : (sf.xp || 0);
+        const streak = live ? live.streak : (sf.streak || 0);
+        return {
+          id: "fb_" + sf.uid, name: nm, avatar: av, xp, weeklyXp: 0, cheers: sf.cheers || 0, server: true,
+          sub: `累計 ${xp} XP ／ 🔥 ${streak} 日 ／ 🌐 サーバー${live ? "" : "（接続待ち）"}`
+        };
+      }))
       .sort((a, b) => b.xp - a.xp);
     const race = acc.xpRace;
     const raceProgress = race ? Math.min(RACE_GOAL, Math.max(0, acc.xp - race.startXp)) : 0;
     const raceDone = race && raceProgress >= RACE_GOAL;
     const raceExpired = race && !raceDone && raceDaysLeft(race) <= 0;
+    // サーバーフレンドが相手のレースでは、相手の現在XPをリアルタイム値で添える
+    let raceRivalInfo = "";
+    if (race && typeof race.friendId === "string" && race.friendId.indexOf("fb_") === 0) {
+      const rd = fbFriendData[race.friendId.slice(3)];
+      if (rd) raceRivalInfo = ` ／ 🌐 ライバルの現在：${fbEsc(rd.name)} ${rd.xp} XP`;
+    }
     const main = document.getElementById("appMain");
     main.innerHTML = `
       <div class="sub-screen">
@@ -3924,9 +4205,10 @@ const EXTRA_QUESTIONS = {
         </div>
         <div class="daily-card" style="margin-bottom:16px;">
           <div style="font-size:13px; opacity:0.9;">あなたのフレンドコード（友だちに教えてね）</div>
-          <div class="friend-code">${acc.friendCode}</div>
+          <div class="friend-code">${(fbReady && acc.serverCode) ? fbEsc(acc.serverCode) : acc.friendCode}</div>
           <div style="font-size:12.5px; opacity:0.9; margin-top:8px;">累計 ${acc.xp} XP ／ 今週 ${myWeekly} XP ／ 使えるXP ⚡${acc.xpBalance} XP</div>
-          <div style="font-size:11.5px; opacity:0.85; margin-top:4px;">※フレンドのXPはサーバー連動ではなく、友だち本人に聞いた値を入力する仕組みです。</div>
+          <div style="font-size:11.5px; opacity:0.9; margin-top:4px;">${fbStatusText()}</div>
+          <div style="font-size:11.5px; opacity:0.85; margin-top:4px;">※ローカルフレンドのXPは、友だち本人に聞いた値を入力する仕組みです。</div>
         </div>
 
         ${race ? `
@@ -3934,7 +4216,7 @@ const EXTRA_QUESTIONS = {
           <div class="s-icon">🏁</div>
           <div class="s-main">
             <div class="s-name">XPレース ${raceDone ? "― 達成！🎉" : raceExpired ? "― 期限切れ" : "― 進行中"}</div>
-            <div class="s-desc">ライバル：${race.friendName} ／ 7日間で ${RACE_GOAL} XP稼ぐのが目標（残り ${raceDaysLeft(race)} 日）</div>
+            <div class="s-desc">ライバル：${race.friendName} ／ 7日間で ${RACE_GOAL} XP稼ぐのが目標（残り ${raceDaysLeft(race)} 日）${raceRivalInfo}</div>
             <div class="s-own">進捗：${raceProgress} / ${RACE_GOAL} XP</div>
             <div style="background:var(--border); border-radius:99px; overflow:hidden; height:10px; margin-top:6px;"><div style="width:${Math.round(raceProgress / RACE_GOAL * 100)}%; height:100%; background:var(--blue);"></div></div>
           </div>
@@ -3947,8 +4229,8 @@ const EXTRA_QUESTIONS = {
           <div class="leader-row ${r.me ? "me" : ""}">
             <div class="leader-rank">${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1) + "位"}</div>
             <div style="flex:1; min-width:0;">
-              <div style="font-weight:800; font-size:14.5px;">${r.name}</div>
-              <div style="font-size:12px; color:var(--text-muted);">累計 ${r.xp} XP ／ 今週 ${r.weeklyXp} XP${r.cheers ? ` ／ 👏応援 ${r.cheers} 回` : ""}</div>
+              <div style="font-weight:800; font-size:14.5px;">${r.server ? fbEsc(r.avatar || "🚀") + " " + fbEsc(r.name) : r.name}</div>
+              <div style="font-size:12px; color:var(--text-muted);">${r.sub ? r.sub : `累計 ${r.xp} XP ／ 今週 ${r.weeklyXp} XP`}${r.cheers ? ` ／ 👏応援 ${r.cheers} 回` : ""}</div>
             </div>
             ${!r.me ? `
               <div class="leader-actions">
@@ -3958,7 +4240,16 @@ const EXTRA_QUESTIONS = {
             ` : ""}
           </div>`).join("")}
 
-        <div style="font-weight:800; font-size:15px; margin:18px 0 8px;">➕ フレンドを追加する</div>
+        <div style="font-weight:800; font-size:15px; margin:18px 0 8px;">🌐 サーバーフレンドを追加する</div>
+        <div class="shop-item" style="display:block;">
+          <div style="display:grid; gap:8px;">
+            <input id="serverCodeInput" placeholder="相手のフレンドコード（例：AB3K9XYZ）" style="width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit; text-transform:uppercase;" />
+            <button id="serverAddBtn" class="btn-3d btn-green" style="width:100%;" ${acc.id === "guest" || !fbReady ? "disabled" : ""}>コードで追加（サーバー）</button>
+            <div style="font-size:11.5px; color:var(--text-muted); line-height:1.6;">相手のアプリのフレンド画面に表示されているコードを入力すると、その場で追加されます。相手のXPはサーバー経由でリアルタイムに反映されます。</div>
+          </div>
+        </div>
+
+        <div style="font-weight:800; font-size:15px; margin:18px 0 8px;">➕ フレンドを追加する（ローカル）</div>
         <div class="shop-item" style="display:block;">
           <div style="display:grid; gap:8px;">
             <input id="friendNameInput" placeholder="友だちの名前（例：たろう）" style="width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
@@ -3972,8 +4263,17 @@ const EXTRA_QUESTIONS = {
           </div>
         </div>
 
-        ${acc.friends.length ? `
+        ${(acc.friends.length || serverFriends.length) ? `
         <div style="font-weight:800; font-size:15px; margin:18px 0 8px;">🗑️ フレンドの削除</div>
+        ${serverFriends.map(sf => {
+          const live = fbFriendData[sf.uid];
+          const nm = live ? live.name : (sf.name || "フレンド");
+          return `
+          <div class="leader-row">
+            <div style="flex:1; min-width:0; font-weight:800; font-size:14px;">${fbEsc(nm)} <span style="font-weight:700; color:var(--text-muted); font-size:12px;">🌐 ${fbEsc(sf.code || "")}</span></div>
+            <button class="btn-3d btn-ghost" data-remove-server="${sf.uid}" style="min-height:36px; padding:5px 12px; font-size:12.5px;">削除</button>
+          </div>`;
+        }).join("")}
         ${acc.friends.map(f => `
           <div class="leader-row">
             <div style="flex:1; min-width:0; font-weight:800; font-size:14px;">${f.name} <span style="font-weight:700; color:var(--text-muted); font-size:12px;">${f.code || ""}</span></div>
@@ -3983,6 +4283,11 @@ const EXTRA_QUESTIONS = {
       </div>
     `;
     document.getElementById("friendsBackBtn").addEventListener("click", () => renderMain());
+    // ローカルフレンド（id）とサーバーフレンド（"fb_" + uid）の両方を引ける共通ルックアップ
+    const findAnyFriend = (id) => {
+      if (typeof id === "string" && id.indexOf("fb_") === 0) return (acc.serverFriends || []).find(x => "fb_" + x.uid === id) || null;
+      return acc.friends.find(x => x.id === id) || null;
+    };
     const claimBtn = document.getElementById("raceClaimBtn");
     if (claimBtn) claimBtn.addEventListener("click", () => {
       acc.xp += RACE_REWARD; acc.xpBalance += RACE_REWARD; acc.xpRace = null;
@@ -3991,14 +4296,14 @@ const EXTRA_QUESTIONS = {
     const closeBtn = document.getElementById("raceCloseBtn");
     if (closeBtn) closeBtn.addEventListener("click", () => { acc.xpRace = null; saveData(); renderFriends(); });
     main.querySelectorAll("[data-cheer]").forEach(b => b.addEventListener("click", () => {
-      const f = acc.friends.find(x => x.id === b.getAttribute("data-cheer"));
+      const f = findAnyFriend(b.getAttribute("data-cheer"));
       if (!f) return;
       if (acc.xpBalance < CHEER_PRICE) { showToast("⚡ XPが足りません。クイズで貯めよう！"); return; }
       acc.xpBalance -= CHEER_PRICE; f.cheers = (f.cheers || 0) + 1; acc.cheersSent = (acc.cheersSent || 0) + 1;
       saveData(); showToast(`👏 ${f.name} に応援を送ったよ！`); renderFriends();
     }));
     main.querySelectorAll("[data-race]").forEach(b => b.addEventListener("click", () => {
-      const f = acc.friends.find(x => x.id === b.getAttribute("data-race"));
+      const f = findAnyFriend(b.getAttribute("data-race"));
       if (!f || acc.xpRace) return;
       if (acc.xpBalance < RACE_PRICE) { showToast("⚡ XPが足りません。クイズで貯めよう！"); return; }
       const end = new Date(Date.now() + (RACE_DAYS - 1) * 86400000);
@@ -4013,6 +4318,21 @@ const EXTRA_QUESTIONS = {
       if (acc.xpRace && acc.xpRace.friendId === b.getAttribute("data-remove-friend")) acc.xpRace = null;
       saveData(); renderFriends();
     }));
+    main.querySelectorAll("[data-remove-server]").forEach(b => b.addEventListener("click", () => {
+      const uid = b.getAttribute("data-remove-server");
+      acc.serverFriends = (acc.serverFriends || []).filter(x => x.uid !== uid);
+      if (acc.xpRace && acc.xpRace.friendId === "fb_" + uid) acc.xpRace = null;
+      delete fbFriendData[uid];
+      saveData(); // users/{uid} の friends 配列からも外れる
+      showToast("フレンドを削除しました");
+      renderFriends();
+    }));
+    const serverAddBtn = document.getElementById("serverAddBtn");
+    if (serverAddBtn) serverAddBtn.addEventListener("click", () => {
+      const inp = document.getElementById("serverCodeInput");
+      serverAddBtn.disabled = true;
+      fbAddServerFriend(inp ? inp.value : "").then(() => { serverAddBtn.disabled = false; });
+    });
     document.getElementById("friendAddBtn").addEventListener("click", () => {
       const name = (document.getElementById("friendNameInput").value || "").trim();
       const code = (document.getElementById("friendCodeInput").value || "").trim().toUpperCase();
@@ -4023,6 +4343,12 @@ const EXTRA_QUESTIONS = {
       acc.friends.push({ id: "fr_" + Date.now(), name, code, xp, weeklyXp: weekly, cheers: 0 });
       saveData(); showToast(`👥 ${name} をフレンドに追加しました！`); renderFriends();
     });
+    // リアルタイム更新で再描画された場合、入力中だった追加フォームの下書きを復元
+    if (fbFormDraft) {
+      Object.keys(fbFormDraft).forEach(id => { const el = document.getElementById(id); if (el) el.value = fbFormDraft[id]; });
+      fbFormDraft = null;
+    }
+    fbEnterFriendsScreen();
     renderMath(main);
   }
 
@@ -4803,9 +5129,12 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.6";
+  const APP_VERSION = "2026-11-22.9";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2026-11-22.9", title: "フレンドがサーバー共有になりました（リアルタイムでレース更新）", body: "フレンド機能がサーバー共有になりました。フレンドコードで追加した相手のXPはリアルタイムでランキングとXPレースに反映されます。コードはフレンド画面に表示される8文字のコードを相手に教えてください。これまでの手入力のフレンドは「ローカルフレンド」としてそのまま残ります。ゲストはサーバー共有の対象外です。" },
+    { date: "2026-11-22", version: "2026-11-22.8", title: "アップデートのお知らせ表示を追加しました", body: "アップデート後の初回起動時に、タイトル画面で「アップデートしました」と小さくお知らせするようにしました。変更内容も1行で表示されます。タップするか、しばらく待つと消えます。" },
+    { date: "2026-11-22", version: "2026-11-22.7", title: "ダークモードでキーワード解説が見えない問題を修正", body: "ダークモードのとき、ステージ解説のキーワードカードの文字が背景と同化して見えなくなっていた問題を直しました。教科書の例題ボックスとXPレースのカードも、ダークモードで読みやすい色にしました。" },
     { date: "2026-11-22", version: "2026-11-22.6", title: "数学・化学にも単語帳と教科書ができました", body: "学習タブの「まずはここから」と単語帳・教科書が、選んでいる科目に合わせて切り替わるようになりました。数学は単語帳 全92語・教科書 全30レッスン、化学は単語帳 全91語・教科書 全30レッスンを新しく用意しています。ステージ解説のキーワードから単語帳へ飛ぶリンクや、間違えた問題の「教科書で復習する」も、それぞれの科目の内容に飛ぶようになりました。" },
     { date: "2026-11-22", version: "2026-11-22.5", title: "数学・化学が全45ステージ・全450問に", body: "数学と化学が、物理と同じ全45ステージ・全450問になりました。プロフィールと設定の画面を整理し、結果画面にかかった時間・正解数・獲得XPがひと目でわかるようになりました。ショップの値段を下げました。ストリークが更新のたびにリセットされてしまう不具合を直しました。お知らせは設定の「アップデート履歴」にまとめました。" }
   ];
@@ -4828,6 +5157,29 @@ const EXTRA_QUESTIONS = {
     const brand = document.getElementById("brandIconImg"); if (brand) brand.src = src180;
     const logo = document.getElementById("titleLogoImg"); if (logo) logo.src = src512;
   }
+  // アップデート後の初回起動時だけ、タイトル画面の上に小さくお知らせを出す。
+  // 数秒で自動で消え、タップでも消せる。出した時点で seenVersion は現行に更新済みなので次回は出ない。
+  function showUpdateNotice() {
+    if (document.getElementById("updateNotice")) return;
+    const latest = UPDATE_HISTORY[0];
+    const el = document.createElement("div");
+    el.id = "updateNotice";
+    el.className = "update-notice";
+    el.innerHTML = `
+      <div class="un-main">🆕 アップデートしました<span class="un-ver">（${APP_VERSION}）</span></div>
+      ${latest ? `<div class="un-note">${latest.title}</div>` : ""}
+      <button class="un-close" aria-label="閉じる">✕</button>
+    `;
+    document.body.appendChild(el);
+    const timer = setTimeout(dismiss, 7000);
+    function dismiss() {
+      clearTimeout(timer);
+      if (!el.isConnected) return;
+      el.classList.add("hide");
+      setTimeout(() => el.remove(), 400);
+    }
+    el.addEventListener("click", dismiss);
+  }
   async function hashPassword(pw, salt) {
     try {
       const data = new TextEncoder().encode(salt + "::" + pw);
@@ -4841,7 +5193,7 @@ const EXTRA_QUESTIONS = {
     }
   }
   function newAccountFields(id, name, avatar) {
-    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "" };
+    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "", serverCode: "", serverFriends: [] };
   }
   function closeAuthModals() {
     ["createAccountModal", "signinModal", "settingsModal"].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("open"); });
@@ -5184,6 +5536,7 @@ const EXTRA_QUESTIONS = {
   let appStarted = false;
 
   function renderTitleScreen() {
+    fbLeaveFriendsScreen();
     setChromeVisible(false);
     session = null;
     const acc = curAcc();
@@ -5259,6 +5612,7 @@ const EXTRA_QUESTIONS = {
   }
 
   function renderMain() {
+    fbLeaveFriendsScreen(); // フレンド画面から離れたらサーバー購読を解除
     setChromeVisible(true);
     document.querySelectorAll(".tab-btn").forEach(b => {
       b.classList.toggle("active", b.getAttribute("data-tab") === currentTab);
@@ -6434,14 +6788,22 @@ const EXTRA_QUESTIONS = {
   });
 
 
+  // 初回インストール（保存データ自体がない）かどうかは、loadData() の前に判定しておく
+  let hadSavedData = false;
+  try { hadSavedData = !!(localStorage.getItem(STORE_KEY) || localStorage.getItem(STORE_BACKUP_KEY)); } catch (e) {}
   loadData();
   if (appData.subject && SUBJECTS[appData.subject]) setSubject(appData.subject, true);
   applyAppIcon();
   renderTitleScreen();
+  // Firebase 連携の初期化（失敗してもアプリ本体は通常どおり動く）
+  try { fbInit(); } catch (e) {}
   if (appData.seenVersion !== APP_VERSION) {
+    // 保存データがあるのにバージョンが違うときだけ「アップデート後の初回起動」としてお知らせを出す。
+    // 初回インストールでは出さず、どちらも seenVersion を現行に更新して次回は出さない。
+    const isUpdateLaunch = hadSavedData;
     appData.seenVersion = APP_VERSION;
     saveData();
-    setTimeout(() => showToast(`🆕 PhysiQをアップデートしました（${APP_VERSION}）`), 600);
+    if (isUpdateLaunch) setTimeout(showUpdateNotice, 600);
   }
   if (!appData.onboarded) {
     appData.onboarded = true;
