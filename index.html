@@ -881,8 +881,7 @@
     .guide-sec summary::-webkit-details-marker { display: none; }
     .guide-sec summary::after { content: "\25BE"; margin-left: auto; color: var(--text-light); font-weight: 800; transition: transform 0.25s ease; }
     .guide-sec[open] summary::after { transform: rotate(180deg); }
-    .guide-sec[open] .guide-sec-body { animation: fadeUp 0.25s ease both; }
-    .guide-sec .guide-sec-body { padding: 0 16px 14px; font-size: 13.5px; line-height: 1.75; color: var(--text-muted); }
+    .guide-sec .guide-sec-body { padding: 0 16px 14px; font-size: 13.5px; line-height: 1.75; color: var(--text-muted); overflow: hidden; }
     .guide-sec .guide-sec-body strong { color: var(--text-main); }
 
     /* === Motion polish .15: subtle transitions where things were static (colors unchanged) === */
@@ -939,9 +938,14 @@
 
     @media (prefers-reduced-motion: reduce) {
       .modal-backdrop.open { animation: none; }
-      .guide-sec[open] .guide-sec-body { animation: none; }
       .guide-sec summary::after { transition: none; }
     }
+
+    /* Guide accordion height animation: JS in renderGuide animates measured heights on
+       every toggle, so it replays on both open and close. (The old keyframe-on-[open]
+       approach played at most once and never animated closing, because native <details>
+       toggling is instant and WebKit does not restart the finished keyframe on re-open.) */
+    .guide-sec .guide-sec-body { transition: height 0.28s ease, opacity 0.28s ease, color 0.3s ease; }
 
     /* === Question formats .16: multi-select & free text === */
     .q-type-badge {
@@ -6086,9 +6090,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.1.3";
+  const APP_VERSION = "2.1.4";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2.1.4", title: "遊び心地がよくなりました", body: "細かいところの動きを、少し整えました。いつものように遊んでみてください。" },
     { date: "2026-11-22", version: "2.1.3", title: "遊び心地がよくなりました", body: "細かいところの動きを、少し整えました。いつものように遊んでみてください。" },
     { date: "2026-11-22", version: "2.1.2", title: "遊び心地がよくなりました", body: "クイズを遊ぶときの流れが、少し軽やかになりました。いつものように遊んでみてください。そのほか、細かいところも少し整えました。" },
     { date: "2026-11-22", version: "2.1.1", title: "設定に新しい項目が増えました", body: "設定画面に新しい項目が増えました。お好みに合わせて切り替えられますので、設定を開いて探してみてください。そのほか、細かいところも少し整えました。" },
@@ -7927,6 +7932,51 @@ const EXTRA_QUESTIONS = {
     document.getElementById("guideBackBtn").addEventListener("click", () => {
       if (guideFrom === "settings") { renderMain(); openSettingsModal(); }
       else renderTitleScreen();
+    });
+    // ガイドの折りたたみアニメーション：ネイティブの <details> 開閉は瞬時で、[open] 連動の
+    // キーフレームは初回しか再生されなかったため、実測した高さの height トランジションを
+    // 開くとき・閉じるときの両方で毎回かける。動きを減らす設定のときは従来どおり即時開閉。
+    const guideReduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    main.querySelectorAll(".guide-sec > summary").forEach(sm => {
+      sm.addEventListener("click", (e) => {
+        const details = sm.parentElement;
+        const body = details.querySelector(".guide-sec-body");
+        if (!body || guideReduceMotion) return;
+        e.preventDefault();
+        if (details.dataset.animating === "1") return;
+        details.dataset.animating = "1";
+        const opening = !details.open;
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          if (!opening) details.open = false;
+          body.style.height = "";
+          body.style.opacity = "";
+          delete details.dataset.animating;
+        };
+        body.addEventListener("transitionend", function h(ev) {
+          if (ev.propertyName === "height") { body.removeEventListener("transitionend", h); finish(); }
+        });
+        setTimeout(finish, 450);
+        if (opening) {
+          details.open = true;
+          const target = body.scrollHeight;
+          body.style.height = "0px";
+          body.style.opacity = "0";
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            body.style.height = target + "px";
+            body.style.opacity = "1";
+          }));
+        } else {
+          body.style.height = body.offsetHeight + "px";
+          body.style.opacity = "1";
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            body.style.height = "0px";
+            body.style.opacity = "0";
+          }));
+        }
+      });
     });
   }
 
