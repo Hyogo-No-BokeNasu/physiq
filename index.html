@@ -794,10 +794,13 @@
       *, *::before, *::after { animation-duration: 0.01s !important; transition-duration: 0.01s !important; }
     }
   </style>
-  <!-- Firebase（フレンドのサーバー共有・リアルタイムレース用 compat SDK。読み込み失敗時はローカル機能のみで動作） -->
+  <!-- Firebase（フレンドのサーバー共有・リアルタイムレース用 compat SDK。読み込み失敗時はフレンド以外の機能が動作） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <!-- QRコード（フレンド追加用。生成：qrcode-generator／読み取り：jsQR。読み込み失敗時はコード表示・入力のみで動作） -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -921,6 +924,33 @@
     <div id="signinError" class="auth-error"></div>
     <button id="signinSubmitBtn" class="btn-3d btn-blue" style="width:100%;">サインインする</button>
     <div style="margin-top:10px; font-size:11.5px; color:var(--text-light); line-height:1.5;">※他の端末で作ったアカウントは、この端末にまだありません。先に設定画面の「データ移行（バックアップコード）」で取り込んでください。パスワードを忘れた場合の復旧はできません。</div>
+  </div>
+</div>
+
+<!-- Friend Link Confirm Modal -->
+<div id="friendConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:18px;">👥 フレンド追加</h2>
+      <button id="closeFriendConfirmModal" class="stat-btn">✕</button>
+    </div>
+    <div id="friendConfirmText" style="font-size:14px; line-height:1.7; margin-bottom:16px;"></div>
+    <button id="friendConfirmOkBtn" class="btn-3d btn-green" style="width:100%;">フレンドに追加する</button>
+    <button id="friendConfirmCancelBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:8px;">やめる</button>
+  </div>
+</div>
+
+<!-- QR Scan Modal -->
+<div id="qrScanModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:18px;">📷 QRを読み取る</h2>
+      <button id="closeQrScanModal" class="stat-btn">✕</button>
+    </div>
+    <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">友だちのフレンド画面に表示されているQRコードをカメラに映してください。</div>
+    <video id="qrScanVideo" playsinline muted style="width:100%; border-radius:14px; background:#000; display:block;"></video>
+    <canvas id="qrScanCanvas" style="display:none;"></canvas>
+    <div id="qrScanStatus" style="font-size:12.5px; color:var(--text-muted); margin-top:10px; text-align:center;">カメラを起動しています…</div>
   </div>
 </div>
 
@@ -3450,7 +3480,7 @@ const EXTRA_QUESTIONS = {
         darkMode: false, // ダークモード（プロフィール設定で切替・アカウントごとに保存）
         readAnnouncements: [], // 旧お知らせの既読記録（互換のため残す）
         friendCode: "", // フレンド招待コード（初回ロード時に自動発行）
-        friends: [], // フレンド一覧 [{id, name, code, xp, weeklyXp, cheers}]
+        friends: [], // （旧ローカルフレンド用フィールド。サーバー限定化に伴い未使用だが、既存データ互換のため残す）
         cheersSent: 0, // 送った応援の回数
         xpRace: null, // 進行中のXPレース {friendId, friendName, startXp, startDate, endDate, goal, reward}
         xpBoost: 0, // XPブースト所持数（デイリー報酬／次のクイズ1回分の獲得XP×1.5）
@@ -3852,7 +3882,7 @@ const EXTRA_QUESTIONS = {
           <div class="s-main">
             <div class="s-name">フレンドでXPを使う</div>
             <div class="s-desc">友だちとXPランキングで競えます。応援は1回200XP、7日間XPレースへの挑戦は500XP（達成で800XPゲット）。</div>
-            <div class="s-own">フレンド ${acc.friends ? acc.friends.length : 0} 人${acc.xpRace ? " ／ 🏁 レース進行中" : ""}</div>
+            <div class="s-own">フレンド ${acc.serverFriends ? acc.serverFriends.length : 0} 人${acc.xpRace ? " ／ 🏁 レース進行中" : ""}</div>
           </div>
           <button class="btn-3d btn-blue s-buy" id="friendsFromShopBtn">フレンドへ →</button>
         </div>
@@ -3919,7 +3949,7 @@ const EXTRA_QUESTIONS = {
 
 
   // ===== Firebase 連携（フレンドのサーバー共有・XPレースのリアルタイム更新） =====
-  // 設計：SDK読み込み失敗・オフライン・未ログイン時は例外を出さず、従来のローカルフレンド機能のみで動く。
+  // 設計：SDK読み込み失敗・オフライン・未ログイン時は例外を出さず、本体機能のみで動く（フレンドはサーバー接続時のみ使える）。
   // ログイン中（ゲスト以外）のユーザーは裏で匿名サインインし、users/{uid} にプロフィールを公開する。
   // フレンドコードは codes/{code} = {uid} の対応表で引き、相手の users ドキュメントを onSnapshot で購読する。
   const FIREBASE_CONFIG = {
@@ -3959,7 +3989,7 @@ const EXTRA_QUESTIONS = {
   function fbStatusText() {
     const acc = curAcc();
     if (acc && acc.id === "guest") return "🔒 ゲストはサーバー共有の対象外です（アカウントを作るとフレンドとXPを共有できます）";
-    if (fbFailed) return "📴 サーバーに接続できませんでした（ローカルフレンドのみ使えます）";
+    if (fbFailed) return "📴 サーバーに接続できませんでした";
     if (fbReady) return "🌐 サーバー接続中：フレンドのXPはリアルタイムで更新されます";
     return "🌐 サーバーに接続中…";
   }
@@ -3976,6 +4006,7 @@ const EXTRA_QUESTIONS = {
         if (u) {
           fbReady = true;
           try { fbScheduleProfileSync(); } catch (e) {}
+          try { fbProcessPendingFriend(); } catch (e) {}
           if (friendsScreenActive) { try { renderFriends(); } catch (e) {} }
         } else {
           fbReady = false;
@@ -4026,6 +4057,7 @@ const EXTRA_QUESTIONS = {
       fbLastPayloadSig = "";
       fbUnsubscribeFriends();
       if (acc.id !== "guest") fbEnsureCodeAndPublish();
+      try { fbProcessPendingFriend(); } catch (e) {}
       return;
     }
     if (acc.id === "guest") return;
@@ -4111,7 +4143,7 @@ const EXTRA_QUESTIONS = {
           if (friendsScreenActive && changed) {
             // 入力中の追加フォームの下書きを退避してから再描画し、renderFriends 側で復元する
             const draft = {};
-            ["friendNameInput", "friendCodeInput", "friendXpInput", "friendWeeklyInput", "serverCodeInput"].forEach(id => {
+            ["serverCodeInput"].forEach(id => {
               const el = document.getElementById(id);
               if (el) draft[id] = el.value;
             });
@@ -4152,8 +4184,197 @@ const EXTRA_QUESTIONS = {
     }
   }
 
+  // ===== フレンド追加用QRコード／リンク =====
+  const FRIEND_LINK_BASE = "https://hyogo-no-bokenasu.github.io/physiq/";
+  const PENDING_FRIEND_KEY = "physiq_pending_friend_code";
+  let fbPendingHandledCode = ""; // このセッションで案内・確認を済ませたコード（多重表示防止）
+  let fbConfirmTargetCode = "";
+
+  function fbFriendLink(code) { return FRIEND_LINK_BASE + "?friend=" + encodeURIComponent(code || ""); }
+
+  // 自分のコードのQRをフレンド画面に描画（ライブラリ読み込み失敗時はコード文字列の表示のみで継続）
+  function fbRenderMyQr() {
+    const box = document.getElementById("myFriendQr");
+    if (!box) return;
+    const acc = curAcc();
+    if (!acc || acc.id === "guest" || !acc.serverCode) { box.innerHTML = ""; return; }
+    try {
+      if (typeof qrcode === "undefined") { box.innerHTML = ""; return; }
+      const qr = qrcode(0, "M");
+      qr.addData(fbFriendLink(acc.serverCode));
+      qr.make();
+      box.innerHTML = `<div style="display:inline-block; background:#fff; padding:10px; border-radius:14px; line-height:0;">${qr.createImgTag(4, 8, "フレンド追加用QRコード")}</div>
+        <div style="font-size:11.5px; opacity:0.85; margin-top:6px;">📷 友だちにこのQRを読み取ってもらうと、コード入力なしで追加できます</div>`;
+      const img = box.querySelector("img");
+      if (img) { img.style.width = "176px"; img.style.height = "176px"; img.style.imageRendering = "pixelated"; }
+    } catch (e) { box.innerHTML = ""; }
+  }
+
+  // URL の ?friend= や QR 読み取りで得たコードを保留し、ログイン後に追加確認へ進める
+  function fbSetPendingFriend(code) {
+    const c = String(code || "").trim().toUpperCase();
+    if (!c) return;
+    try { localStorage.setItem(PENDING_FRIEND_KEY, c); } catch (e) {}
+    fbProcessPendingFriend();
+  }
+  function fbGetPendingFriend() {
+    try { return (localStorage.getItem(PENDING_FRIEND_KEY) || "").trim().toUpperCase(); } catch (e) { return ""; }
+  }
+  function fbClearPendingFriend() {
+    try { localStorage.removeItem(PENDING_FRIEND_KEY); } catch (e) {}
+  }
+  // 保留中のフレンドコードがあれば、状態に応じて案内／追加確認を表示する
+  function fbProcessPendingFriend() {
+    const code = fbGetPendingFriend();
+    if (!code) return;
+    const acc = curAcc();
+    if (!acc || acc.id === "guest") {
+      // ゲスト・未ログイン：案内を1回だけ出し、コードは保留したまま（ログイン後に再判定される）
+      if (fbPendingHandledCode !== code + "@guest") {
+        fbPendingHandledCode = code + "@guest";
+        showToast("👥 フレンド追加にはアカウントでのログインが必要です。ログインすると追加できます");
+      }
+      return;
+    }
+    if (!fbReady || !fbDb || !fbUser) return; // 接続できたら saveData フック等から再試行される
+    if (fbPendingHandledCode === code) return;
+    fbPendingHandledCode = code;
+    fbConfirmFriendLink(code);
+  }
+  // リンク／QR経由の追加：相手の名前を引いてから確認モーダルを出す
+  async function fbConfirmFriendLink(code) {
+    const acc = curAcc();
+    if (!acc || acc.id === "guest" || !fbReady || !fbDb || !fbUser) return;
+    if (acc.serverCode && code === acc.serverCode) { fbClearPendingFriend(); showToast("⚠️ それは自分のコードです"); return; }
+    if ((acc.serverFriends || []).some(s => s.code === code)) { fbClearPendingFriend(); showToast("⚠️ そのフレンドはもう追加されています"); return; }
+    let name = "このコードのフレンド", avatar = "🚀";
+    try {
+      const codeSnap = await fbDb.collection("codes").doc(code).get();
+      if (!codeSnap.exists) { fbClearPendingFriend(); showToast("⚠️ そのコードのフレンドが見つかりませんでした"); return; }
+      const uid = codeSnap.data() && codeSnap.data().uid;
+      if (!uid || uid === fbUser.uid) { fbClearPendingFriend(); showToast("⚠️ それは自分のコードです"); return; }
+      const userSnap = await fbDb.collection("users").doc(uid).get();
+      if (userSnap.exists) { const d = userSnap.data() || {}; name = d.name || name; avatar = d.avatar || avatar; }
+    } catch (e) {
+      showToast("⚠️ 通信エラーで確認できませんでした。フレンド画面からコードで追加してね");
+      return;
+    }
+    fbConfirmTargetCode = code;
+    const txt = document.getElementById("friendConfirmText");
+    if (txt) txt.innerHTML = `<span style="font-size:22px;">${fbEsc(avatar)}</span> <strong>${fbEsc(name)}</strong> さん（コード：${fbEsc(code)}）をフレンドに追加しますか？<br><span style="font-size:12.5px; color:var(--text-muted);">相手のXPはサーバー経由でリアルタイムにランキングへ反映されます。</span>`;
+    const modal = document.getElementById("friendConfirmModal");
+    if (modal) modal.classList.add("open");
+  }
+  function fbCloseFriendConfirm() {
+    const modal = document.getElementById("friendConfirmModal");
+    if (modal) modal.classList.remove("open");
+    fbConfirmTargetCode = "";
+    fbClearPendingFriend();
+  }
+  function fbWireFriendModals() {
+    const ok = document.getElementById("friendConfirmOkBtn");
+    if (ok) ok.addEventListener("click", () => {
+      const code = fbConfirmTargetCode;
+      fbCloseFriendConfirm();
+      if (code) fbAddServerFriend(code);
+    });
+    const cancel = document.getElementById("friendConfirmCancelBtn");
+    if (cancel) cancel.addEventListener("click", fbCloseFriendConfirm);
+    const close = document.getElementById("closeFriendConfirmModal");
+    if (close) close.addEventListener("click", fbCloseFriendConfirm);
+    const scanClose = document.getElementById("closeQrScanModal");
+    if (scanClose) scanClose.addEventListener("click", fbStopQrScan);
+  }
+  // 起動時：URL の ?friend= を取り込んで保留する（URLからは消す）。保留済みコードがあれば処理を試みる
+  function fbCaptureFriendLink() {
+    try {
+      const params = new URLSearchParams(location.search);
+      const code = params.get("friend");
+      if (code) {
+        params.delete("friend");
+        const qs = params.toString();
+        history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+        fbSetPendingFriend(code);
+      } else {
+        fbProcessPendingFriend();
+      }
+    } catch (e) {}
+  }
+
+  // ===== QRコード読み取り（カメラ＋jsQR） =====
+  let fbScanStream = null, fbScanRaf = 0, fbScanActive = false;
+  function fbExtractFriendCode(text) {
+    const t = String(text || "").trim();
+    if (!t) return "";
+    try {
+      const u = new URL(t);
+      const c = u.searchParams.get("friend");
+      return c ? c.trim().toUpperCase() : ""; // URLなのに friend パラメータがなければ対象外
+    } catch (e) {}
+    const m = t.toUpperCase().match(/[A-Z0-9]{6,12}/);
+    return m ? m[0] : "";
+  }
+  function fbStartQrScan() {
+    const acc = curAcc();
+    if (acc && acc.id === "guest") { showToast("🔒 フレンドはアカウントでログインすると使えます"); return; }
+    if (typeof jsQR === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showToast("📷 この環境ではカメラ読み取りが使えません。コードを入力して追加してください");
+      const inp = document.getElementById("serverCodeInput");
+      if (inp) inp.focus();
+      return;
+    }
+    const modal = document.getElementById("qrScanModal");
+    const video = document.getElementById("qrScanVideo");
+    const status = document.getElementById("qrScanStatus");
+    if (!modal || !video) return;
+    modal.classList.add("open");
+    if (status) status.textContent = "カメラを起動しています…";
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+      .then(stream => {
+        fbScanStream = stream; fbScanActive = true;
+        video.srcObject = stream;
+        return video.play();
+      })
+      .then(() => { if (status) status.textContent = "QRコードを映してください…"; fbScanTick(); })
+      .catch(() => {
+        fbStopQrScan();
+        showToast("📷 カメラを起動できませんでした。コードを入力して追加してください");
+        const inp = document.getElementById("serverCodeInput");
+        if (inp) inp.focus();
+      });
+  }
+  function fbScanTick() {
+    if (!fbScanActive) return;
+    const video = document.getElementById("qrScanVideo");
+    const canvas = document.getElementById("qrScanCanvas");
+    if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth) {
+      try {
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const result = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+        if (result && result.data) {
+          const code = fbExtractFriendCode(result.data);
+          if (code) { fbStopQrScan(); fbAddServerFriend(code); return; }
+        }
+      } catch (e) {}
+    }
+    fbScanRaf = requestAnimationFrame(fbScanTick);
+  }
+  function fbStopQrScan() {
+    fbScanActive = false;
+    if (fbScanRaf) cancelAnimationFrame(fbScanRaf);
+    fbScanRaf = 0;
+    if (fbScanStream) { fbScanStream.getTracks().forEach(t => { try { t.stop(); } catch (e) {} }); fbScanStream = null; }
+    const video = document.getElementById("qrScanVideo");
+    if (video) { try { video.pause(); } catch (e) {} video.srcObject = null; }
+    const modal = document.getElementById("qrScanModal");
+    if (modal) modal.classList.remove("open");
+  }
+
   // ===== フレンド機能（XPの使い道：ランキング・応援・XPレース） =====
-  // サーバーフレンド（Firebase共有・リアルタイム）と、従来のローカルフレンド（XP手入力）を統合表示する。
+  // フレンドは Firebase のサーバー共有のみ（コード／QRで追加し、相手のXPはリアルタイム反映）。
   const CHEER_PRICE = 200; // 応援1回
   const RACE_PRICE = 500;  // XPレース挑戦料
   const RACE_GOAL = 300;   // 7日間で稼ぐ目標XP
@@ -4176,12 +4397,28 @@ const EXTRA_QUESTIONS = {
     setChromeVisible(true);
     updateHUD();
     const acc = curAcc();
-    if (!Array.isArray(acc.friends)) acc.friends = [];
     if (!Array.isArray(acc.serverFriends)) acc.serverFriends = [];
+    // ゲストはフレンド機能（サーバー共有）を使えないため、案内だけを表示する
+    if (acc.id === "guest") {
+      const gMain = document.getElementById("appMain");
+      gMain.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="friendsBackBtn" class="stat-btn">← もどる</button>
+          <h2>👥 フレンド</h2>
+        </div>
+        <div class="daily-card" style="margin-bottom:16px;">
+          <div style="font-size:15px; font-weight:800; margin-bottom:6px;">🔒 フレンドはアカウントでログインすると使えます</div>
+          <div style="font-size:13px; line-height:1.7; opacity:0.9;">フレンド機能はサーバー共有のため、アカウントが必要です。アカウントを作る（またはサインインする）と、フレンドコードやQRコードで友だちを追加して、XPランキングやXPレースで競えるようになります。</div>
+        </div>
+      </div>`;
+      document.getElementById("friendsBackBtn").addEventListener("click", () => renderMain());
+      renderMath(gMain);
+      return;
+    }
     const serverFriends = acc.serverFriends;
     const myWeekly = weeklyXp(acc);
     const board = [{ id: "__me__", name: acc.name + "（あなた）", xp: acc.xp, weeklyXp: myWeekly, me: true }]
-      .concat(acc.friends.map(f => ({ id: f.id, name: f.name, xp: f.xp || 0, weeklyXp: f.weeklyXp || 0, cheers: f.cheers || 0 })))
       .concat(serverFriends.map(sf => {
         const live = fbFriendData[sf.uid];
         const nm = live ? live.name : (sf.name || "フレンド");
@@ -4213,10 +4450,10 @@ const EXTRA_QUESTIONS = {
         </div>
         <div class="daily-card" style="margin-bottom:16px;">
           <div style="font-size:13px; opacity:0.9;">あなたのフレンドコード（友だちに教えてね）</div>
-          <div class="friend-code">${(fbReady && acc.serverCode) ? fbEsc(acc.serverCode) : acc.friendCode}</div>
+          <div class="friend-code">${acc.serverCode ? fbEsc(acc.serverCode) : "（サーバー接続後に表示されます）"}</div>
+          <div id="myFriendQr" style="margin-top:10px;"></div>
           <div style="font-size:12.5px; opacity:0.9; margin-top:8px;">累計 ${acc.xp} XP ／ 今週 ${myWeekly} XP ／ 使えるXP ⚡${acc.xpBalance} XP</div>
           <div style="font-size:11.5px; opacity:0.9; margin-top:4px;">${fbStatusText()}</div>
-          <div style="font-size:11.5px; opacity:0.85; margin-top:4px;">※ローカルフレンドのXPは、友だち本人に聞いた値を入力する仕組みです。</div>
         </div>
 
         ${race ? `
@@ -4248,30 +4485,17 @@ const EXTRA_QUESTIONS = {
             ` : ""}
           </div>`).join("")}
 
-        <div style="font-weight:800; font-size:15px; margin:18px 0 8px;">🌐 サーバーフレンドを追加する</div>
+        <div style="font-weight:800; font-size:15px; margin:18px 0 8px;">➕ フレンドを追加する</div>
         <div class="shop-item" style="display:block;">
           <div style="display:grid; gap:8px;">
             <input id="serverCodeInput" placeholder="相手のフレンドコード（例：AB3K9XYZ）" style="width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit; text-transform:uppercase;" />
-            <button id="serverAddBtn" class="btn-3d btn-green" style="width:100%;" ${acc.id === "guest" || !fbReady ? "disabled" : ""}>コードで追加（サーバー）</button>
-            <div style="font-size:11.5px; color:var(--text-muted); line-height:1.6;">相手のアプリのフレンド画面に表示されているコードを入力すると、その場で追加されます。相手のXPはサーバー経由でリアルタイムに反映されます。</div>
+            <button id="serverAddBtn" class="btn-3d btn-green" style="width:100%;" ${!fbReady ? "disabled" : ""}>コードで追加</button>
+            <button id="qrScanBtn" class="btn-3d btn-blue" style="width:100%;">📷 QRを読み取る</button>
+            <div style="font-size:11.5px; color:var(--text-muted); line-height:1.6;">相手のフレンド画面に表示されているコードを入力するか、QRコードを読み取ると、その場で追加されます。相手のXPはサーバー経由でリアルタイムに反映されます。</div>
           </div>
         </div>
 
-        <div style="font-weight:800; font-size:15px; margin:18px 0 8px;">➕ フレンドを追加する（ローカル）</div>
-        <div class="shop-item" style="display:block;">
-          <div style="display:grid; gap:8px;">
-            <input id="friendNameInput" placeholder="友だちの名前（例：たろう）" style="width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
-            <input id="friendCodeInput" placeholder="フレンドコード（例：PQ-AB12）" style="width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
-            <div class="friend-xp-row">
-              <input id="friendXpInput" type="number" min="0" placeholder="相手の累計XP" style="flex:1; min-width:0; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
-              <input id="friendWeeklyInput" type="number" min="0" placeholder="相手の今週XP" style="flex:1; min-width:0; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit;" />
-            </div>
-            <button id="friendAddBtn" class="btn-3d btn-blue" style="width:100%;">フレンドを追加</button>
-            <div style="font-size:11.5px; color:var(--text-muted); line-height:1.6;">相手のXPは、相手のPhysiQの「データ」画面に表示される累計XP・直近7日の合計を聞いて入力してください。あとから編集はできません（削除して追加し直してください）。</div>
-          </div>
-        </div>
-
-        ${(acc.friends.length || serverFriends.length) ? `
+        ${serverFriends.length ? `
         <div style="font-weight:800; font-size:15px; margin:18px 0 8px;">🗑️ フレンドの削除</div>
         ${serverFriends.map(sf => {
           const live = fbFriendData[sf.uid];
@@ -4282,19 +4506,15 @@ const EXTRA_QUESTIONS = {
             <button class="btn-3d btn-ghost" data-remove-server="${sf.uid}" style="min-height:36px; padding:5px 12px; font-size:12.5px;">削除</button>
           </div>`;
         }).join("")}
-        ${acc.friends.map(f => `
-          <div class="leader-row">
-            <div style="flex:1; min-width:0; font-weight:800; font-size:14px;">${f.name} <span style="font-weight:700; color:var(--text-muted); font-size:12px;">${f.code || ""}</span></div>
-            <button class="btn-3d btn-ghost" data-remove-friend="${f.id}" style="min-height:36px; padding:5px 12px; font-size:12.5px;">削除</button>
-          </div>`).join("")}` : ""}
+` : ""}
         <div style="font-size:12px; color:var(--text-muted); margin-top:14px;">送った応援：${acc.cheersSent || 0} 回</div>
       </div>
     `;
     document.getElementById("friendsBackBtn").addEventListener("click", () => renderMain());
-    // ローカルフレンド（id）とサーバーフレンド（"fb_" + uid）の両方を引ける共通ルックアップ
+    // サーバーフレンド（"fb_" + uid）を引くルックアップ
     const findAnyFriend = (id) => {
       if (typeof id === "string" && id.indexOf("fb_") === 0) return (acc.serverFriends || []).find(x => "fb_" + x.uid === id) || null;
-      return acc.friends.find(x => x.id === id) || null;
+      return null;
     };
     const claimBtn = document.getElementById("raceClaimBtn");
     if (claimBtn) claimBtn.addEventListener("click", () => {
@@ -4321,11 +4541,6 @@ const EXTRA_QUESTIONS = {
       acc.xpRace = { friendId: f.id, friendName: f.name, startXp: acc.xp, startDate: todayStr(), endDate: endStr, goal: RACE_GOAL, reward: RACE_REWARD };
       saveData(); showToast(`🏁 ${f.name} とのXPレース開始！7日間で${RACE_GOAL}XP稼ごう`); renderFriends();
     }));
-    main.querySelectorAll("[data-remove-friend]").forEach(b => b.addEventListener("click", () => {
-      acc.friends = acc.friends.filter(x => x.id !== b.getAttribute("data-remove-friend"));
-      if (acc.xpRace && acc.xpRace.friendId === b.getAttribute("data-remove-friend")) acc.xpRace = null;
-      saveData(); renderFriends();
-    }));
     main.querySelectorAll("[data-remove-server]").forEach(b => b.addEventListener("click", () => {
       const uid = b.getAttribute("data-remove-server");
       acc.serverFriends = (acc.serverFriends || []).filter(x => x.uid !== uid);
@@ -4341,16 +4556,10 @@ const EXTRA_QUESTIONS = {
       serverAddBtn.disabled = true;
       fbAddServerFriend(inp ? inp.value : "").then(() => { serverAddBtn.disabled = false; });
     });
-    document.getElementById("friendAddBtn").addEventListener("click", () => {
-      const name = (document.getElementById("friendNameInput").value || "").trim();
-      const code = (document.getElementById("friendCodeInput").value || "").trim().toUpperCase();
-      const xp = Math.max(0, Number(document.getElementById("friendXpInput").value) || 0);
-      const weekly = Math.max(0, Number(document.getElementById("friendWeeklyInput").value) || 0);
-      if (!name) { showToast("⚠️ 友だちの名前を入力してください"); return; }
-      if (acc.friends.some(f => f.name === name)) { showToast("⚠️ その名前のフレンドはもういます"); return; }
-      acc.friends.push({ id: "fr_" + Date.now(), name, code, xp, weeklyXp: weekly, cheers: 0 });
-      saveData(); showToast(`👥 ${name} をフレンドに追加しました！`); renderFriends();
-    });
+    // 自分のフレンドコードのQRコードを表示（ライブラリ読み込み失敗時はコード文字列のみ）
+    fbRenderMyQr();
+    const qrScanBtn = document.getElementById("qrScanBtn");
+    if (qrScanBtn) qrScanBtn.addEventListener("click", () => fbStartQrScan());
     // リアルタイム更新で再描画された場合、入力中だった追加フォームの下書きを復元
     if (fbFormDraft) {
       Object.keys(fbFormDraft).forEach(id => { const el = document.getElementById(id); if (el) el.value = fbFormDraft[id]; });
@@ -5131,9 +5340,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.10";
+  const APP_VERSION = "2026-11-22.11";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2026-11-22.11", title: "フレンドはサーバー共有のみになりました（QR追加も）", body: "フレンドはサーバー共有のみになりました。これまでの手入力（ローカル）フレンドは表示されなくなります。フレンド画面に自分のQRコードが表示されるようになり、相手に読み取ってもらうだけで追加できるようになりました。フレンド画面の「QRを読み取る」から相手のQRを読み取ることもできます。共有リンク（QRのURL）を開いたときも、ログインしていれば確認してそのまま追加できます。ゲストはフレンド機能を使えません。" },
     { date: "2026-11-22", version: "2026-11-22.10", title: "設定ボタンを追加し、ヘッダーの導線を整理しました", body: "ヘッダーに⚙️設定ボタンを追加し、プロフィールを経由せず直接設定を開けるようにしました。名前・アバターの変更、称号、実績バッジなどのプロフィールは設定画面の中にまとめています。ヘッダーのストリーク表示をタップするとデータ画面へ、XP表示をタップするとショップへ移動できるようになりました。ヘッダーのアカウントボタンは削除しました（アカウントの切り替え・作成・サインインは、タイトル画面のボタンと設定画面から開けます）。" },
     { date: "2026-11-22", version: "2026-11-22.9", title: "フレンドがサーバー共有になりました（リアルタイムでレース更新）", body: "フレンド機能がサーバー共有になりました。フレンドコードで追加した相手のXPはリアルタイムでランキングとXPレースに反映されます。コードはフレンド画面に表示される8文字のコードを相手に教えてください。これまでの手入力のフレンドは「ローカルフレンド」としてそのまま残ります。ゲストはサーバー共有の対象外です。" },
     { date: "2026-11-22", version: "2026-11-22.8", title: "アップデートのお知らせ表示を追加しました", body: "アップデート後の初回起動時に、タイトル画面で「アップデートしました」と小さくお知らせするようにしました。変更内容も1行で表示されます。タップするか、しばらく待つと消えます。" },
@@ -6874,6 +7084,8 @@ const EXTRA_QUESTIONS = {
   renderTitleScreen();
   // Firebase 連携の初期化（失敗してもアプリ本体は通常どおり動く）
   try { fbInit(); } catch (e) {}
+  // フレンド追加モーダルの配線と、URL の ?friend= 取り込み
+  try { fbWireFriendModals(); fbCaptureFriendLink(); } catch (e) {}
   if (appData.seenVersion !== APP_VERSION) {
     // 保存データがあるのにバージョンが違うときだけ「アップデート後の初回起動」としてお知らせを出す。
     // 初回インストールでは出さず、どちらも seenVersion を現行に更新して次回は出さない。
