@@ -74,7 +74,7 @@
       background: var(--bg-bar);
       -webkit-backdrop-filter: blur(12px);
       backdrop-filter: blur(12px);
-      border-bottom: 2px solid var(--border);
+      border-bottom: 1px solid var(--border);
       padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
     }
     .hud-inner {
@@ -235,6 +235,14 @@
     .choice-btn.correct { border-color: var(--green); background: var(--green-soft); box-shadow: 0 3px 0 #86efac; }
     .choice-btn.wrong { border-color: var(--red); background: var(--red-soft); box-shadow: 0 3px 0 #fda4af; }
 
+    .result-note { border-radius: var(--radius-s); padding: 10px 14px; font-weight: 800; font-size: 14px; margin-bottom: 14px; border: 1.5px solid transparent; }
+    .result-note-warn { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+    .result-note-boost { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+    .result-note-reward { background: #fdf4ff; border-color: #f0abfc; color: #86198f; }
+    html.dark .result-note-warn { background: #431407; border-color: #9a3412; color: #fdba74; }
+    html.dark .result-note-boost { background: #422006; border-color: #a16207; color: #fde68a; }
+    html.dark .result-note-reward { background: #4a044e; border-color: #a21caf; color: #f0abfc; }
+
     .feedback-banner {
       margin-top: 18px; padding: 14px 16px; border-radius: var(--radius-m);
       display: flex; flex-direction: column; gap: 8px;
@@ -250,7 +258,7 @@
     }
     .modal-backdrop.open { display: flex; }
     .modal-card {
-      background: var(--bg-card); border-radius: var(--radius-l); max-width: 460px; width: 100%;
+      background: var(--bg-card); border-radius: 24px; max-width: 460px; width: 100%;
       padding: 24px 22px; box-shadow: 0 24px 50px rgba(0,0,0,0.28);
       max-height: 90vh; max-height: 90dvh; overflow-y: auto;
     }
@@ -698,7 +706,7 @@
     /* Profile settings (toggle switches) */
     .toggle-row {
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
-      padding: 10px 0; border-bottom: 1px dashed var(--border);
+      padding: 12px 0; min-height: 56px; border-bottom: 1px solid var(--border);
     }
     .toggle-row:last-child { border-bottom: none; }
     .toggle-switch {
@@ -733,13 +741,26 @@
     .result-stat .rs-label { font-size: 11px; font-weight: 800; color: var(--text-muted); margin-top: 2px; }
 
     /* Settings sections */
-    .settings-section { background: var(--bg-subtle); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 14px; margin-bottom: 14px; }
+    .settings-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 18px 16px; margin-bottom: 18px; box-shadow: var(--shadow-pop); }
     .settings-section:last-child { margin-bottom: 0; }
+    .settings-head { font-weight: 800; font-size: 17px; letter-spacing: 0.01em; margin: 0 0 10px; }
+    .settings-head-sm { font-weight: 800; font-size: 15px; margin: 0 0 8px; }
+    .ios-row {
+      display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px;
+      padding: 12px 2px; background: none; border: none; border-top: 1px solid var(--border);
+      font-family: var(--font-sans); font-size: 15px; font-weight: 700; color: var(--text-main);
+      cursor: pointer; text-align: left; border-radius: 0;
+    }
+    .ios-row:first-of-type { border-top: none; }
+    .ios-row .ios-row-label { flex: 1; min-width: 0; }
+    .ios-row .ios-row-sub { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+    .ios-row.nav::after { content: "›"; font-size: 22px; font-weight: 600; color: var(--text-light); line-height: 1; flex: none; }
+    .ios-row:active { background: var(--bg-subtle); }
 
     /* Profile hero */
-    .profile-hero { display: flex; align-items: center; gap: 14px; background: var(--bg-subtle); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 14px; margin-bottom: 12px; }
+    .profile-hero { display: flex; align-items: center; gap: 14px; background: var(--bg-subtle); border: none; border-radius: var(--radius-l); padding: 16px; margin-bottom: 12px; }
     .profile-hero .ph-avatar { font-size: 44px; line-height: 1; }
-    .profile-hero .ph-name { font-size: 18px; font-weight: 900; }
+    .profile-hero .ph-name { font-size: 19px; font-weight: 900; letter-spacing: 0.01em; }
     .profile-hero .ph-title { font-size: 13px; color: var(--text-muted); font-weight: 700; margin-top: 2px; }
     .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
     .profile-stat { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-s); padding: 8px 4px; text-align: center; }
@@ -967,6 +988,7 @@
       <button id="choiceCreateBtn" class="btn-3d btn-blue" style="width:100%; padding:16px 12px; font-size:16px; margin-bottom:10px;">🆕 新規アカウント作成</button>
       <button id="choiceGuestBtn" class="btn-3d btn-ghost" style="width:100%; padding:16px 12px; font-size:16px; margin-bottom:14px;">👤 ゲストではじめる（ゲストログイン）</button>
       <button id="choiceSigninBtn" class="glossary-link" style="display:block; width:100%; padding:6px 0; font-size:13px; text-align:center;">🔑 すでにアカウントがある人はこちら（サインイン）</button>
+      <button id="choiceHomeBtn" class="btn-3d btn-ghost" style="width:100%; padding:14px 12px; font-size:15px; margin-top:14px;">🏠 ホームに戻る</button>
     </div>
 
     <div id="accountProfileView">
@@ -1093,7 +1115,7 @@
 <div id="settingsModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-      <h2 style="margin:0; font-size:18px;">⚙️ 設定</h2>
+      <h2 style="margin:0; font-size:20px; font-weight:800;">⚙️ 設定</h2>
       <button id="closeSettingsModal" class="stat-btn">✕</button>
     </div>
     <div id="settingsBody"></div>
@@ -5032,7 +5054,7 @@ const EXTRA_QUESTIONS = {
           <div class="leader-row ${r.me ? "me" : ""}">
             <div class="leader-rank">${i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1) + "位"}</div>
             <div style="flex:1; min-width:0;">
-              <div style="font-weight:800; font-size:14.5px;">${r.server ? fbEsc(r.avatar || "🚀") + " " + fbEsc(r.name) : r.name}</div>
+              <div style="font-weight:800; font-size:14.5px;">${r.server ? fbEsc(r.avatar || "🚀") + " " + fbEsc(r.name) : fbEsc(r.name)}</div>
               <div style="font-size:12px; color:var(--text-muted);">${r.sub ? r.sub : `累計 ${r.xp} XP ／ 今週 ${r.weeklyXp} XP`}${r.cheers ? ` ／ 👏応援 ${r.cheers} 回` : ""}</div>
             </div>
             ${!r.me ? `
@@ -5404,10 +5426,6 @@ const EXTRA_QUESTIONS = {
     document.getElementById("startDailyBtn").addEventListener("click", startDailyQuiz);
     const changeSubjectHomeBtn = document.getElementById("changeSubjectHomeBtn");
     if (changeSubjectHomeBtn) changeSubjectHomeBtn.addEventListener("click", () => renderSubjectSelect());
-    const friendsBtn = document.getElementById("friendsBtn");
-    if (friendsBtn) friendsBtn.addEventListener("click", () => renderFriends());
-    const homeShopBtn = document.getElementById("homeShopBtn");
-    if (homeShopBtn) homeShopBtn.addEventListener("click", () => renderShop());
     const reviewBtn = document.getElementById("reviewBtn");
     if (reviewBtn && acc.wrongList.length) reviewBtn.addEventListener("click", startReviewQuiz);
     main.querySelectorAll(".stage-node").forEach(btn => {
@@ -5909,11 +5927,11 @@ const EXTRA_QUESTIONS = {
           <div class="result-stat"><div class="rs-icon">⚡</div><div class="rs-value">+${earnedXp} XP</div><div class="rs-label">獲得XP</div></div>
         </div>
         <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">${rank.icon} ${rank.name}ペース ― ${rank.text}</div>
-        <div style="background:#fff7ed; border:1.5px solid #fed7aa; color:#c2410c; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">
+        <div class="result-note result-note-warn">
           ${acc.id === "guest" ? "🔒 ストリークはアカウント作成で使えるようになります" : `🔥 ストリーク：${acc.streak} 日連続達成！（全教科共通）`}
         </div>
-        ${boostUsed ? `<div style="background:#fef9c3; border:1.5px solid #fde047; color:#854d0e; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">⚡ XPブースト発動！獲得XPが ${baseXp} → ${earnedXp} XP（×1.5）になりました</div>` : ""}
-        ${dailyRewardMsgs.length ? `<div style="background:#fdf4ff; border:1.5px solid #f0abfc; color:#86198f; border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px; text-align:left;">🎁 デイリー報酬ゲット！<br>${dailyRewardMsgs.map(m => "・" + m).join("<br>")}</div>` : ""}
+        ${boostUsed ? `<div class="result-note result-note-boost">⚡ XPブースト発動！獲得XPが ${baseXp} → ${earnedXp} XP（×1.5）になりました</div>` : ""}
+        ${dailyRewardMsgs.length ? `<div class="result-note result-note-reward" style="text-align:left;">🎁 デイリー報酬ゲット！<br>${dailyRewardMsgs.map(m => "・" + m).join("<br>")}</div>` : ""}
         ${unlockedMsg ? `<div style="background:var(--green-soft); color:var(--green-dark); border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:18px;">${unlockedMsg}</div>` : ""}
         ${session.mode === "review" ? `<div style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">復習モードのXPは通常の半分です。残りの復習はあと ${acc.wrongList.length} 問です。</div>` : ""}
         <button id="backMapBtn" class="btn-3d btn-green" style="width:100%;">🗺️ マップへ戻る</button>
@@ -5946,7 +5964,7 @@ const EXTRA_QUESTIONS = {
       <div class="profile-hero">
         <div class="ph-avatar">${acc.avatar}</div>
         <div>
-          <div class="ph-name">${acc.name}</div>
+          <div class="ph-name">${fbEsc(acc.name)}</div>
           <div class="ph-title">${ti.cur.icon} ${ti.cur.name}</div>
           <div class="ph-title">${ti.next ? `つぎの称号「${ti.next.icon} ${ti.next.name}」まで あと ${ti.next.xp - acc.xp} XP` : "最高ランク到達！🎉"}</div>
         </div>
@@ -5960,7 +5978,7 @@ const EXTRA_QUESTIONS = {
         <button id="profileShopBtn" class="glossary-link" style="padding:0; margin-left:6px;">XPショップへ →</button>
       </div>
       ${acc.rareTitles.length ? `<div style="font-size:12.5px; margin-bottom:10px;">🎖️ レア称号：<strong>${acc.rareTitles.join(" ／ ")}</strong></div>` : ""}
-      <div style="font-weight:800; font-size:13px; margin-bottom:6px;">✏️ 名前とアバター</div>
+      <div class="settings-head-sm">✏️ 名前とアバター</div>
       <div style="display:flex; gap:8px; margin-bottom:14px;">
         <input id="profileNameInput" class="text-input" type="text" maxlength="16" value="${escAttr(acc.name)}" style="flex:1;" />
         <button id="profileNameSaveBtn" class="btn-3d btn-blue" style="min-height:44px; padding:8px 16px; flex:none;">保存</button>
@@ -5969,7 +5987,7 @@ const EXTRA_QUESTIONS = {
         ${availAvatars.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-change-av="${a}">${a}</button>`).join("")}
       </div>
       <div id="profileLoginState" style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;"></div>
-      <div style="font-weight:800; font-size:13px; margin-bottom:8px;">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
+      <div class="settings-head-sm">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
       <div class="badge-grid">
         ${badgeGridHtml(acc)}
       </div>
@@ -6011,7 +6029,7 @@ const EXTRA_QUESTIONS = {
     wrap.innerHTML = `<div style="font-weight:800; font-size:13.5px; margin-bottom:8px;">登録済みアカウント（タップで切替）</div>` +
       list.map(a => `
         <button class="stat-btn" data-acc-id="${a.id}" style="width:100%; justify-content:space-between; padding:10px 14px; margin-bottom:6px; border-radius:12px; ${a.id === appData.activeId ? "border-color:var(--blue); background:var(--blue-soft);" : ""}">
-          <span>${a.avatar} ${a.name}</span>
+          <span>${a.avatar} ${fbEsc(a.name)}</span>
           <span style="font-size:12px; color:var(--text-muted);">🔥${a.streak}日 / ⚡${a.xp}XP</span>
         </button>
       `).join("");
@@ -6034,10 +6052,11 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.17";
+  const APP_VERSION = "2.1.0";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
-    { date: "2026-11-22", version: "2026-11-22.17", title: "実績バッジがたくさん増えました（隠し実績も）", body: "実績バッジを大幅に追加しました。累計の回答数・正解数、ステージクリア数などのマイルストーンに加えて、連続正解コンボや復習モード、フレンドやショップにまつわる実績もあります。思わず笑ってしまうようなネタ実績や、一覧で「？？？」と表示される隠し実績もいくつか隠れているので、遊びながら探してみてください。" },
+    { date: "2026-11-22", version: "2.1.0", title: "設定画面をiOS風のグループリストに刷新＆細かい不具合を修正", body: "設定画面を、角丸のカードに項目をまとめたiOS風のグループリストに整えました。見出しを大きくし、区切り線と余白のリズムをそろえたので、目的の項目が探しやすくなっています（配色は今までどおりです）。あわせて、結果画面のバナーがダークモードでも読みやすくなるよう色を調整し、名前の表示まわりの細かい不具合を直しました。バージョンの表記は、これまでの日付形式から「2.1.0」のような形式（セマンティックバージョン）に変更しました。はじめ方の選択画面に「ホームに戻る」ボタンを追加しました。" },
+    { date: "2026-11-22", version: "2.0.0", title: "実績バッジがたくさん増えました（隠し実績も）", body: "実績バッジを大幅に追加しました。累計の回答数・正解数、ステージクリア数などのマイルストーンに加えて、連続正解コンボや復習モード、フレンドやショップにまつわる実績もあります。思わず笑ってしまうようなネタ実績や、一覧で「？？？」と表示される隠し実績もいくつか隠れているので、遊びながら探してみてください。" },
     { date: "2026-11-22", version: "2026-11-22.16", title: "新しい問題形式「複数選択」と「記述式」が登場", body: "チャレンジステージに、新しい形式の問題が加わりました。「☑️ 複数選択」は当てはまるものをすべて選んで「回答する」を押す形式で、全部ぴったり合っていないと不正解です。「✏️ 記述式」は答えを自分で入力する形式で、全角・半角や数値の書き方（3.0 と 3 など）の違いはある程度自動で吸収されます。物理・数学・化学の各チャレンジステージに、それぞれ15問ずつ追加しました。使い方ガイドにも「問題の形式」の説明を追加しました。" },
     { date: "2026-11-22", version: "2026-11-22.15", title: "設定やダークモード切替などにアニメーションを追加", body: "設定画面などのモーダルが開くとき、背景がふわっとフェードするようになりました。ダークモードの切替では背景色・文字色がパッと変わらず、なめらかに移行します。ダークモードや効果音のトグルは、ノブが滑って移動するアニメーションになりました。使い方ガイドの開閉や、チップ・入力欄などこれまで動きのなかった場所にも、操作の邪魔にならない控えめなアニメーションをそろえました。端末の「視差効果を減らす（アニメーションを減らす）」設定がONのときは、アニメーションを抑えます。" },
     { date: "2026-11-22", version: "2026-11-22.14", title: "操作を分かりやすくUIを改善（配色はそのまま）＋使い方ガイド追加", body: "ボタンの大きさ・余白・並びを整えて、次に押すものが一目で分かるUIに改善しました（配色は今までどおりです）。ステージマップでは「▶ いまここ」のステージが目立つようになりました。クイズは選んだその場で正解・不正解が分かり（即時判定）、解説から教科書へ行っても「問題に戻る」ボタンで中断した問題にそのまま戻れます。タイトル画面と設定画面に「📖 使い方」ガイドを追加しました。" },
@@ -6146,6 +6165,7 @@ const EXTRA_QUESTIONS = {
     openSigninModal();
   });
   document.getElementById("choiceGuestBtn").addEventListener("click", () => startAsGuest());
+  document.getElementById("choiceHomeBtn").addEventListener("click", () => document.getElementById("accountModal").classList.remove("open"));
   document.getElementById("createBackBtn").addEventListener("click", () => {
     document.getElementById("createAccountModal").classList.remove("open");
     openAccountModal(accountFlowMode);
@@ -6216,7 +6236,7 @@ const EXTRA_QUESTIONS = {
     updateHUD();
     session = null;
     if (appStarted) renderMain(); else renderTitleScreen();
-    showToast(`👋 おかえりなさい、${acc.name}さん！`);
+    showToast(`👋 おかえりなさい、${fbEsc(acc.name)}さん！`);
   });
 
   // ===== 設定（プロフィールから分離） =====
@@ -6239,11 +6259,11 @@ const EXTRA_QUESTIONS = {
     const availAvatarsS = BASE_AVATARS.concat(acc.unlockedAvatars.filter(a => !BASE_AVATARS.includes(a)));
     body.innerHTML = `
       <div class="settings-section">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">👤 プロフィール</div>
+      <div class="settings-head">👤 プロフィール</div>
       <div class="profile-hero">
         <div class="ph-avatar">${acc.avatar}</div>
         <div>
-          <div class="ph-name">${acc.name}</div>
+          <div class="ph-name">${fbEsc(acc.name)}</div>
           <div class="ph-title">${pti.cur.icon} ${pti.cur.name}</div>
           <div class="ph-title">${pti.next ? `つぎの称号「${pti.next.icon} ${pti.next.name}」まで あと ${pti.next.xp - acc.xp} XP` : "最高ランク到達！🎉"}</div>
         </div>
@@ -6255,7 +6275,7 @@ const EXTRA_QUESTIONS = {
       </div>
       <div style="font-size:12.5px; margin-bottom:10px;">🛒 使えるXP：<strong>⚡ ${acc.xpBalance} XP</strong>　｜　💡 ヒント ${acc.hintTickets} 枚　｜　🧊 フリーズ ${acc.streakFreezes} 個　｜　⚡ ブースト ${acc.xpBoost} 個</div>
       ${acc.rareTitles.length ? `<div style="font-size:12.5px; margin-bottom:10px;">🎖️ レア称号：<strong>${acc.rareTitles.join(" ／ ")}</strong></div>` : ""}
-      <div style="font-weight:800; font-size:13px; margin-bottom:6px;">✏️ 名前とアバター</div>
+      <div class="settings-head-sm">✏️ 名前とアバター</div>
       <div style="display:flex; gap:8px; margin-bottom:14px;">
         <input id="settingsNameInput" class="text-input" type="text" maxlength="16" value="${escAttrS(acc.name)}" style="flex:1;" />
         <button id="settingsNameSaveBtn" class="btn-3d btn-blue" style="min-height:44px; padding:8px 16px; flex:none;">保存</button>
@@ -6263,16 +6283,16 @@ const EXTRA_QUESTIONS = {
       <div class="avatar-grid" style="margin:0 0 14px;">
         ${availAvatarsS.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-set-change-av="${a}">${a}</button>`).join("")}
       </div>
-      <div style="font-weight:800; font-size:13px; margin-bottom:8px;">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
+      <div class="settings-head-sm">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
       <div class="badge-grid" style="margin-bottom:14px;">
         ${badgeGridHtml(acc)}
       </div>
-      <button id="settingsOpenAccountBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:16px;">👤 アカウントの切り替え・作成・サインイン</button>
-      <button id="settingsGuideBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:16px;">📖 使い方ガイド</button>
+      <button id="settingsOpenAccountBtn" class="ios-row nav"><span class="ios-row-label">👤 アカウントの切り替え・作成・サインイン</span></button>
+      <button id="settingsGuideBtn" class="ios-row nav"><span class="ios-row-label">📖 使い方ガイド</span></button>
       </div>
 
       <div class="settings-section">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🖥️ 表示</div>
+      <div class="settings-head">🖥️ 表示</div>
       <div style="margin-bottom:16px;">
         <div class="toggle-row">
           <div><div style="font-weight:800; font-size:13.5px;">🌙 ダークモード</div><div style="font-size:11.5px; color:var(--text-muted);">画面全体を暗い配色に切り替えます（このアカウントに保存）</div></div>
@@ -6286,7 +6306,7 @@ const EXTRA_QUESTIONS = {
       </div>
 
       <div class="settings-section">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🎨 テーマカラー</div>
+      <div class="settings-head">🎨 テーマカラー</div>
       <div class="theme-row" style="margin-bottom:16px;">
         ${THEMES.map(t => {
           const owned = t.id === "blue" || acc.themesOwned.includes(t.id);
@@ -6301,7 +6321,7 @@ const EXTRA_QUESTIONS = {
       </div>
 
       <div class="settings-section">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">📱 アプリアイコン</div>
+      <div class="settings-head">📱 アプリアイコン</div>
       <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6;">ホーム画面のアイコンを選びます。選んだあと、Safariの「ホーム画面に追加」をし直すと反映されます（すでに追加済みのアイコンは変わりません）。</div>
       <div class="icon-pick-grid">
         ${APP_ICONS.map(ic => `<button class="icon-pick ${!isCustomIcon && (appData.appIcon || "default") === ic.id ? "selected" : ""}" data-app-icon="${ic.id}" title="${ic.name}"><img src="${ic.file180}" alt="${ic.name}" /></button>`).join("")}
@@ -6315,33 +6335,33 @@ const EXTRA_QUESTIONS = {
       </div>
 
       <div class="settings-section">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🔑 アカウントと同期</div>
+      <div class="settings-head">🔑 アカウントと同期</div>
       <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
-        現在のアカウント：<strong>${acc.avatar} ${acc.name}</strong><br>
-        サインイン用ID：<strong>${acc.loginId ? acc.loginId : "未設定"}</strong><br>
+        現在のアカウント：<strong>${acc.avatar} ${fbEsc(acc.name)}</strong><br>
+        サインイン用ID：<strong>${acc.loginId ? fbEsc(acc.loginId) : "未設定"}</strong><br>
         <span style="color:var(--text-muted);">進捗はこの端末に保存されます。他の端末で使うには、下のバックアップコードで移行してください。</span>
       </div>
-      <div class="auth-field"><label>サインイン用ID（半角英数字・_・-、3〜20文字）</label><input id="setLoginId" class="text-input" type="text" maxlength="20" value="${acc.loginId || ""}" placeholder="例：physiq_123" /></div>
+      <div class="auth-field"><label>サインイン用ID（半角英数字・_・-、3〜20文字）</label><input id="setLoginId" class="text-input" type="text" maxlength="20" value="${escAttrS(acc.loginId || "")}" placeholder="例：physiq_123" /></div>
       <div class="auth-field"><label>パスワード（6文字以上・変更するときだけ入力）</label><input id="setPassword" class="text-input" type="password" maxlength="64" placeholder="新しいパスワード" autocomplete="new-password" /></div>
       <div id="setCredMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin-bottom:4px;"></div>
       <button id="setCredBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">IDとパスワードを設定・変更する</button>
       </div>
 
       <div class="settings-section">
-      <div style="font-weight:800; font-size:13px; margin-bottom:6px;">📤 データ移行（バックアップコード）</div>
+      <div class="settings-head-sm">📤 データ移行（バックアップコード）</div>
       <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">このコードを他の端末の「📥 取り込み」に貼ると、アカウントごと進捗が移ります。移行先でも同じユーザーIDとパスワードでサインインできます。</div>
       <textarea id="exportCode" class="text-input" rows="3" readonly style="font-size:11px; word-break:break-all;">${exportCode}</textarea>
       <div style="display:flex; gap:8px; margin:8px 0 12px;">
         <button id="copyExportBtn" class="btn-3d btn-ghost" style="flex:1;">📋 コードをコピー</button>
       </div>
-      <div style="font-weight:800; font-size:13px; margin-bottom:6px;">📥 バックアップコード取り込み</div>
+      <div class="settings-head-sm">📥 バックアップコード取り込み</div>
       <textarea id="importCode" class="text-input" rows="3" placeholder="他の端末でコピーしたバックアップコードを貼り付け" style="font-size:11px; word-break:break-all;"></textarea>
       <div id="importMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
       <button id="importBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">取り込んでアカウントを追加する</button>
       </div>
 
       <div class="settings-section">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🔄 アップデート</div>
+      <div class="settings-head">🔄 アップデート</div>
       <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
         現在のバージョン：<strong>${APP_VERSION}</strong><br>
         <span style="color:var(--text-muted);">アプリが古いままのときは、下のボタンで最新の状態に更新できます。進捗やストリークは消えません。</span>
@@ -6350,7 +6370,7 @@ const EXTRA_QUESTIONS = {
       </div>
 
       <div class="settings-section">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">📋 アップデート履歴</div>
+      <div class="settings-head">📋 アップデート履歴</div>
       <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:8px;">これまでの更新内容です。新しいものが上に表示されます。</div>
       ${UPDATE_HISTORY.map(h => `
         <div class="update-item">
@@ -6361,14 +6381,14 @@ const EXTRA_QUESTIONS = {
       </div>
 
       <div class="settings-section">
-      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🚪 アカウント操作</div>
+      <div class="settings-head">🚪 アカウント操作</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button id="signOutBtn" class="btn-3d btn-ghost" style="flex:1;">ゲストに切り替える</button>
         ${acc.id !== "guest" ? `<button id="deleteAccBtn" class="btn-3d btn-ghost" style="flex:1; color:var(--red); border-color:#fda4af;">このアカウントを削除</button>` : ""}
       </div>
       ${acc.id !== "guest" ? `
       <div id="deleteConfirmRow" style="display:none; margin-top:10px; background:var(--red-soft); border-radius:12px; padding:10px 12px;">
-        <div style="font-size:13px; font-weight:800; color:var(--red); margin-bottom:8px;">アカウント「${acc.name}」を削除しますか？進捗もすべて消えます。</div>
+        <div style="font-size:13px; font-weight:800; color:var(--red); margin-bottom:8px;">アカウント「${fbEsc(acc.name)}」を削除しますか？進捗もすべて消えます。</div>
         <div style="display:flex; gap:8px;">
           <button id="deleteAccYes" class="btn-3d" style="flex:1; background:var(--red); color:#fff; border-color:#be123c;">削除する</button>
           <button id="deleteAccNo" class="btn-3d btn-ghost" style="flex:1;">やめる</button>
@@ -6543,7 +6563,7 @@ const EXTRA_QUESTIONS = {
         <img id="titleLogoImg" class="title-logo-img" src="./icon-512.png?v=20261122" alt="PhysiQ" />
         <div class="title-logo-text">PhysiQ</div>
         <div class="title-tagline">あそんで学べる、クイズアプリ</div>
-        <div><span class="title-user">${acc.avatar} ${acc.name} でログイン中</span></div>
+        <div><span class="title-user">${acc.avatar} ${fbEsc(acc.name)} でログイン中</span></div>
         <div><button id="titleAccountBtn" class="stat-btn" style="margin-top:14px;">👤 アカウント・サインイン</button></div>
         <div><button id="titleGuideBtn" class="stat-btn" style="margin-top:10px;">📖 使い方</button></div>
         <div class="title-start">▶ タップしてスタート</div>
@@ -6822,7 +6842,7 @@ const EXTRA_QUESTIONS = {
       const ta = root.querySelector("#feedbackText");
       const st = root.querySelector("#feedbackStatus");
       const msg = (ta.value || "").trim();
-      if (!msg) { st.textContent = "⚠️ 内容を入力してください"; st.style.color = "#dc2626"; return; }
+      if (!msg) { st.textContent = "⚠️ 内容を入力してください"; st.style.color = "var(--red)"; return; }
       btn.disabled = true;
       st.textContent = "送信中…";
       st.style.color = "var(--text-muted)";
@@ -6838,7 +6858,7 @@ const EXTRA_QUESTIONS = {
         showToast("送れたよ！ありがとう 🙏");
       } catch (e) {
         st.textContent = "⚠️ 送信に失敗しました。通信環境を確認してもう一度試してください。";
-        st.style.color = "#dc2626";
+        st.style.color = "var(--red)";
       } finally {
         btn.disabled = false;
       }
