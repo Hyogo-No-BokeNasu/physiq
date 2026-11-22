@@ -1215,7 +1215,7 @@
 </div>
 
 <!-- Loading Overlay (演出としての読み込み中画面) -->
-<div id="loadingOverlay" class="loading-overlay show" role="status" aria-label="読み込み中">
+<div id="loadingOverlay" class="loading-overlay" role="status" aria-label="読み込み中">
   <svg id="loadingSpinner" class="loading-spinner" viewBox="0 0 120 120" aria-hidden="true">
     <ellipse class="orbit" cx="60" cy="60" rx="52" ry="20" />
     <ellipse class="orbit" cx="60" cy="60" rx="52" ry="20" transform="rotate(60 60 60)" />
@@ -9812,7 +9812,6 @@ const EXTRA_QUESTIONS = {
   if (appData.subject && SUBJECTS[appData.subject]) setSubject(appData.subject, true);
   applyAppIcon();
   renderTitleScreen();
-  showLoadingScreen(null); // 起動時の読み込み中画面（演出・約2.5秒。タイトル画面の上に重ね、終わるとタイトルが見える）
   // Firebase 連携の初期化（失敗してもアプリ本体は通常どおり動く）
   try { fbInit(); } catch (e) {}
   // フレンド追加モーダルの配線と、URL の ?friend= 取り込み
