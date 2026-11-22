@@ -942,11 +942,11 @@
 <div id="friendConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-      <h2 style="margin:0; font-size:18px;">👥 フレンド追加</h2>
+      <h2 id="friendConfirmTitle" style="margin:0; font-size:18px;">📩 フレンド申請</h2>
       <button id="closeFriendConfirmModal" class="stat-btn">✕</button>
     </div>
     <div id="friendConfirmText" style="font-size:14px; line-height:1.7; margin-bottom:16px;"></div>
-    <button id="friendConfirmOkBtn" class="btn-3d btn-green" style="width:100%;">フレンドに追加する</button>
+    <button id="friendConfirmOkBtn" class="btn-3d btn-green" style="width:100%;">申請を送る</button>
     <button id="friendConfirmCancelBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:8px;">やめる</button>
   </div>
 </div>
@@ -3586,6 +3586,7 @@ const EXTRA_QUESTIONS = {
         // サーバーフレンド（Firebase共有）用フィールド
         if (typeof a.serverCode !== "string") a.serverCode = "";
         if (!Array.isArray(a.serverFriends)) a.serverFriends = [];
+        if (a.friendPolicy !== "auto" && a.friendPolicy !== "manual") a.friendPolicy = "manual"; // フレンド申請の承認方法（デフォルトは手動承認）
         if (typeof a.cheersSent !== "number") a.cheersSent = 0;
         if (!("xpRace" in a)) a.xpRace = null;
         if (!a.weeklyBonus || typeof a.weeklyBonus !== "object") a.weeklyBonus = { weekKey: null, progress: 0, completed: false };
@@ -3987,6 +3988,15 @@ const EXTRA_QUESTIONS = {
   let fbLastPayloadSig = "";
   let friendsScreenActive = false; // フレンド画面を表示中か（購読の開始/解除の管理）
   let fbFormDraft = null;          // リアルタイム再描画時に入力中の下書きを保持
+  // ===== フレンド申請（requests コレクション）用 =====
+  let fbReqUnsubs = [];            // 申請監視の解除関数リスト
+  let fbReqWatchKey = "";          // 申請監視中の対象（acc.id + "@" + uid）
+  const fbIncomingRequests = {};   // reqId -> {from, fromName, fromAvatar, fromCode, createdAt}（自分宛 pending のみ）
+  const fbOutgoingRequests = {};   // reqId -> {to, status}（自分が送った申請）
+  const fbOutgoingInfo = {};       // uid -> {name, avatar, code}（申請中表示・受理時の取り込み用キャッシュ）
+  const fbAutoProcessing = new Set(); // 自動承認の二重処理防止
+  const fbAcceptingOut = new Set();   // 承認済み申請の取り込み二重処理防止
+  let fbReqInitialLoad = true;     // 申請監視の初回スナップショットか（到着トーストの抑制用）
 
   function fbEsc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -4017,6 +4027,7 @@ const EXTRA_QUESTIONS = {
         if (u) {
           fbReady = true;
           try { fbScheduleProfileSync(); } catch (e) {}
+          try { fbStartRequestsWatch(); } catch (e) {}
           try { fbProcessPendingFriend(); } catch (e) {}
           if (friendsScreenActive) { try { renderFriends(); } catch (e) {} }
         } else {
@@ -4045,13 +4056,14 @@ const EXTRA_QUESTIONS = {
     if (!acc || acc.id === "guest") return;
     fbLastSyncAt = Date.now();
     const friendUids = (Array.isArray(acc.serverFriends) ? acc.serverFriends : []).map(s => s.uid);
-    const sig = [acc.name, acc.avatar, acc.xp || 0, acc.streak || 0, acc.serverCode || "", friendUids.join(",")].join("|");
+    const policy = acc.friendPolicy === "auto" ? "auto" : "manual";
+    const sig = [acc.name, acc.avatar, acc.xp || 0, acc.streak || 0, acc.serverCode || "", policy, friendUids.join(",")].join("|");
     if (sig === fbLastPayloadSig) return;
     fbLastPayloadSig = sig;
     try {
       const payload = {
         name: acc.name, avatar: acc.avatar, xp: acc.xp || 0, streak: acc.streak || 0,
-        code: acc.serverCode || "", friends: friendUids,
+        code: acc.serverCode || "", friends: friendUids, friendPolicy: policy,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       fbDb.collection("users").doc(fbUser.uid).set(payload, { merge: true }).catch(() => { fbLastPayloadSig = ""; });
@@ -4067,7 +4079,8 @@ const EXTRA_QUESTIONS = {
       fbCodeEnsured = false;
       fbLastPayloadSig = "";
       fbUnsubscribeFriends();
-      if (acc.id !== "guest") fbEnsureCodeAndPublish();
+      fbStopRequestsWatch();
+      if (acc.id !== "guest") { fbEnsureCodeAndPublish(); try { fbStartRequestsWatch(); } catch (e) {} }
       try { fbProcessPendingFriend(); } catch (e) {}
       return;
     }
@@ -4114,6 +4127,7 @@ const EXTRA_QUESTIONS = {
     fbInit();
     try { fbScheduleProfileSync(); } catch (e) {}
     if (curAcc() && curAcc().id !== "guest" && fbReady && !fbCodeEnsured) fbEnsureCodeAndPublish();
+    try { fbStartRequestsWatch(); } catch (e) {}
     fbSubscribeFriends();
   }
   // フレンド画面を離れたとき：購読解除
@@ -4166,32 +4180,284 @@ const EXTRA_QUESTIONS = {
       } catch (e) {}
     });
   }
-  // コードからサーバーフレンドを追加
-  async function fbAddServerFriend(rawCode) {
+  // ===== フレンド申請（申請 → 承認で双方フレンドになる） =====
+  // フレンド画面のリアルタイム再描画（入力中の下書きを保持）
+  function fbRefreshFriendsScreen() {
+    if (!friendsScreenActive) return;
+    const draft = {};
+    ["serverCodeInput"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) draft[id] = el.value;
+    });
+    fbFormDraft = draft;
+    try { renderFriends(); } catch (e) {}
+  }
+  // サーバーフレンド一覧へ entry を追加（重複時は追加しない）。追加したら true
+  function fbAddFriendEntry(entry) {
     const acc = curAcc();
-    if (!acc || acc.id === "guest") { showToast("🔒 ゲストはサーバーフレンドを追加できません。アカウントを作ってね"); return; }
+    if (!acc || acc.id === "guest" || !entry || !entry.uid) return false;
+    if (!Array.isArray(acc.serverFriends)) acc.serverFriends = [];
+    if (acc.serverFriends.some(s => s.uid === entry.uid)) return false;
+    acc.serverFriends.push(entry);
+    saveData(); // users/{uid} の friends 配列にも同期される
+    try { fbSubscribeFriends(); } catch (e) {}
+    return true;
+  }
+  function fbPendingReqCount() {
+    return Object.keys(fbIncomingRequests).length;
+  }
+  // コードから相手を引く（{uid, code, name, avatar, policy} を返す。失敗時はトーストを出して null）
+  async function fbLookupFriendCode(code) {
+    try {
+      const codeSnap = await fbDb.collection("codes").doc(code).get();
+      if (!codeSnap.exists) { showToast("⚠️ そのコードのフレンドが見つかりませんでした"); return null; }
+      const uid = codeSnap.data() && codeSnap.data().uid;
+      if (!uid || uid === fbUser.uid) { showToast("⚠️ それは自分のコードです"); return null; }
+      const userSnap = await fbDb.collection("users").doc(uid).get();
+      const d = userSnap.exists ? (userSnap.data() || {}) : {};
+      return {
+        uid, code,
+        name: d.name || "フレンド", avatar: d.avatar || "🚀",
+        policy: d.friendPolicy === "auto" ? "auto" : "manual"
+      };
+    } catch (e) {
+      showToast("⚠️ 通信エラーで確認できませんでした。通信環境を確認してね");
+      return null;
+    }
+  }
+  let fbConfirmTarget = null; // 申請確認モーダルの対象 {uid, code, name, avatar, policy}
+  // コード入力／QR／リンク共通：即追加ではなく「フレンド申請を送る」確認モーダルへ
+  async function fbRequestByCode(rawCode) {
+    const acc = curAcc();
+    if (!acc || acc.id === "guest") { showToast("🔒 ゲストはフレンド申請を送れません。アカウントを作ってね"); return; }
     if (!fbReady || !fbDb || !fbUser) { showToast("📴 サーバーに接続できていません。通信環境を確認して、もう一度試してね"); return; }
     const code = String(rawCode || "").trim().toUpperCase();
     if (!code) { showToast("⚠️ フレンドコードを入力してください"); return; }
-    if (acc.serverCode && code === acc.serverCode) { showToast("⚠️ それは自分のコードです"); return; }
+    if (acc.serverCode && code === acc.serverCode) { fbClearPendingFriend(); showToast("⚠️ それは自分のコードです"); return; }
     if (!Array.isArray(acc.serverFriends)) acc.serverFriends = [];
-    if (acc.serverFriends.some(s => s.code === code)) { showToast("⚠️ そのフレンドはもう追加されています"); return; }
+    if (acc.serverFriends.some(s => s.code === code)) { fbClearPendingFriend(); showToast("⚠️ そのフレンドはもう追加されています"); return; }
+    const target = await fbLookupFriendCode(code);
+    if (!target) { fbClearPendingFriend(); return; }
+    if (acc.serverFriends.some(s => s.uid === target.uid)) { fbClearPendingFriend(); showToast("⚠️ そのフレンドはもう追加されています"); return; }
+    // すでに申請中（自分が送った pending がある）なら弾く
+    const alreadySent = Object.values(fbOutgoingRequests).some(r => r.to === target.uid && r.status === "pending");
+    if (alreadySent) { fbClearPendingFriend(); showToast("⚠️ そのフレンドにはすでに申請中です。承認されるのを待ってね"); return; }
+    // 相手から先に申請が来ていれば、申請し返すのではなく承認を促す
+    const incomingFrom = Object.keys(fbIncomingRequests).find(id => fbIncomingRequests[id].from === target.uid);
+    if (incomingFrom) {
+      fbClearPendingFriend();
+      showToast(`📩 ${fbEsc(target.name)} さんから先に申請が届いています。フレンド画面の「届いた申請」から承認してね`);
+      if (friendsScreenActive) fbRefreshFriendsScreen();
+      return;
+    }
+    fbShowRequestConfirm(target);
+  }
+  function fbShowRequestConfirm(target) {
+    fbConfirmTarget = target;
+    const title = document.getElementById("friendConfirmTitle");
+    if (title) title.textContent = "📩 フレンド申請";
+    const txt = document.getElementById("friendConfirmText");
+    if (txt) {
+      const autoNote = target.policy === "auto"
+        ? `<br><span style="font-size:12.5px; color:var(--green-dark); font-weight:700;">✨ 相手は自動承認の設定です。申請するとすぐにフレンドになります。</span>`
+        : `<br><span style="font-size:12.5px; color:var(--text-muted);">相手が承認すると、両方がフレンドになります。</span>`;
+      txt.innerHTML = `<span style="font-size:22px;">${fbEsc(target.avatar)}</span> <strong>${fbEsc(target.name)}</strong> さん（コード：${fbEsc(target.code)}）にフレンド申請を送りますか？${autoNote}`;
+    }
+    const ok = document.getElementById("friendConfirmOkBtn");
+    if (ok) ok.textContent = "申請を送る";
+    const modal = document.getElementById("friendConfirmModal");
+    if (modal) modal.classList.add("open");
+  }
+  // 確認モーダルのOK：requests に pending を作成
+  async function fbDoSendRequest() {
+    const target = fbConfirmTarget;
+    fbConfirmTarget = null;
+    const acc = curAcc();
+    if (!target || !acc || acc.id === "guest" || !fbReady || !fbDb || !fbUser) return;
     try {
-      const codeSnap = await fbDb.collection("codes").doc(code).get();
-      if (!codeSnap.exists) { showToast("⚠️ そのコードのフレンドが見つかりませんでした"); return; }
-      const uid = codeSnap.data() && codeSnap.data().uid;
-      if (!uid || uid === fbUser.uid) { showToast("⚠️ それは自分のコードです"); return; }
-      if (acc.serverFriends.some(s => s.uid === uid)) { showToast("⚠️ そのフレンドはもう追加されています"); return; }
-      const userSnap = await fbDb.collection("users").doc(uid).get();
-      const d = userSnap.exists ? userSnap.data() : {};
-      const entry = { uid, code, name: d.name || "フレンド", avatar: d.avatar || "🚀", xp: d.xp || 0, streak: d.streak || 0, cheers: 0 };
-      acc.serverFriends.push(entry);
-      saveData(); // users/{uid} の friends 配列にも同期される
-      fbSubscribeFriends();
-      showToast(`👥 ${fbEsc(entry.name)} をフレンドに追加しました！`);
-      renderFriends();
+      await fbDb.collection("requests").add({
+        from: fbUser.uid, to: target.uid,
+        fromName: acc.name || "フレンド", fromAvatar: acc.avatar || "🚀", fromCode: acc.serverCode || "",
+        status: "pending",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      fbOutgoingInfo[target.uid] = { name: target.name, avatar: target.avatar, code: target.code };
+      showToast(`📩 ${fbEsc(target.name)} さんにフレンド申請を送りました！`);
     } catch (e) {
-      showToast("⚠️ 追加できませんでした。通信環境を確認してね");
+      showToast("⚠️ 申請を送れませんでした。通信環境を確認してね");
+    }
+    fbClearPendingFriend();
+    fbRefreshFriendsScreen();
+  }
+  // 申請の監視を開始（ログイン中は常時。自動承認とバッジのためフレンド画面外でも動かす）
+  function fbStartRequestsWatch() {
+    if (!fbReady || !fbDb || !fbUser) return;
+    const acc = curAcc();
+    if (!acc || acc.id === "guest") return;
+    const key = acc.id + "@" + fbUser.uid;
+    if (fbReqWatchKey === key && fbReqUnsubs.length) return;
+    fbStopRequestsWatch();
+    fbReqWatchKey = key;
+    fbReqInitialLoad = true;
+    const myUid = fbUser.uid;
+    try {
+      const unIn = fbDb.collection("requests").where("to", "==", myUid).onSnapshot(snap => {
+        try { fbHandleIncomingSnapshot(snap); } catch (e) {}
+      }, () => {});
+      fbReqUnsubs.push(unIn);
+    } catch (e) {}
+    try {
+      const unOut = fbDb.collection("requests").where("from", "==", myUid).onSnapshot(snap => {
+        try { fbHandleOutgoingSnapshot(snap); } catch (e) {}
+      }, () => {});
+      fbReqUnsubs.push(unOut);
+    } catch (e) {}
+  }
+  function fbStopRequestsWatch() {
+    fbReqUnsubs.forEach(u => { try { u(); } catch (e) {} });
+    fbReqUnsubs = [];
+    fbReqWatchKey = "";
+    Object.keys(fbIncomingRequests).forEach(k => delete fbIncomingRequests[k]);
+    Object.keys(fbOutgoingRequests).forEach(k => delete fbOutgoingRequests[k]);
+  }
+  // 自分宛の申請：pending を一覧化。自動承認ポリシーなら受信したタイミングで即承認
+  function fbHandleIncomingSnapshot(snap) {
+    const acc = curAcc();
+    if (!acc || acc.id === "guest" || !fbUser) return;
+    const seen = new Set();
+    let changed = false;
+    snap.forEach(doc => {
+      const d = doc.data() || {};
+      if (d.status !== "pending") return;
+      seen.add(doc.id);
+      if (acc.friendPolicy === "auto") {
+        fbAcceptIncoming(doc.id, d, true);
+        return;
+      }
+      if (!fbIncomingRequests[doc.id]) {
+        fbIncomingRequests[doc.id] = { from: d.from, fromName: d.fromName || "フレンド", fromAvatar: d.fromAvatar || "🚀", fromCode: d.fromCode || "", createdAt: d.createdAt || null };
+        changed = true;
+        if (!fbReqInitialLoad) showToast(`📩 ${fbEsc(d.fromName || "フレンド")} さんからフレンド申請が届きました`);
+      }
+    });
+    Object.keys(fbIncomingRequests).forEach(id => {
+      if (!seen.has(id)) { delete fbIncomingRequests[id]; changed = true; }
+    });
+    fbReqInitialLoad = false;
+    if (changed) fbRefreshFriendsScreen();
+  }
+  // 自分が送った申請：accepted になったら相手を取り込んで申請ドキュメントを削除（双方フレンド成立）
+  function fbHandleOutgoingSnapshot(snap) {
+    const acc = curAcc();
+    if (!acc || acc.id === "guest" || !fbUser) return;
+    const seen = new Set();
+    let changed = false;
+    snap.forEach(doc => {
+      const d = doc.data() || {};
+      seen.add(doc.id);
+      if (d.status === "accepted") {
+        fbTakeInAccepted(doc.id, d);
+        return;
+      }
+      if (!fbOutgoingRequests[doc.id]) {
+        fbOutgoingRequests[doc.id] = { to: d.to, status: d.status || "pending" };
+        changed = true;
+        if (d.to && !fbOutgoingInfo[d.to]) fbFetchOutgoingInfo(d.to);
+      }
+    });
+    Object.keys(fbOutgoingRequests).forEach(id => {
+      if (!seen.has(id)) { delete fbOutgoingRequests[id]; changed = true; }
+    });
+    if (changed) fbRefreshFriendsScreen();
+  }
+  // 申請中表示用に相手プロフィールを引いてキャッシュ
+  async function fbFetchOutgoingInfo(uid) {
+    if (!fbDb || fbOutgoingInfo[uid]) return;
+    try {
+      const snap = await fbDb.collection("users").doc(uid).get();
+      const d = snap.exists ? (snap.data() || {}) : {};
+      fbOutgoingInfo[uid] = { name: d.name || "フレンド", avatar: d.avatar || "🚀", code: d.code || "" };
+      fbRefreshFriendsScreen();
+    } catch (e) {}
+  }
+  // 承認済み申請の取り込み（申請者側）：相手をフレンドに追加し、申請ドキュメントを削除
+  async function fbTakeInAccepted(reqId, d) {
+    if (fbAcceptingOut.has(reqId)) return;
+    fbAcceptingOut.add(reqId);
+    try {
+      let name = "フレンド", avatar = "🚀", code = "", xp = 0, streak = 0;
+      try {
+        const snap = await fbDb.collection("users").doc(d.to).get();
+        if (snap.exists) {
+          const u = snap.data() || {};
+          name = u.name || name; avatar = u.avatar || avatar; code = u.code || "";
+          xp = u.xp || 0; streak = u.streak || 0;
+        }
+      } catch (e) {}
+      const info = fbOutgoingInfo[d.to];
+      if (info) { if (!code) code = info.code || ""; }
+      const added = fbAddFriendEntry({ uid: d.to, code, name, avatar, xp, streak, cheers: 0 });
+      delete fbOutgoingRequests[reqId];
+      try { await fbDb.collection("requests").doc(reqId).delete(); } catch (e) {}
+      if (added) showToast(`🎉 ${fbEsc(name)} さんがフレンド申請を承認しました！`);
+      fbRefreshFriendsScreen();
+    } catch (e) {
+    } finally {
+      fbAcceptingOut.delete(reqId);
+    }
+  }
+  // 申請の承認（手動・自動共通）：申請者をフレンドに追加し、status を accepted に更新
+  async function fbAcceptIncoming(reqId, d, auto) {
+    if (fbAutoProcessing.has(reqId)) return;
+    fbAutoProcessing.add(reqId);
+    try {
+      let name = d.fromName || "フレンド", avatar = d.fromAvatar || "🚀", xp = 0, streak = 0;
+      try {
+        const snap = await fbDb.collection("users").doc(d.from).get();
+        if (snap.exists) {
+          const u = snap.data() || {};
+          name = u.name || name; avatar = u.avatar || avatar; xp = u.xp || 0; streak = u.streak || 0;
+        }
+      } catch (e) {}
+      fbAddFriendEntry({ uid: d.from, code: d.fromCode || "", name, avatar, xp, streak, cheers: 0 });
+      try { await fbDb.collection("requests").doc(reqId).update({ status: "accepted" }); } catch (e) {}
+      delete fbIncomingRequests[reqId];
+      showToast(auto ? `🤝 ${fbEsc(name)} さんとフレンドになりました（自動承認）` : `🤝 ${fbEsc(name)} さんとフレンドになりました！`);
+      fbRefreshFriendsScreen();
+    } catch (e) {
+    } finally {
+      fbAutoProcessing.delete(reqId);
+    }
+  }
+  function fbApproveRequest(reqId) {
+    const d = fbIncomingRequests[reqId];
+    if (!d || !fbDb) return;
+    fbAcceptIncoming(reqId, { from: d.from, fromName: d.fromName, fromAvatar: d.fromAvatar, fromCode: d.fromCode }, false);
+  }
+  async function fbRejectRequest(reqId) {
+    try { if (fbDb) await fbDb.collection("requests").doc(reqId).delete(); } catch (e) {}
+    delete fbIncomingRequests[reqId];
+    showToast("申請を却下しました");
+    fbRefreshFriendsScreen();
+  }
+  // 承認ポリシーの切り替え（manual / auto）。users ドキュメントにも friendPolicy として公開される
+  function fbSetFriendPolicy(p) {
+    const acc = curAcc();
+    if (!acc || acc.id === "guest") return;
+    acc.friendPolicy = p === "auto" ? "auto" : "manual";
+    saveData(); // プロフィール同期で friendPolicy も公開される
+    showToast(acc.friendPolicy === "auto" ? "✨ フレンド申請は自動承認になりました" : "📩 フレンド申請は手動承認になりました");
+    fbRefreshFriendsScreen();
+    // 自動承認に切り替えたら、溜まっている pending をその場で承認する
+    if (acc.friendPolicy === "auto" && fbDb && fbUser) {
+      try {
+        fbDb.collection("requests").where("to", "==", fbUser.uid).get().then(snap => {
+          snap.forEach(doc => {
+            const d = doc.data() || {};
+            if (d.status === "pending") fbAcceptIncoming(doc.id, d, true);
+          });
+        }).catch(() => {});
+      } catch (e) {}
     }
   }
 
@@ -4215,7 +4481,7 @@ const EXTRA_QUESTIONS = {
       qr.addData(fbFriendLink(acc.serverCode));
       qr.make();
       box.innerHTML = `<div style="display:inline-block; background:#fff; padding:10px; border-radius:14px; line-height:0;">${qr.createImgTag(4, 8, "フレンド追加用QRコード")}</div>
-        <div style="font-size:11.5px; opacity:0.85; margin-top:6px;">📷 友だちにこのQRを読み取ってもらうと、コード入力なしで追加できます</div>`;
+        <div style="font-size:11.5px; opacity:0.85; margin-top:6px;">📷 友だちにこのQRを読み取ってもらうと、コード入力なしでフレンド申請できます</div>`;
       const img = box.querySelector("img");
       if (img) { img.style.width = "176px"; img.style.height = "176px"; img.style.imageRendering = "pixelated"; }
     } catch (e) { box.innerHTML = ""; }
@@ -4252,42 +4518,24 @@ const EXTRA_QUESTIONS = {
     fbPendingHandledCode = code;
     fbConfirmFriendLink(code);
   }
-  // リンク／QR経由の追加：相手の名前を引いてから確認モーダルを出す
-  async function fbConfirmFriendLink(code) {
-    const acc = curAcc();
-    if (!acc || acc.id === "guest" || !fbReady || !fbDb || !fbUser) return;
-    if (acc.serverCode && code === acc.serverCode) { fbClearPendingFriend(); showToast("⚠️ それは自分のコードです"); return; }
-    if ((acc.serverFriends || []).some(s => s.code === code)) { fbClearPendingFriend(); showToast("⚠️ そのフレンドはもう追加されています"); return; }
-    let name = "このコードのフレンド", avatar = "🚀";
-    try {
-      const codeSnap = await fbDb.collection("codes").doc(code).get();
-      if (!codeSnap.exists) { fbClearPendingFriend(); showToast("⚠️ そのコードのフレンドが見つかりませんでした"); return; }
-      const uid = codeSnap.data() && codeSnap.data().uid;
-      if (!uid || uid === fbUser.uid) { fbClearPendingFriend(); showToast("⚠️ それは自分のコードです"); return; }
-      const userSnap = await fbDb.collection("users").doc(uid).get();
-      if (userSnap.exists) { const d = userSnap.data() || {}; name = d.name || name; avatar = d.avatar || avatar; }
-    } catch (e) {
-      showToast("⚠️ 通信エラーで確認できませんでした。フレンド画面からコードで追加してね");
-      return;
-    }
-    fbConfirmTargetCode = code;
-    const txt = document.getElementById("friendConfirmText");
-    if (txt) txt.innerHTML = `<span style="font-size:22px;">${fbEsc(avatar)}</span> <strong>${fbEsc(name)}</strong> さん（コード：${fbEsc(code)}）をフレンドに追加しますか？<br><span style="font-size:12.5px; color:var(--text-muted);">相手のXPはサーバー経由でリアルタイムにランキングへ反映されます。</span>`;
-    const modal = document.getElementById("friendConfirmModal");
-    if (modal) modal.classList.add("open");
+  // リンク／QR経由：コード入力と同じ申請フロー（確認モーダル→申請送信）へ
+  function fbConfirmFriendLink(code) {
+    fbRequestByCode(code);
   }
   function fbCloseFriendConfirm() {
     const modal = document.getElementById("friendConfirmModal");
     if (modal) modal.classList.remove("open");
     fbConfirmTargetCode = "";
+    fbConfirmTarget = null;
     fbClearPendingFriend();
   }
   function fbWireFriendModals() {
     const ok = document.getElementById("friendConfirmOkBtn");
     if (ok) ok.addEventListener("click", () => {
-      const code = fbConfirmTargetCode;
-      fbCloseFriendConfirm();
-      if (code) fbAddServerFriend(code);
+      const modal = document.getElementById("friendConfirmModal");
+      if (modal) modal.classList.remove("open");
+      fbConfirmTargetCode = "";
+      fbDoSendRequest();
     });
     const cancel = document.getElementById("friendConfirmCancelBtn");
     if (cancel) cancel.addEventListener("click", fbCloseFriendConfirm);
@@ -4367,7 +4615,7 @@ const EXTRA_QUESTIONS = {
         const result = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
         if (result && result.data) {
           const code = fbExtractFriendCode(result.data);
-          if (code) { fbStopQrScan(); fbAddServerFriend(code); return; }
+          if (code) { fbStopQrScan(); fbPendingHandledCode = ""; fbSetPendingFriend(code); return; }
         }
       } catch (e) {}
     }
@@ -4428,6 +4676,15 @@ const EXTRA_QUESTIONS = {
       return;
     }
     const serverFriends = acc.serverFriends;
+    const incomingList = Object.keys(fbIncomingRequests).map(id => Object.assign({ id }, fbIncomingRequests[id]));
+    const outgoingList = Object.keys(fbOutgoingRequests)
+      .filter(id => fbOutgoingRequests[id].status === "pending")
+      .map(id => {
+        const r = fbOutgoingRequests[id];
+        const info = fbOutgoingInfo[r.to] || {};
+        return { id, to: r.to, name: info.name || "フレンド", avatar: info.avatar || "🚀" };
+      });
+    const myPolicy = acc.friendPolicy === "auto" ? "auto" : "manual";
     const myWeekly = weeklyXp(acc);
     const board = [{ id: "__me__", name: acc.name + "（あなた）", xp: acc.xp, weeklyXp: myWeekly, me: true }]
       .concat(serverFriends.map(sf => {
@@ -4457,7 +4714,7 @@ const EXTRA_QUESTIONS = {
       <div class="sub-screen">
         <div class="sub-head">
           <button id="friendsBackBtn" class="stat-btn">← もどる</button>
-          <h2>👥 フレンド</h2>
+          <h2>👥 フレンド${incomingList.length ? ` <span style="background:#ef4444; color:#fff; border-radius:99px; padding:1px 9px; font-size:12.5px; vertical-align:middle;">📩 ${incomingList.length}</span>` : ""}</h2>
         </div>
         <div class="daily-card" style="margin-bottom:16px;">
           <div style="font-size:13px; opacity:0.9;">あなたのフレンドコード（友だちに教えてね）</div>
@@ -4465,7 +4722,37 @@ const EXTRA_QUESTIONS = {
           <div id="myFriendQr" style="margin-top:10px;"></div>
           <div style="font-size:12.5px; opacity:0.9; margin-top:8px;">累計 ${acc.xp} XP ／ 今週 ${myWeekly} XP ／ 使えるXP ⚡${acc.xpBalance} XP</div>
           <div style="font-size:11.5px; opacity:0.9; margin-top:4px;">${fbStatusText()}</div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px;">
+            <span style="font-size:12.5px; font-weight:800;">申請の承認方法：</span>
+            <button class="btn-3d ${myPolicy === "manual" ? "btn-blue" : "btn-ghost"}" data-policy="manual" style="min-height:34px; padding:4px 12px; font-size:12.5px;">📩 手動承認</button>
+            <button class="btn-3d ${myPolicy === "auto" ? "btn-blue" : "btn-ghost"}" data-policy="auto" style="min-height:34px; padding:4px 12px; font-size:12.5px;">✨ 自動承認</button>
+          </div>
+          <div style="font-size:11.5px; opacity:0.9; margin-top:4px;">${myPolicy === "auto" ? "届いた申請は自動で承認され、すぐにフレンドになります。" : "届いた申請は下の「📩 届いた申請」欄で承認／却下できます。"}</div>
         </div>
+
+        ${incomingList.length ? `
+        <div style="font-weight:800; font-size:15px; margin:14px 0 8px;">📩 届いた申請 <span style="background:#ef4444; color:#fff; border-radius:99px; padding:1px 9px; font-size:12.5px;">${incomingList.length} 件</span></div>
+        ${incomingList.map(r => `
+          <div class="leader-row">
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:800; font-size:14.5px;">${fbEsc(r.fromAvatar || "🚀")} ${fbEsc(r.fromName || "フレンド")}</div>
+              <div style="font-size:12px; color:var(--text-muted);">コード：${fbEsc(r.fromCode || "")}</div>
+            </div>
+            <div class="leader-actions">
+              <button class="btn-3d btn-green" data-approve-req="${r.id}" style="min-height:36px; padding:5px 12px; font-size:12.5px;">承認</button>
+              <button class="btn-3d btn-ghost" data-reject-req="${r.id}" style="min-height:36px; padding:5px 12px; font-size:12.5px;">却下</button>
+            </div>
+          </div>`).join("")}
+        ` : ""}
+
+        ${outgoingList.length ? `
+        <div style="font-weight:800; font-size:15px; margin:14px 0 8px;">📤 申請中（承認待ち）</div>
+        ${outgoingList.map(r => `
+          <div class="leader-row">
+            <div style="flex:1; min-width:0; font-weight:800; font-size:14px;">${fbEsc(r.avatar)} ${fbEsc(r.name)}</div>
+            <span style="font-size:12px; color:var(--text-muted); font-weight:700;">承認待ち…</span>
+          </div>`).join("")}
+        ` : ""}
 
         ${race ? `
         <div class="shop-item race-card">
@@ -4500,9 +4787,9 @@ const EXTRA_QUESTIONS = {
         <div class="shop-item" style="display:block;">
           <div style="display:grid; gap:8px;">
             <input id="serverCodeInput" placeholder="相手のフレンドコード（例：AB3K9XYZ）" style="width:100%; border:1.5px solid var(--border); border-radius:10px; padding:10px; font-size:14px; font-family:inherit; text-transform:uppercase;" />
-            <button id="serverAddBtn" class="btn-3d btn-green" style="width:100%;" ${!fbReady ? "disabled" : ""}>コードで追加</button>
+            <button id="serverAddBtn" class="btn-3d btn-green" style="width:100%;" ${!fbReady ? "disabled" : ""}>📩 コードで申請を送る</button>
             <button id="qrScanBtn" class="btn-3d btn-blue" style="width:100%;">📷 QRを読み取る</button>
-            <div style="font-size:11.5px; color:var(--text-muted); line-height:1.6;">相手のフレンド画面に表示されているコードを入力するか、QRコードを読み取ると、その場で追加されます。相手のXPはサーバー経由でリアルタイムに反映されます。</div>
+            <div style="font-size:11.5px; color:var(--text-muted); line-height:1.6;">相手のフレンド画面に表示されているコードを入力するか、QRコードを読み取ると、フレンド申請を送れます。相手が承認すると、両方がフレンドになります（相手が自動承認の設定なら、すぐにフレンドになります）。</div>
           </div>
         </div>
 
@@ -4522,6 +4809,10 @@ const EXTRA_QUESTIONS = {
       </div>
     `;
     document.getElementById("friendsBackBtn").addEventListener("click", () => renderMain());
+    // フレンド申請：承認ポリシーの切り替え／届いた申請の承認・却下
+    main.querySelectorAll("[data-policy]").forEach(b => b.addEventListener("click", () => fbSetFriendPolicy(b.getAttribute("data-policy"))));
+    main.querySelectorAll("[data-approve-req]").forEach(b => b.addEventListener("click", () => fbApproveRequest(b.getAttribute("data-approve-req"))));
+    main.querySelectorAll("[data-reject-req]").forEach(b => b.addEventListener("click", () => fbRejectRequest(b.getAttribute("data-reject-req"))));
     // サーバーフレンド（"fb_" + uid）を引くルックアップ
     const findAnyFriend = (id) => {
       if (typeof id === "string" && id.indexOf("fb_") === 0) return (acc.serverFriends || []).find(x => "fb_" + x.uid === id) || null;
@@ -4565,7 +4856,7 @@ const EXTRA_QUESTIONS = {
     if (serverAddBtn) serverAddBtn.addEventListener("click", () => {
       const inp = document.getElementById("serverCodeInput");
       serverAddBtn.disabled = true;
-      fbAddServerFriend(inp ? inp.value : "").then(() => { serverAddBtn.disabled = false; });
+      fbRequestByCode(inp ? inp.value : "").then(() => { serverAddBtn.disabled = false; });
     });
     // 自分のフレンドコードのQRコードを表示（ライブラリ読み込み失敗時はコード文字列のみ）
     fbRenderMyQr();
@@ -5363,9 +5654,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.12";
+  const APP_VERSION = "2026-11-22.13";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2026-11-22.13", title: "フレンド申請機能を追加（承認されると双方フレンドに）", body: "フレンド追加が「申請 → 承認」方式になりました。コード入力・QR読み取り・共有リンクからは、その場で追加ではなくフレンド申請を送ります。申請が届くとフレンド画面の「📩 届いた申請」欄にリアルタイムで表示され、承認すると両方がフレンドになります。送った申請は「申請中」として表示され、相手が承認すると自動でフレンドに追加されます。承認方法はフレンド画面で「手動承認／自動承認」から選べます（自動承認にすると、届いた申請がその場で承認されます）。" },
     { date: "2026-11-22", version: "2026-11-22.12", title: "初回のはじめ方を選べるようになりました", body: "初めてアプリを開いたとき、最初に「🆕 新規アカウント作成」と「👤 ゲストではじめる」の2つの選択肢が大きく表示されるようになりました。選んでから、それぞれの画面に進みます。すでにアカウントがある人は、その画面からサインインも選べます。作成・サインインの画面からは「もどる」で選択画面に戻れます。" },
     { date: "2026-11-22", version: "2026-11-22.11", title: "フレンドはサーバー共有のみになりました（QR追加も）", body: "フレンドはサーバー共有のみになりました。これまでの手入力（ローカル）フレンドは表示されなくなります。フレンド画面に自分のQRコードが表示されるようになり、相手に読み取ってもらうだけで追加できるようになりました。フレンド画面の「QRを読み取る」から相手のQRを読み取ることもできます。共有リンク（QRのURL）を開いたときも、ログインしていれば確認してそのまま追加できます。ゲストはフレンド機能を使えません。" },
     { date: "2026-11-22", version: "2026-11-22.10", title: "設定ボタンを追加し、ヘッダーの導線を整理しました", body: "ヘッダーに⚙️設定ボタンを追加し、プロフィールを経由せず直接設定を開けるようにしました。名前・アバターの変更、称号、実績バッジなどのプロフィールは設定画面の中にまとめています。ヘッダーのストリーク表示をタップするとデータ画面へ、XP表示をタップするとショップへ移動できるようになりました。ヘッダーのアカウントボタンは削除しました（アカウントの切り替え・作成・サインインは、タイトル画面のボタンと設定画面から開けます）。" },
@@ -5437,7 +5729,7 @@ const EXTRA_QUESTIONS = {
     }
   }
   function newAccountFields(id, name, avatar) {
-    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "", serverCode: "", serverFriends: [] };
+    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "", serverCode: "", serverFriends: [], friendPolicy: "manual" };
   }
   function closeAuthModals() {
     ["createAccountModal", "signinModal", "settingsModal"].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("open"); });
@@ -6078,7 +6370,7 @@ const EXTRA_QUESTIONS = {
           </div>
         </div>
 
-        <button id="dataFriendsBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:14px;">👥 フレンド・XPランキングを見る（今週 ${weeklyXp(acc)} XP）</button>
+        <button id="dataFriendsBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:14px;">👥 フレンド・XPランキングを見る（今週 ${weeklyXp(acc)} XP）${fbPendingReqCount() ? ` <span style="background:#ef4444; color:#fff; border-radius:99px; padding:1px 9px; font-size:12px;">📩 申請 ${fbPendingReqCount()} 件</span>` : ""}</button>
 
         <div class="data-section-title">📅 直近7日の学習</div>
         <div class="week-dots" style="margin-bottom:4px;">
