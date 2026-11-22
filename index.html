@@ -456,6 +456,7 @@
       display: flex; gap: 12px; align-items: flex-start;
       animation: fadeUp 0.3s ease both;
     }
+    .race-card { border-color: #fde047; background: #fffbeb; }
     .shop-item .s-icon { font-size: 30px; flex-shrink: 0; line-height: 1.2; }
     .shop-item .s-main { flex: 1; min-width: 0; }
     .shop-item .s-name { font-weight: 800; font-size: 15.5px; }
@@ -714,6 +715,10 @@
     html.dark .boost-banner { background: #422006; border-color: #a16207; color: #fde68a; box-shadow: 0 4px 0 #713f12; }
     html.dark .choice-btn:hover:not(:disabled) { background: #1e293b; }
     html.dark .toast { background: #f1f5f9; color: #0f172a; }
+    html.dark .term-card { background: var(--bg-subtle); }
+    html.dark .term-card .glossary-link { color: var(--blue-dark); }
+    html.dark .example-box { background: #431407; border-color: #9a3412; }
+    html.dark .race-card { background: #451a03; border-color: #a16207; }
 
     @media (max-width: 430px) {
       .bonus-cells { gap: 4px; }
@@ -3925,7 +3930,7 @@ const EXTRA_QUESTIONS = {
         </div>
 
         ${race ? `
-        <div class="shop-item" style="border-color:#fde047; background:#fffbeb;">
+        <div class="shop-item race-card">
           <div class="s-icon">🏁</div>
           <div class="s-main">
             <div class="s-name">XPレース ${raceDone ? "― 達成！🎉" : raceExpired ? "― 期限切れ" : "― 進行中"}</div>
@@ -4798,9 +4803,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.5";
+  const APP_VERSION = "2026-11-22.6";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2026-11-22.6", title: "数学・化学にも単語帳と教科書ができました", body: "学習タブの「まずはここから」と単語帳・教科書が、選んでいる科目に合わせて切り替わるようになりました。数学は単語帳 全92語・教科書 全30レッスン、化学は単語帳 全91語・教科書 全30レッスンを新しく用意しています。ステージ解説のキーワードから単語帳へ飛ぶリンクや、間違えた問題の「教科書で復習する」も、それぞれの科目の内容に飛ぶようになりました。" },
     { date: "2026-11-22", version: "2026-11-22.5", title: "数学・化学が全45ステージ・全450問に", body: "数学と化学が、物理と同じ全45ステージ・全450問になりました。プロフィールと設定の画面を整理し、結果画面にかかった時間・正解数・獲得XPがひと目でわかるようになりました。ショップの値段を下げました。ストリークが更新のたびにリセットされてしまう不具合を直しました。お知らせは設定の「アップデート履歴」にまとめました。" }
   ];
   const APP_ICONS = [
@@ -5032,6 +5038,14 @@ const EXTRA_QUESTIONS = {
         <button id="signOutBtn" class="btn-3d btn-ghost" style="flex:1;">ゲストに切り替える</button>
         ${acc.id !== "guest" ? `<button id="deleteAccBtn" class="btn-3d btn-ghost" style="flex:1; color:var(--red); border-color:#fda4af;">このアカウントを削除</button>` : ""}
       </div>
+      ${acc.id !== "guest" ? `
+      <div id="deleteConfirmRow" style="display:none; margin-top:10px; background:var(--red-soft); border-radius:12px; padding:10px 12px;">
+        <div style="font-size:13px; font-weight:800; color:var(--red); margin-bottom:8px;">アカウント「${acc.name}」を削除しますか？進捗もすべて消えます。</div>
+        <div style="display:flex; gap:8px;">
+          <button id="deleteAccYes" class="btn-3d" style="flex:1; background:var(--red); color:#fff; border-color:#be123c;">削除する</button>
+          <button id="deleteAccNo" class="btn-3d btn-ghost" style="flex:1;">やめる</button>
+        </div>
+      </div>` : ""}
       </div>
     `;
     const dmT = body.querySelector("#setDarkToggle");
@@ -5121,7 +5135,7 @@ const EXTRA_QUESTIONS = {
     if (updBtn) updBtn.addEventListener("click", async () => {
       updBtn.disabled = true; updBtn.textContent = "更新中…";
       try { if ("caches" in window) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } } catch (e) {}
-      location.href = location.pathname + "?v=" + Date.now();
+      location.reload();
     });
     const signOutBtn = body.querySelector("#signOutBtn");
     if (signOutBtn) signOutBtn.addEventListener("click", () => {
@@ -5131,8 +5145,18 @@ const EXTRA_QUESTIONS = {
     });
     const delBtn = body.querySelector("#deleteAccBtn");
     if (delBtn) delBtn.addEventListener("click", () => {
+      const row = body.querySelector("#deleteConfirmRow");
+      if (row) { row.style.display = "block"; delBtn.style.display = "none"; }
+    });
+    const delNo = body.querySelector("#deleteAccNo");
+    if (delNo) delNo.addEventListener("click", () => {
+      const row = body.querySelector("#deleteConfirmRow");
+      if (row) row.style.display = "none";
+      if (delBtn) delBtn.style.display = "";
+    });
+    const delYes = body.querySelector("#deleteAccYes");
+    if (delYes) delYes.addEventListener("click", () => {
       const a = curAcc();
-      if (!confirm(`アカウント「${a.name}」を削除しますか？進捗もすべて消えます。`)) return;
       delete appData.accounts[a.id];
       appData.activeId = "guest"; saveData(); closeAuthModals(); updateHUD(); session = null;
       if (appStarted) renderMain(); else renderTitleScreen();
@@ -5698,7 +5722,56 @@ const EXTRA_QUESTIONS = {
     { term: "内積", reading: "ないせき", field: "微分・積分", def: "2つのベクトルの「重なり具合」を表す計算。結果は1つの数になり、なす角が90°のとき0になります。", formula: raw`$\vec{a} \cdot \vec{b} = |\vec{a}||\vec{b}|\cos\theta$` },
     { term: "虚数", reading: "きょすう", field: "微分・積分", def: "2乗するとマイナスになる不思議な数。単位i（i²=−1）を使って表し、複素数の世界が広がります。", formula: raw`$i^2 = -1$` },
     { term: "対数", reading: "たいすう", field: "微分・積分", def: "「何乗したらその数になるか」を表すもの。大きな数の桁数や、地震のマグニチュードの考え方に使われます。", formula: raw`$\log_a a^p = p$` },
-    { term: "指数", reading: "しすう", field: "微分・積分", def: "累乗の右上に書く小さな数。「何回かけたか」を表し、指数法則で計算を簡単にできます。", formula: raw`$a^m \times a^n = a^{m+n}$` }
+    { term: "指数", reading: "しすう", field: "微分・積分", def: "累乗の右上に書く小さな数。「何回かけたか」を表し、指数法則で計算を簡単にできます。", formula: raw`$a^m \times a^n = a^{m+n}$` },
+    { term: "文字式", reading: "もじしき", field: "数と式", def: "数や量を文字で表した式。どんな数にもあてはまる計算のルールを、短く表すことができます。", formula: "" },
+    { term: "項", reading: "こう", field: "数と式", def: "＋や－で区切られた、式のひとつひとつの部分。3x＋2 なら 3x と 2 が項です。", formula: "" },
+    { term: "同類項", reading: "どうるいこう", field: "数と式", def: "文字の部分がまったく同じ項どうし。同類項は係数どうしを計算して1つにまとめられます。", formula: "" },
+    { term: "分配法則", reading: "ぶんぱいほうそく", field: "数と式", def: "カッコの外の数を、中の各項にかける計算法則。展開の基本になります。", formula: raw`$a(b + c) = ab + ac$` },
+    { term: "乗法公式", reading: "じょうほうこうしき", field: "数と式", def: "展開を速く計算するための公式集。(a＋b)² の展開などが代表例です。", formula: raw`$(a + b)^2 = a^2 + 2ab + b^2$` },
+    { term: "方程式", reading: "ほうていしき", field: "方程式・関数", def: "文字を含む等式。その文字にどんな値を入れると等号が成り立つかを考える式です。", formula: "" },
+    { term: "解", reading: "かい", field: "方程式・関数", def: "方程式を成り立たせる文字の値。x＋5＝12 なら解は x＝7 です。", formula: "" },
+    { term: "移項", reading: "いこう", field: "方程式・関数", def: "項を等号の反対側へ移すこと。移した項は符号が変わります。", formula: "" },
+    { term: "加減法", reading: "かげんほう", field: "方程式・関数", def: "連立方程式で、2つの式をたしたり引いたりして文字を1つ消す解き方。", formula: "" },
+    { term: "代入法", reading: "だいにゅうほう", field: "方程式・関数", def: "連立方程式で、1つの式をもう一方に代入して文字を1つ消す解き方。", formula: "" },
+    { term: "一次関数", reading: "いちじかんすう", field: "方程式・関数", def: "y＝ax＋b の形の関数。グラフはまっすぐな直線になります。", formula: raw`$y = ax + b$` },
+    { term: "傾き", reading: "かたむき", field: "方程式・関数", def: "一次関数のグラフの傾き具合。a の値で決まり、x が1増えたときの y の増え方を表します。", formula: "" },
+    { term: "切片", reading: "せっぺん", field: "方程式・関数", def: "グラフが y 軸と交わる点の y 座標。y＝ax＋b の b が切片です。", formula: "" },
+    { term: "比例", reading: "ひれい", field: "方程式・関数", def: "y が x に比例する関係。x が2倍・3倍になると y も2倍・3倍になります。", formula: raw`$y = ax$` },
+    { term: "比例定数", reading: "ひれいていすう", field: "方程式・関数", def: "比例 y＝ax や反比例 y＝a/x の a のこと。関係の「倍率」を決める数です。", formula: "" },
+    { term: "反比例", reading: "はんぴれい", field: "方程式・関数", def: "x が2倍になると y が半分になる関係。グラフは双曲線になります。", formula: raw`$y = \frac{a}{x}$` },
+    { term: "2次方程式", reading: "にじほうていしき", field: "方程式・関数", def: "x² を含む方程式。解は最大で2つあり、解の公式や因数分解で求めます。", formula: "" },
+    { term: "放物線", reading: "ほうぶつせん", field: "方程式・関数", def: "2次関数のグラフの形。ボールを斜めに投げたときの軌道と同じカーブです。", formula: "" },
+    { term: "軸", reading: "じく", field: "方程式・関数", def: "放物線を左右対称に分ける直線。頂点を通ります。", formula: "" },
+    { term: "最大値・最小値", reading: "さいだいち・さいしょうち", field: "方程式・関数", def: "関数の y の値のうち最も大きいもの（最大値）と、最も小さいもの（最小値）。", formula: "" },
+    { term: "斜辺", reading: "しゃへん", field: "図形", def: "直角三角形で、直角の向かい側にあるいちばん長い辺。", formula: "" },
+    { term: "sin", reading: "さいん", field: "図形", def: "直角三角形の辺の比の1つ。sinθ は「角度の向かいの辺 ÷ 斜辺」で、角度が決まれば値が決まります。", formula: "" },
+    { term: "cos", reading: "こさいん", field: "図形", def: "直角三角形の辺の比の1つ。cosθ は「角度に隣り合う辺 ÷ 斜辺」です。", formula: "" },
+    { term: "tan", reading: "たんじぇんと", field: "図形", def: "直角三角形の辺の比の1つ。tanθ は「向かいの辺 ÷ 隣り合う辺」で、坂の傾きを表します。", formula: "" },
+    { term: "外接円", reading: "がいせつえん", field: "図形", def: "三角形の3つの頂点をすべて通る円。その半径が正弦定理の R です。", formula: "" },
+    { term: "確率", reading: "かくりつ", field: "確率・場合の数", def: "あることが起こりやすさの割合。「その場合の数 ÷ 全体の場合の数」で求めます。", formula: "" },
+    { term: "同様に確からしい", reading: "どうようにたからしい", field: "確率・場合の数", def: "どの結果も同じくらい起こりやすいこと。確率を場合の数で計算できる前提になります。", formula: "" },
+    { term: "nPr", reading: "えぬぴーあーる", field: "確率・場合の数", def: "順列を表す記号。n 個から r 個を取り出して並べる場合の数です。", formula: "" },
+    { term: "nCr", reading: "えぬしーあーる", field: "確率・場合の数", def: "組合せを表す記号。n 個から r 個を選ぶ場合の数です。", formula: "" },
+    { term: "和事象", reading: "わじしょう", field: "確率・場合の数", def: "「AまたはB」が起こる事象。確率は、重なる部分（積事象）を引き忘れないのがポイントです。", formula: "" },
+    { term: "累乗", reading: "るいじょう", field: "微分・積分", def: "同じ数を何回もかける計算。a³ は a を3回かけたものです。", formula: "" },
+    { term: "指数法則", reading: "しすうほうそく", field: "微分・積分", def: "累乗どうしの計算ルール。同じ底のかけ算は、指数の足し算になります。", formula: raw`$a^m \times a^n = a^{m + n}$` },
+    { term: "負の指数", reading: "ふのしすう", field: "微分・積分", def: "指数が負の数の累乗。a⁻¹ は 1/a（逆数）を表します。", formula: raw`$a^{-1} = \frac{1}{a}$` },
+    { term: "底", reading: "てい", field: "微分・積分", def: "対数 log の下に小さく書く数。「何を何乗するか」のもとになる数です。", formula: "" },
+    { term: "真数", reading: "しんすう", field: "微分・積分", def: "対数 log の後ろに書く数。「何乗した結果か」を表す数で、正の数でなければなりません。", formula: "" },
+    { term: "初項", reading: "しょこう", field: "数列", def: "数列の最初の項。a₁ と書きます。", formula: "" },
+    { term: "公差", reading: "こうさ", field: "数列", def: "等差数列で、隣り合う項どうしの差（つねに一定の値）。", formula: "" },
+    { term: "公比", reading: "こうひ", field: "数列", def: "等比数列で、隣り合う項どうしの比（つねに一定の値）。", formula: "" },
+    { term: "微分係数", reading: "びぶんけいすう", field: "微分・積分", def: "ある1点で微分した値。その点での接線の傾きに等しくなります。", formula: "" },
+    { term: "極大・極小", reading: "きょくだい・きょくしょう", field: "微分・積分", def: "グラフが山の頂上（極大）や谷底（極小）になる点のこと。増減が切り替わる場所です。", formula: "" },
+    { term: "増減", reading: "ぞうげん", field: "微分・積分", def: "関数の値が増えているか減っているか。導関数の符号で判定できます。", formula: "" },
+    { term: "不定積分", reading: "ふていせきぶん", field: "微分・積分", def: "微分の逆の計算。導関数から元の関数を復元します。", formula: "" },
+    { term: "原始関数", reading: "げんしかんすう", field: "微分・積分", def: "微分すると元の関数になる関数。不定積分の答えにあたります。", formula: "" },
+    { term: "成分", reading: "せいぶん", field: "微分・積分", def: "ベクトルを x 方向と y 方向に分けて表した数。(2, 3) のように書きます。", formula: "" },
+    { term: "虚数単位 i", reading: "きょすうたんい あい", field: "微分・積分", def: "2乗すると −1 になる数 i。これを使うと、負の数の平方根も表せるようになります。", formula: raw`$i^2 = -1$` },
+    { term: "共役複素数", reading: "きょうやくふくそすう", field: "微分・積分", def: "a＋bi の虚部の符号を変えた a−bi のこと。もとの数とかけると実数になります。", formula: "" },
+    { term: "実部・虚部", reading: "じつぶ・きょぶ", field: "微分・積分", def: "複素数 a＋bi のうち、a が実部、b が虚部です。", formula: "" },
+    { term: "独立試行", reading: "どくりつしこう", field: "確率・場合の数", def: "前の結果が次の結果に影響しない試行の繰り返し。コイン投げやサイコロが代表例です。", formula: "" },
+    { term: "大きさ", reading: "おおきさ", field: "微分・積分", def: "ベクトルの長さのこと。成分が (a, b) のベクトルの大きさは √(a²＋b²) で求めます。", formula: "" }
   ];
   const MATH_WORD_FIELDS = ["すべて", "数と式", "方程式・関数", "図形", "確率・場合の数", "数列", "微分・積分"];
 
@@ -5749,7 +5822,58 @@ const EXTRA_QUESTIONS = {
     { term: "高分子化合物", reading: "こうぶんしかごうぶつ", field: "有機と身のまわり", def: "小さな分子がたくさんつながってできた巨大な分子。プラスチック、ゴム、タンパク質などが含まれます。", formula: "" },
     { term: "触媒", reading: "しょくばい", field: "有機と身のまわり", def: "自分は変化せず、化学反応の速さを変える物質。自動車の排ガス浄化や、体内の酵素が身近な例です。", formula: "" },
     { term: "化学平衡", reading: "かがくへいこう", field: "有機と身のまわり", def: "進む反応と戻る反応の速さが等しくなり、見かけ上変化が止まった状態。条件を変えると釣り合いが移動します（ルシャトリエの原理）。", formula: "" },
-    { term: "イオン化傾向", reading: "いおんかけいこう", field: "有機と身のまわり", def: "金属がイオンになりやすい順序のこと。大きい金属ほど酸と反応しやすく、電池の仕組みの基礎になります。", formula: "" }
+    { term: "イオン化傾向", reading: "いおんかけいこう", field: "有機と身のまわり", def: "金属がイオンになりやすい順序のこと。大きい金属ほど酸と反応しやすく、電池の仕組みの基礎になります。", formula: "" },
+    { term: "原子番号", reading: "げんしばんごう", field: "物質の構成", def: "原子核の中にある陽子の数。元素の種類はこの数で決まります。", formula: "" },
+    { term: "質量数", reading: "しつりょうすう", field: "物質の構成", def: "陽子の数と中性子の数の合計。原子の重さの目安になります。", formula: raw`$A = Z + N$` },
+    { term: "族", reading: "ぞく", field: "物質の構成", def: "周期表の縦の列。同じ族の元素は似た性質を持ちます。", formula: "" },
+    { term: "周期", reading: "しゅうき", field: "物質の構成", def: "周期表の横の行。行が下がるほど、電子が入る殻が増えます。", formula: "" },
+    { term: "アルカリ金属", reading: "あるかりきんぞく", field: "物質の構成", def: "周期表の1族の金属（水素を除く）。Li、Na、K など、水と激しく反応します。", formula: "" },
+    { term: "イオン式", reading: "いおんしき", field: "物質の構成", def: "イオンを表す式。Na⁺ や Cl⁻ のように、電荷を右上に書きます。", formula: "" },
+    { term: "化学式", reading: "かがくしき", field: "物質の構成", def: "物質を元素記号で表した式。H₂O、CO₂ などがあります。", formula: "" },
+    { term: "価数", reading: "かすう", field: "物質の構成", def: "イオンが持つ電荷の大きさ。Na⁺ は1価、Ca²⁺ は2価です。", formula: "" },
+    { term: "極性分子", reading: "きょくせいぶんし", field: "物質の構成", def: "分子の中で電気の偏りがある分子。水が代表で、油と混ざりにくい原因になります。", formula: "" },
+    { term: "水素結合", reading: "すいそけつごう", field: "物質の構成", def: "水素を介して分子どうしが引き合う、弱い結びつき。水の沸点が高い理由の1つです。", formula: "" },
+    { term: "電気陰性度", reading: "でんきいんせいど", field: "物質の構成", def: "原子が電子を引きつける強さの尺度。結合の極性を考える手がかりになります。", formula: "" },
+    { term: "係数", reading: "けいすう", field: "物質量と反応式", def: "反応式で化学式の前につける数。反応する物質の比（モル比）を表します。", formula: "" },
+    { term: "モル", reading: "もる", field: "物質量と反応式", def: "物質の量を数える単位。粒子 6.0×10²³ 個をひとまとめにして 1 モルといいます。", formula: "" },
+    { term: "物質量", reading: "ぶっしつりょう", field: "物質量と反応式", def: "モルで表した物質の量。化学の計算の中心になる量です。", formula: "" },
+    { term: "アボガドロ数", reading: "あぼがどろすう", field: "物質量と反応式", def: "1 モルあたりの粒子の数。約 6.0×10²³ 個です。", formula: raw`$N_A = 6.0 \times 10^{23}$` },
+    { term: "原子量", reading: "げんしりょう", field: "物質量と反応式", def: "原子の質量の目安を表す数。周期表に載っていて、モル質量の計算に使います。", formula: "" },
+    { term: "分子量", reading: "ぶんしりょう", field: "物質量と反応式", def: "分子を構成する原子の原子量の合計。水 H₂O なら 1×2＋16＝18 です。", formula: "" },
+    { term: "モル体積", reading: "もるたいせき", field: "物質量と反応式", def: "気体 1 モルの体積。標準状態では、どんな気体でも約 22.4 L です。", formula: "" },
+    { term: "標準状態", reading: "ひょうじゅんじょうたい", field: "物質量と反応式", def: "0℃・1気圧の状態。気体の体積を比べるときの基準になります。", formula: "" },
+    { term: "モル比", reading: "もるひ", field: "物質量と反応式", def: "反応式の係数の比。反応する物質どうしの物質量の比と等しくなります。", formula: "" },
+    { term: "還元剤", reading: "かんげんざい", field: "酸化還元", def: "相手を還元して、自分は酸化される物質。", formula: "" },
+    { term: "半反応式", reading: "はんはんのうしき", field: "酸化還元", def: "酸化・還元を電子のやり取りで表した式。2つ組み合わせると全体の反応式になります。", formula: "" },
+    { term: "活性化エネルギー", reading: "かっせいかえねるぎー", field: "有機と身のまわり", def: "反応が始まるために越えなければならないエネルギーの山。触媒はこの山を低くします。", formula: "" },
+    { term: "ルシャトリエの原理", reading: "るしゃとりえのげんり", field: "有機と身のまわり", def: "平衡状態で条件を変えると、その変化を打ち消す方向に平衡が移動するという原理。", formula: "" },
+    { term: "発熱反応", reading: "はつねつはんのう", field: "有機と身のまわり", def: "熱を出しながら進む反応。燃焼が代表例です。", formula: "" },
+    { term: "吸熱反応", reading: "きゅうねつはんのう", field: "有機と身のまわり", def: "周りから熱を吸収しながら進む反応。瞬間冷却パックに利用されています。", formula: "" },
+    { term: "電解質", reading: "でんかいしつ", field: "酸と塩基", def: "水に溶けると電離して、電気を通すようになる物質。食塩や塩酸などです。", formula: "" },
+    { term: "絶対温度", reading: "ぜったいおんど", field: "気体と溶液", def: "分子の運動が止まる温度を 0 とする温度の表し方。単位は K（ケルビン）で、℃に 273 を足して換算します。", formula: raw`$T = t + 273$` },
+    { term: "状態変化", reading: "じょうたいへんか", field: "気体と溶液", def: "固体・液体・気体の間で姿が変わること。物質そのものは変わりません。", formula: "" },
+    { term: "再結晶", reading: "さいけっしょう", field: "気体と溶液", def: "溶かした物質を冷やすなどして、結晶として取り出し直す方法。不純物を取り除けます。", formula: "" },
+    { term: "溶質", reading: "ようしつ", field: "気体と溶液", def: "溶液に溶けている物質。食塩水では食塩が溶質です。", formula: "" },
+    { term: "溶液", reading: "ようえき", field: "気体と溶液", def: "物質が溶けて均一になった液体全体。食塩水では、食塩水全体が溶液です。", formula: "" },
+    { term: "希釈", reading: "きしゃく", field: "気体と溶液", def: "濃い溶液に水を加えて薄めること。溶質の物質量は変わりません。", formula: "" },
+    { term: "水上置換", reading: "すいじょうちかん", field: "気体と溶液", def: "水に溶けにくい気体を、水の中で集める方法。酸素の収集などに使います。", formula: "" },
+    { term: "上方置換", reading: "じょうほうちかん", field: "気体と溶液", def: "空気より軽い気体を、容器の口を下にして集める方法。", formula: "" },
+    { term: "下方置換", reading: "かほうちかん", field: "気体と溶液", def: "空気より重い気体を、容器の底にためて集める方法。二酸化炭素の収集などに使います。", formula: "" },
+    { term: "陰極", reading: "いんきょく", field: "酸化還元", def: "電気分解で電源の負極につないだ電極。陽イオンが集まります。", formula: "" },
+    { term: "陽極", reading: "ようきょく", field: "酸化還元", def: "電気分解で電源の正極につないだ電極。陰イオンが集まります。", formula: "" },
+    { term: "正極", reading: "せいきょく", field: "酸化還元", def: "電池の＋側の電極。", formula: "" },
+    { term: "負極", reading: "ふきょく", field: "酸化還元", def: "電池の−側の電極。電子を出す側です。", formula: "" },
+    { term: "ダニエル電池", reading: "だにえるでんち", field: "酸化還元", def: "亜鉛と銅、2種類の金属とその水溶液を組み合わせた代表的な電池。", formula: "" },
+    { term: "ファラデー定数", reading: "ふぁらでーていすう", field: "酸化還元", def: "電子 1 モルが持つ電気量。約 9.65×10⁴ C/mol です。", formula: "" },
+    { term: "アルカン", reading: "あるかん", field: "有機と身のまわり", def: "炭素どうしがすべて単結合でつながった炭化水素。メタンやプロパンなどです。", formula: raw`$\mathrm{C}_n\mathrm{H}_{2n + 2}$` },
+    { term: "アルケン", reading: "あるけん", field: "有機と身のまわり", def: "炭素どうしの二重結合を1つ持つ炭化水素。エチレンなどです。", formula: "" },
+    { term: "アルコール", reading: "あるこーる", field: "有機と身のまわり", def: "−OH（ヒドロキシ基）を持つ有機化合物。エタノールが代表例です。", formula: "" },
+    { term: "カルボン酸", reading: "かるぼんさん", field: "有機と身のまわり", def: "−COOH（カルボキシ基）を持つ有機化合物。酢酸（お酢の成分）などです。", formula: "" },
+    { term: "単量体", reading: "たんりょうたい", field: "有機と身のまわり", def: "高分子を作る小さな単位の分子。モノマーともいいます。", formula: "" },
+    { term: "重合", reading: "じゅうごう", field: "有機と身のまわり", def: "単量体がたくさんつながって高分子ができる反応。", formula: "" },
+    { term: "付加重合・縮合重合", reading: "ふかじゅうごう・しゅくごうじゅうごう", field: "有機と身のまわり", def: "付加重合は単量体がそのままつながる重合、縮合重合は小さな分子が取れながらつながる重合です。", formula: "" },
+    { term: "さび", reading: "さび", field: "有機と身のまわり", def: "金属が空気や水と反応してできる酸化物。鉄さびは、鉄がゆっくり酸化されてできます。", formula: "" },
+    { term: "製錬", reading: "せいれん", field: "有機と身のまわり", def: "鉱石から金属を取り出すこと。酸化物の金属を還元する方法がよく使われます。", formula: "" }
   ];
   const CHEM_WORD_FIELDS = ["すべて", "物質の構成", "物質量と反応式", "酸と塩基", "酸化還元", "気体と溶液", "有機と身のまわり"];
 
