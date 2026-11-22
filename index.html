@@ -102,6 +102,9 @@
       cursor: pointer; font-family: var(--font-sans); display: inline-flex; align-items: center; gap: 4px;
     }
     .stat-btn:hover { border-color: var(--blue); }
+    button.stat-pill { font-family: var(--font-sans); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    button.stat-pill:hover { border-color: var(--blue); }
+    button.stat-pill:active { transform: scale(0.95); }
 
     /* Main Layout */
     .container {
@@ -449,15 +452,20 @@
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Update notice (アップデート後の初回起動時だけタイトル画面に出す小さなお知らせ) */
+    /* Update notice (アップデート後の初回起動時だけ、タイトル画面の「タップしてスタート」の下に出す小さなお知らせ) */
     .update-notice {
-      position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
-      z-index: 210; width: max-content; max-width: 92vw;
+      position: relative; z-index: 5;
+      width: fit-content; max-width: calc(100% - 16px); box-sizing: border-box;
+      margin: 20px auto 0; text-align: left; overflow-wrap: anywhere;
       background: var(--bg-card); color: var(--text-main);
       border: 2px solid var(--border); border-radius: 14px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.18);
       padding: 9px 36px 9px 14px; cursor: pointer;
-      animation: toastIn 0.3s ease both;
+      animation: updateNoticeIn 0.3s ease both;
+    }
+    @keyframes updateNoticeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .update-notice .un-main { font-size: 13.5px; font-weight: 900; }
     .update-notice .un-ver { font-size: 11.5px; font-weight: 800; color: var(--text-muted); }
@@ -466,7 +474,7 @@
       position: absolute; top: 4px; right: 6px; border: none; background: none;
       font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 4px; line-height: 1;
     }
-    .update-notice.hide { opacity: 0; transform: translateX(-50%) translateY(-8px); transition: opacity 0.35s, transform 0.35s; }
+    .update-notice.hide { opacity: 0; transform: translateY(-8px); transition: opacity 0.35s, transform 0.35s; }
 
     /* XP Shop */
     .shop-item {
@@ -800,11 +808,11 @@
         <span>PhysiQ</span>
       </button>
       <div class="hud-stats">
-        <span class="stat-pill stat-streak" id="hudStreakPill" title="連続学習日数（全教科共通）">🔥 <span id="hudStreak">0</span>日</span>
-        <span class="stat-pill stat-xp" title="獲得XP">⚡ <span id="hudXp">0</span></span>
+        <button type="button" class="stat-pill stat-streak" id="hudStreakPill" title="連続学習日数（全教科共通）・タップでデータ画面へ">🔥 <span id="hudStreak">0</span>日</button>
+        <button type="button" class="stat-pill stat-xp" id="hudXpPill" title="獲得XP・タップでショップへ">⚡ <span id="hudXp">0</span></button>
         <button id="shopBtnHeader" class="stat-btn" title="XPショップ">🛒</button>
         <button id="soundBtn" class="stat-btn" title="効果音 ON/OFF">🔊</button>
-        <button id="accountBtn" class="stat-btn" title="プロフィール・設定"><span id="hudAvatar">🚀</span> <span id="hudName">ゲスト</span></button>
+        <button id="settingsBtn" class="stat-btn" title="設定">⚙️</button>
       </div>
     </div>
   </header>
@@ -4519,14 +4527,12 @@ const EXTRA_QUESTIONS = {
     const pill = document.getElementById("hudStreakPill");
     if (acc.id === "guest") {
       pill.innerHTML = "🔒 アカウント限定";
-      pill.title = "ストリークはアカウント作成で使えるようになります";
+      pill.title = "ストリークはアカウント作成で使えるようになります・タップでデータ画面へ";
     } else {
       pill.innerHTML = `🔥 <span id="hudStreak">${acc.streak}</span>日`;
-      pill.title = "連続学習日数（全教科共通）";
+      pill.title = "連続学習日数（全教科共通）・タップでデータ画面へ";
     }
     document.getElementById("hudXp").textContent = acc.xp;
-    document.getElementById("hudAvatar").textContent = acc.avatar;
-    document.getElementById("hudName").textContent = acc.name;
     document.getElementById("soundBtn").textContent = appData.sound ? "🔊" : "🔇";
   }
 
@@ -5054,7 +5060,6 @@ const EXTRA_QUESTIONS = {
       <div class="avatar-grid" style="margin:0 0 14px;">
         ${availAvatars.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-change-av="${a}">${a}</button>`).join("")}
       </div>
-      <button id="openSettingsBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:8px;">⚙️ 設定を開く</button>
       <div id="profileLoginState" style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;"></div>
       <div style="font-weight:800; font-size:13px; margin-bottom:8px;">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
       <div class="badge-grid">
@@ -5090,8 +5095,6 @@ const EXTRA_QUESTIONS = {
     if (loginState) {
       loginState.textContent = acc.loginId ? `🔑 サインイン用ID：${acc.loginId}（この端末でサインインできます）` : "🔑 サインイン用ID：未設定（設定画面からIDとパスワードを設定できます）";
     }
-    const settingsBtn = document.getElementById("openSettingsBtn");
-    if (settingsBtn) settingsBtn.addEventListener("click", () => { document.getElementById("accountModal").classList.remove("open"); openSettingsModal(); });
     const shopBtn = document.getElementById("profileShopBtn");
     if (shopBtn) {
       shopBtn.addEventListener("click", () => {
@@ -5122,16 +5125,16 @@ const EXTRA_QUESTIONS = {
     document.getElementById("accountModal").classList.add("open");
   }
 
-  document.getElementById("accountBtn").addEventListener("click", openAccountModal);
   document.getElementById("closeAccountModal").addEventListener("click", () => document.getElementById("accountModal").classList.remove("open"));
   document.getElementById("accountModal").addEventListener("click", (e) => { if (e.target.id === "accountModal") e.target.classList.remove("open"); });
 
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.9";
+  const APP_VERSION = "2026-11-22.10";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2026-11-22.10", title: "設定ボタンを追加し、ヘッダーの導線を整理しました", body: "ヘッダーに⚙️設定ボタンを追加し、プロフィールを経由せず直接設定を開けるようにしました。名前・アバターの変更、称号、実績バッジなどのプロフィールは設定画面の中にまとめています。ヘッダーのストリーク表示をタップするとデータ画面へ、XP表示をタップするとショップへ移動できるようになりました。ヘッダーのアカウントボタンは削除しました（アカウントの切り替え・作成・サインインは、タイトル画面のボタンと設定画面から開けます）。" },
     { date: "2026-11-22", version: "2026-11-22.9", title: "フレンドがサーバー共有になりました（リアルタイムでレース更新）", body: "フレンド機能がサーバー共有になりました。フレンドコードで追加した相手のXPはリアルタイムでランキングとXPレースに反映されます。コードはフレンド画面に表示される8文字のコードを相手に教えてください。これまでの手入力のフレンドは「ローカルフレンド」としてそのまま残ります。ゲストはサーバー共有の対象外です。" },
     { date: "2026-11-22", version: "2026-11-22.8", title: "アップデートのお知らせ表示を追加しました", body: "アップデート後の初回起動時に、タイトル画面で「アップデートしました」と小さくお知らせするようにしました。変更内容も1行で表示されます。タップするか、しばらく待つと消えます。" },
     { date: "2026-11-22", version: "2026-11-22.7", title: "ダークモードでキーワード解説が見えない問題を修正", body: "ダークモードのとき、ステージ解説のキーワードカードの文字が背景と同化して見えなくなっていた問題を直しました。教科書の例題ボックスとXPレースのカードも、ダークモードで読みやすい色にしました。" },
@@ -5157,7 +5160,7 @@ const EXTRA_QUESTIONS = {
     const brand = document.getElementById("brandIconImg"); if (brand) brand.src = src180;
     const logo = document.getElementById("titleLogoImg"); if (logo) logo.src = src512;
   }
-  // アップデート後の初回起動時だけ、タイトル画面の上に小さくお知らせを出す。
+  // アップデート後の初回起動時だけ、タイトル画面の「タップしてスタート」の下に小さくお知らせを出す。
   // 数秒で自動で消え、タップでも消せる。出した時点で seenVersion は現行に更新済みなので次回は出ない。
   function showUpdateNotice() {
     if (document.getElementById("updateNotice")) return;
@@ -5170,7 +5173,13 @@ const EXTRA_QUESTIONS = {
       ${latest ? `<div class="un-note">${latest.title}</div>` : ""}
       <button class="un-close" aria-label="閉じる">✕</button>
     `;
-    document.body.appendChild(el);
+    // タイトル画面の「タップしてスタート」の真下に差し込む（無ければ画面末尾にフォールバック）
+    const titleStart = document.querySelector("#titleScreen .title-start");
+    if (titleStart && titleStart.parentNode) {
+      titleStart.parentNode.insertBefore(el, titleStart.nextSibling);
+    } else {
+      document.body.appendChild(el);
+    }
     const timer = setTimeout(dismiss, 7000);
     function dismiss() {
       clearTimeout(timer);
@@ -5178,7 +5187,8 @@ const EXTRA_QUESTIONS = {
       el.classList.add("hide");
       setTimeout(() => el.remove(), 400);
     }
-    el.addEventListener("click", dismiss);
+    // タイトル画面内に置くため、消すためのタップが「スタート」に伝わらないよう伝播を止める
+    el.addEventListener("click", (e) => { e.stopPropagation(); dismiss(); });
   }
   async function hashPassword(pw, salt) {
     try {
@@ -5294,7 +5304,47 @@ const EXTRA_QUESTIONS = {
     const exportCode = (() => {
       try { return btoa(unescape(encodeURIComponent(JSON.stringify(acc)))); } catch (e) { return ""; }
     })();
+    const pti = titleInfo(acc);
+    const escAttrS = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const availAvatarsS = BASE_AVATARS.concat(acc.unlockedAvatars.filter(a => !BASE_AVATARS.includes(a)));
     body.innerHTML = `
+      <div class="settings-section">
+      <div style="font-weight:800; font-size:14px; margin-bottom:8px;">👤 プロフィール</div>
+      <div class="profile-hero">
+        <div class="ph-avatar">${acc.avatar}</div>
+        <div>
+          <div class="ph-name">${acc.name}</div>
+          <div class="ph-title">${pti.cur.icon} ${pti.cur.name}</div>
+          <div class="ph-title">${pti.next ? `つぎの称号「${pti.next.icon} ${pti.next.name}」まで あと ${pti.next.xp - acc.xp} XP` : "最高ランク到達！🎉"}</div>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat"><div class="ps-value">⚡ ${acc.xp}</div><div class="ps-label">累計XP</div></div>
+        <div class="profile-stat"><div class="ps-value">🔥 ${acc.id === "guest" ? "―" : acc.streak + "日"}</div><div class="ps-label">ストリーク</div></div>
+        <div class="profile-stat"><div class="ps-value">✅ ${acc.totalCorrect}問</div><div class="ps-label">累計正解</div></div>
+      </div>
+      <div style="font-size:12.5px; margin-bottom:10px;">🛒 使えるXP：<strong>⚡ ${acc.xpBalance} XP</strong>　｜　💡 ヒント ${acc.hintTickets} 枚　｜　🧊 フリーズ ${acc.streakFreezes} 個　｜　⚡ ブースト ${acc.xpBoost} 個</div>
+      ${acc.rareTitles.length ? `<div style="font-size:12.5px; margin-bottom:10px;">🎖️ レア称号：<strong>${acc.rareTitles.join(" ／ ")}</strong></div>` : ""}
+      <div style="font-weight:800; font-size:13px; margin-bottom:6px;">✏️ 名前とアバター</div>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <input id="settingsNameInput" class="text-input" type="text" maxlength="16" value="${escAttrS(acc.name)}" style="flex:1;" />
+        <button id="settingsNameSaveBtn" class="btn-3d btn-blue" style="min-height:44px; padding:8px 16px; flex:none;">保存</button>
+      </div>
+      <div class="avatar-grid" style="margin:0 0 14px;">
+        ${availAvatarsS.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-set-change-av="${a}">${a}</button>`).join("")}
+      </div>
+      <div style="font-weight:800; font-size:13px; margin-bottom:8px;">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
+      <div class="badge-grid" style="margin-bottom:14px;">
+        ${BADGES.map(b => `
+          <div class="badge-item ${acc.badges[b.id] ? "earned" : ""}">
+            <div class="b-icon">${b.icon}</div>
+            <div class="b-name">${b.name}</div>
+            <div class="b-desc">${acc.badges[b.id] ? "達成！ " + acc.badges[b.id] : b.desc}</div>
+          </div>`).join("")}
+      </div>
+      <button id="settingsOpenAccountBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:16px;">👤 アカウントの切り替え・作成・サインイン</button>
+      </div>
+
       <div class="settings-section">
       <div style="font-weight:800; font-size:14px; margin-bottom:8px;">🖥️ 表示</div>
       <div style="margin-bottom:16px;">
@@ -5400,6 +5450,24 @@ const EXTRA_QUESTIONS = {
       </div>` : ""}
       </div>
     `;
+    const setNameSaveBtn = body.querySelector("#settingsNameSaveBtn");
+    if (setNameSaveBtn) setNameSaveBtn.addEventListener("click", () => {
+      const v = body.querySelector("#settingsNameInput").value.trim();
+      if (!v) { showToast("名前を入力してください"); return; }
+      curAcc().name = v;
+      saveData();
+      updateHUD();
+      renderSettings();
+      showToast("✏️ ユーザー名を変更しました");
+    });
+    body.querySelectorAll("[data-set-change-av]").forEach(b => b.addEventListener("click", () => {
+      curAcc().avatar = b.getAttribute("data-set-change-av");
+      saveData();
+      updateHUD();
+      renderSettings();
+    }));
+    const setOpenAccBtn = body.querySelector("#settingsOpenAccountBtn");
+    if (setOpenAccBtn) setOpenAccBtn.addEventListener("click", () => { closeAuthModals(); openAccountModal(); });
     const dmT = body.querySelector("#setDarkToggle");
     if (dmT) dmT.addEventListener("click", () => { const a = curAcc(); a.darkMode = !a.darkMode; saveData(); applyAppearance(); renderSettings(); });
     const sndT = body.querySelector("#setSoundToggle");
@@ -5838,6 +5906,15 @@ const EXTRA_QUESTIONS = {
   });
   const headerShopBtn = document.getElementById("shopBtnHeader");
   if (headerShopBtn) headerShopBtn.addEventListener("click", () => { session = null; renderShop(); });
+  // ヘッダーの⚙️ボタン：プロフィールを経由せず直接設定画面を開く
+  const headerSettingsBtn = document.getElementById("settingsBtn");
+  if (headerSettingsBtn) headerSettingsBtn.addEventListener("click", () => openSettingsModal());
+  // ヘッダーのストリーク表示タップでデータタブへ
+  const streakPillBtn = document.getElementById("hudStreakPill");
+  if (streakPillBtn) streakPillBtn.addEventListener("click", () => { if (appStarted) switchTab("data"); });
+  // ヘッダーのXP表示タップでショップへ
+  const xpPillBtn = document.getElementById("hudXpPill");
+  if (xpPillBtn) xpPillBtn.addEventListener("click", () => { session = null; renderShop(); });
   // ヘッダーのPhysiQロゴ・名前をタップしても科目選択へ（「科目を変える」ボタンと同じ）
   const brandHomeBtn = document.getElementById("brandHomeBtn");
   if (brandHomeBtn) brandHomeBtn.addEventListener("click", () => { session = null; renderSubjectSelect(); });
