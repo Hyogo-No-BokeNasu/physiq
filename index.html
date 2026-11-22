@@ -276,6 +276,33 @@
       padding: 24px 22px; box-shadow: 0 24px 50px rgba(0,0,0,0.28);
       max-height: 90vh; max-height: 90dvh; overflow-y: auto;
     }
+    /* Loading overlay (演出としての読み込み中画面。タップでは閉じない) */
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 300; background: var(--bg-app);
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px; text-align: center; opacity: 1; transition: opacity 0.3s ease;
+    }
+    .loading-overlay.show { display: flex; }
+    .loading-overlay.closing { opacity: 0; }
+    .loading-logo {
+      width: 96px; height: 96px; border-radius: 24px; display: block;
+      box-shadow: 0 10px 28px rgba(37,99,235,.28);
+      animation: pqSpin 1.1s linear infinite;
+    }
+    @keyframes pqSpin { to { transform: rotate(360deg); } }
+    @keyframes pqBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .loading-text { margin-top: 20px; font-size: 16px; font-weight: 800; color: var(--text-main); letter-spacing: 2px; }
+    .loading-tip {
+      position: absolute; left: 20px; right: 20px; bottom: calc(26px + env(safe-area-inset-bottom));
+      max-width: 520px; margin: 0 auto; background: var(--bg-card); border: 1.5px solid var(--border);
+      border-radius: 16px; padding: 12px 16px; box-shadow: var(--shadow-lift);
+    }
+    .loading-tip-cat { font-size: 11px; font-weight: 800; color: var(--blue); letter-spacing: 1px; margin-bottom: 3px; }
+    .loading-tip-text { font-size: 13.5px; font-weight: 600; color: var(--text-muted); line-height: 1.65; }
+    @media (prefers-reduced-motion: reduce) {
+      .loading-logo { animation: pqBlink 1.6s ease-in-out infinite; }
+    }
+
     .avatar-grid { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 16px; }
     .avatar-opt {
       width: 44px; height: 44px; border-radius: var(--radius-s); border: 2px solid var(--border);
@@ -1148,6 +1175,25 @@
       <button id="closeSettingsModal" class="stat-btn">✕</button>
     </div>
     <div id="settingsBody"></div>
+  </div>
+</div>
+
+<!-- Stage Confirm Modal -->
+<div id="stageConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div id="stageConfirmBody"></div>
+    <button id="stageConfirmStartBtn" class="btn-3d btn-green" style="width:100%;">▶ 始める</button>
+    <button id="stageConfirmCancelBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:8px;">やめる</button>
+  </div>
+</div>
+
+<!-- Loading Overlay (演出としての読み込み中画面) -->
+<div id="loadingOverlay" class="loading-overlay show" role="status" aria-label="読み込み中">
+  <img id="loadingLogoImg" class="loading-logo" src="./icon-512.png?v=20261122" alt="PhysiQ" />
+  <div class="loading-text">読み込み中…</div>
+  <div class="loading-tip">
+    <div id="loadingTipCat" class="loading-tip-cat">雑学</div>
+    <div id="loadingTipText" class="loading-tip-text">光の速さは秒速約30万km。地球を1秒に7周半できる。</div>
   </div>
 </div>
 
@@ -6935,18 +6981,112 @@ const EXTRA_QUESTIONS = {
     main.querySelectorAll(".stage-node").forEach(btn => {
       btn.addEventListener("click", () => {
         const idx = Number(btn.getAttribute("data-st-idx"));
-        if (isStageUnlocked(curAcc(), idx)) renderStageIntro(idx);
+        if (isStageUnlocked(curAcc(), idx)) openStageConfirm(idx);
       });
     });
     main.querySelectorAll(".intro-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const idx = Number(btn.getAttribute("data-intro-idx"));
-        if (isStageUnlocked(curAcc(), idx)) renderStageIntro(idx);
+        if (isStageUnlocked(curAcc(), idx)) {
+          // 解説がある科目は解説画面を直接開く。解説がない科目はこのボタンが実質スタートになるため、確認モーダルを経由する
+          const st = STAGES[idx];
+          const hasIntro = st.intro && (st.intro.what || (st.intro.terms || []).length > 0 || (st.intro.points || []).length > 0 || st.intro.formula);
+          if (hasIntro) renderStageIntro(idx); else openStageConfirm(idx);
+        }
       });
     });
   }
 
+
+  // ===== ステージ選択時の確認モーダル =====
+  let stageConfirmIdx = -1;
+  function openStageConfirm(stageIdx) {
+    const st = STAGES[stageIdx];
+    if (!st) return;
+    stageConfirmIdx = stageIdx;
+    const acc = curAcc();
+    const stars = acc.stars[st.id] || 0;
+    const body = document.getElementById("stageConfirmBody");
+    if (body) {
+      body.innerHTML = `
+        <div style="font-size:12px; font-weight:800; color:${st.color}; margin-bottom:4px;">STAGE ${st.num}${st.challenge ? "　🔥 難問チャレンジ" : ""}</div>
+        <div style="font-size:17px; font-weight:800; line-height:1.55; margin-bottom:10px;">ステージ${st.num}『${st.title}』を選択しますか？</div>
+        <div style="font-size:13.5px; color:var(--text-muted); line-height:1.8; margin-bottom:16px;">
+          ${st.icon} ${st.sub}<br>
+          📝 全${st.questions.length}問
+          ${stars > 0 ? `<br><span class="stage-stars" style="font-size:15px;">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</span> クリア済み` : ""}
+        </div>
+      `;
+    }
+    const modal = document.getElementById("stageConfirmModal");
+    if (modal) modal.classList.add("open");
+  }
+  function closeStageConfirm() {
+    const modal = document.getElementById("stageConfirmModal");
+    if (modal) modal.classList.remove("open");
+  }
+  document.getElementById("stageConfirmStartBtn").addEventListener("click", () => {
+    const idx = stageConfirmIdx;
+    closeStageConfirm();
+    if (idx >= 0) showLoadingScreen(() => renderStageIntro(idx));
+  });
+  document.getElementById("stageConfirmCancelBtn").addEventListener("click", closeStageConfirm);
+  document.getElementById("stageConfirmModal").addEventListener("click", (e) => {
+    if (e.target.id === "stageConfirmModal") closeStageConfirm();
+  });
+
+  // ===== 読み込み中画面（演出。実際の読み込みが速くても約2.5秒見せる。タップでは閉じない） =====
+  const LOADING_DURATION_MS = 2500;
+  const LOADING_TIPS = [
+    { cat: "雑学", text: "光の速さは秒速約30万km。地球を1秒に7周半できる。" },
+    { cat: "雑学", text: "水が氷になると体積が増える、珍しい物質。だから氷は水に浮く。" },
+    { cat: "雑学", text: "英語で最もよく使われる文字は「e」。" },
+    { cat: "雑学", text: "元素記号 Fe は、ラテン語の ferrum（鉄）から来ている。" },
+    { cat: "雑学", text: "音の速さは空気中で秒速約340m。花火の音が遅れて聞こえるのはこのため。" },
+    { cat: "雑学", text: "0はインドで生まれ、アラビアを経て世界に広まった。" },
+    { cat: "雑学", text: "蜂蜜は腐らない。3000年前のものが食べられる状態で見つかったこともある。" },
+    { cat: "雑学", text: "「先生」という言葉は「先に生まれた人」が語源。" },
+    { cat: "コラム", text: "間違えた問題は、その日のうちにもう一度見ると定着しやすい。" },
+    { cat: "コラム", text: "勉強は「始めるまで」が一番重い。まず1問だけ解いてみよう。" },
+    { cat: "コラム", text: "解説は「読む」より「自分の言葉で言い直す」と効く。" },
+    { cat: "コラム", text: "単語は「見る」回数より「思い出す」回数で覚える。" },
+    { cat: "製作日記", text: "開発日誌：このアプリは最初、物理だけのクイズだった。" },
+    { cat: "製作日記", text: "開発日誌：名前を PhysiQ に決めたのは2026年11月21日。" },
+    { cat: "製作日記", text: "開発日誌：英語と国語の問題は、全問を一度解いてから収録している。" },
+    { cat: "製作日記", text: "開発日誌：テーマカラーは全部無料。色に課金要素はいらないと思ったから。" },
+    { cat: "製作日記", text: "開発日誌：この読み込み画面は、実は演出。待っている間も楽しんでほしい。" },
+    { cat: "製作日記", text: "開発日誌：問題の「答え合わせ」ボタンは、押し間違い対策で生まれた。" }
+  ];
+  let lastTipIdx = -1;
+  let loadingTimer = null;
+  function showLoadingScreen(onDone) {
+    const ov = document.getElementById("loadingOverlay");
+    if (!ov) { if (onDone) onDone(); return; }
+    // 直前に表示した読み物とは違うものを選ぶ
+    let i = Math.floor(Math.random() * LOADING_TIPS.length);
+    if (LOADING_TIPS.length > 1) {
+      while (i === lastTipIdx) i = Math.floor(Math.random() * LOADING_TIPS.length);
+    }
+    lastTipIdx = i;
+    const tip = LOADING_TIPS[i];
+    const catEl = document.getElementById("loadingTipCat");
+    const textEl = document.getElementById("loadingTipText");
+    if (catEl) catEl.textContent = tip.cat;
+    if (textEl) textEl.textContent = tip.text;
+    const logo = document.getElementById("loadingLogoImg");
+    if (logo) logo.src = appIconSrc(512);
+    if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
+    ov.classList.remove("closing");
+    ov.classList.add("show");
+    // タップでは閉じない。必ず表示時間ぶん見せてから自動で閉じる
+    loadingTimer = setTimeout(() => {
+      loadingTimer = null;
+      ov.classList.add("closing");
+      setTimeout(() => { ov.classList.remove("show"); ov.classList.remove("closing"); }, 300);
+      if (onDone) onDone();
+    }, LOADING_DURATION_MS);
+  }
 
   // ===== ステージ開始前解説（イントロ）画面 =====
   function renderStageIntro(stageIdx) {
@@ -7592,9 +7732,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.1";
+  const APP_VERSION = "2.3.2";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2.3.2", title: "はじまりの演出が増えました", body: "アプリを開くときやステージを始めるときの時間が、少し楽しくなりました。待ち時間のおともになる、短い読みものも用意しました。" },
     { date: "2026-11-22", version: "2.3.1", title: "答えるときの操作が少し変わりました", body: "クイズの答え方が、少しだけ慎重に選べるようになりました。いつものように遊んでみてください。そのほか、細かいところも少し整えました。" },
     { date: "2026-11-22", version: "2.3.0", title: "新しい科目が増えました", body: "あたらしい科目が仲間入りしました。科目選択の画面を開いて、さっそく挑戦してみてください。" },
     { date: "2026-11-22", version: "2.2.0", title: "色が選べるようになりました", body: "アプリの色合いを、お好みに合わせて変えられるようになりました。設定を開いて、お気に入りの色を探してみてください。" },
@@ -9608,6 +9749,7 @@ const EXTRA_QUESTIONS = {
   if (appData.subject && SUBJECTS[appData.subject]) setSubject(appData.subject, true);
   applyAppIcon();
   renderTitleScreen();
+  showLoadingScreen(null); // 起動時の読み込み中画面（演出・約2.5秒。タイトル画面の上に重ね、終わるとタイトルが見える）
   // Firebase 連携の初期化（失敗してもアプリ本体は通常どおり動く）
   try { fbInit(); } catch (e) {}
   // フレンド追加モーダルの配線と、URL の ?friend= 取り込み
