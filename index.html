@@ -6086,9 +6086,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.1.2";
+  const APP_VERSION = "2.1.3";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2.1.3", title: "遊び心地がよくなりました", body: "細かいところの動きを、少し整えました。いつものように遊んでみてください。" },
     { date: "2026-11-22", version: "2.1.2", title: "遊び心地がよくなりました", body: "クイズを遊ぶときの流れが、少し軽やかになりました。いつものように遊んでみてください。そのほか、細かいところも少し整えました。" },
     { date: "2026-11-22", version: "2.1.1", title: "設定に新しい項目が増えました", body: "設定画面に新しい項目が増えました。お好みに合わせて切り替えられますので、設定を開いて探してみてください。そのほか、細かいところも少し整えました。" },
     { date: "2026-11-22", version: "2.1.0", title: "設定画面をiOS風のグループリストに刷新＆細かい不具合を修正", body: "設定画面を、角丸のカードに項目をまとめたiOS風のグループリストに整えました。見出しを大きくし、区切り線と余白のリズムをそろえたので、目的の項目が探しやすくなっています（配色は今までどおりです）。あわせて、結果画面のバナーがダークモードでも読みやすくなるよう色を調整し、名前の表示まわりの細かい不具合を直しました。バージョンの表記は、これまでの日付形式から「2.1.0」のような形式（セマンティックバージョン）に変更しました。はじめ方の選択画面に「ホームに戻る」ボタンを追加しました。" },
@@ -6463,11 +6464,11 @@ const EXTRA_QUESTIONS = {
     const setGuideBtn = body.querySelector("#settingsGuideBtn");
     if (setGuideBtn) setGuideBtn.addEventListener("click", () => { closeAuthModals(); renderGuide("settings"); });
     const dmT = body.querySelector("#setDarkToggle");
-    if (dmT) dmT.addEventListener("click", () => { const a = curAcc(); a.darkMode = !a.darkMode; if (!a.achv || typeof a.achv !== "object") a.achv = {}; if (a.darkMode) a.achv.dark = true; saveData(); applyAppearance(); renderSettings(); if (a.darkMode) checkBadges(); });
+    if (dmT) dmT.addEventListener("click", () => { const a = curAcc(); a.darkMode = !a.darkMode; if (!a.achv || typeof a.achv !== "object") a.achv = {}; if (a.darkMode) a.achv.dark = true; saveData(); applyAppearance(); dmT.classList.toggle("on", a.darkMode); if (a.darkMode) { checkBadges(); const bgEl = body.querySelector(".badge-grid"); if (bgEl) { bgEl.innerHTML = badgeGridHtml(a); const bhEl = bgEl.previousElementSibling; if (bhEl) bhEl.textContent = `🏆 実績バッジ（${BADGES.filter(b => a.badges[b.id]).length} / ${BADGES.length}）`; } } });
     const sndT = body.querySelector("#setSoundToggle");
-    if (sndT) sndT.addEventListener("click", () => { appData.sound = !appData.sound; saveData(); updateHUD(); renderSettings(); });
+    if (sndT) sndT.addEventListener("click", () => { appData.sound = !appData.sound; saveData(); updateHUD(); sndT.classList.toggle("on", appData.sound); });
     const heT = body.querySelector("#setHideExpToggle");
-    if (heT) heT.addEventListener("click", () => { const a = curAcc(); a.hideExpOnCorrect = !a.hideExpOnCorrect; saveData(); renderSettings(); });
+    if (heT) heT.addEventListener("click", () => { const a = curAcc(); a.hideExpOnCorrect = !a.hideExpOnCorrect; saveData(); heT.classList.toggle("on", a.hideExpOnCorrect); });
     body.querySelectorAll("[data-set-theme]").forEach(b => b.addEventListener("click", () => {
       const a = curAcc(); a.themeColor = b.getAttribute("data-set-theme"); saveData(); applyAppearance(); renderSettings();
     }));
