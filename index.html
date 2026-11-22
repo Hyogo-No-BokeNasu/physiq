@@ -7142,6 +7142,7 @@ const EXTRA_QUESTIONS = {
             const elim = session.eliminated.includes(i);
             if (elim) cls = "eliminated";
             if (qType === "multi" && !session.answered && session.selectedIdxs.includes(i)) cls = "selected";
+            if (qType === "single" && !session.answered && !elim && session.chosenIdx === i) cls = "selected";
             if (session.answered) {
               if (qType === "multi") {
                 if ((q.ans || []).includes(i)) cls = "correct";
@@ -7181,14 +7182,15 @@ const EXTRA_QUESTIONS = {
             <div style="font-size:12.5px; font-weight:700; color:var(--text-muted);">⏱ この問題：${typeof session.lastAnswerSec === "number" ? session.lastAnswerSec + "秒" : "—"}で回答</div>
             ${session.lastCorrect && acc.hideExpOnCorrect ? "" : `<div style="font-size:14px; color:var(--text-main);">${q.exp}</div>`}
             ${session.lastCorrect || curLessons().length === 0 ? "" : `<button id="bookReviewBtn" class="btn-3d btn-ghost" style="margin-top:6px;">📚 教科書で復習する</button>`}
-            <button id="nextQBtn" class="btn-3d ${session.lastCorrect ? "btn-green" : "btn-blue"}" style="margin-top:6px;">
-              ${session.qIdx + 1 < total ? "つぎの問題へ →" : "結果を見る 🏆"}
-            </button>
           </div>
           <div class="fb-next-bar">
             <button id="nextQBtnBar" class="btn-3d ${session.lastCorrect ? "btn-green" : "btn-blue"}">
               ${session.qIdx + 1 < total ? "つぎの問題へ →" : "結果を見る 🏆"}
             </button>
+          </div>
+        ` : qType === "single" ? `
+          <div class="fb-next-bar">
+            <button id="checkAnswerBtn" class="btn-3d btn-green" ${session.chosenIdx < 0 ? "disabled" : ""}>✔️ 答え合わせ</button>
           </div>
         ` : ""}
       </div>
@@ -7206,6 +7208,8 @@ const EXTRA_QUESTIONS = {
           const tmp = wrongIdx[i]; wrongIdx[i] = wrongIdx[j]; wrongIdx[j] = tmp;
         }
         session.eliminated = wrongIdx.slice(0, 2);
+        // 選択中の選択肢がヒントで消えたら選択を解除する（答え合わせ対象が残らないように）
+        if (session.eliminated.includes(session.chosenIdx)) session.chosenIdx = -1;
         session.hintUsed = true;
         a.hintTickets--;
         if (!a.achv || typeof a.achv !== "object") a.achv = {};
@@ -7288,15 +7292,27 @@ const EXTRA_QUESTIONS = {
     }
 
     if (qType === "single") {
+      const checkAnswerBtn = document.getElementById("checkAnswerBtn");
       main.querySelectorAll(".choice-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           if (session.answered) return;
           const oi = Number(btn.getAttribute("data-oi"));
           session.chosenIdx = oi;
-          judgeCurrent(oi === q.ans);
-          renderQuiz();
+          // ここでは判定しない：選択中ハイライトの切り替えと「答え合わせ」ボタンの有効化だけ。
+          // 再描画しないので、選択はいつでも別の選択肢に変更できる（押し間違い対策）
+          main.querySelectorAll(".choice-btn").forEach(b => {
+            b.classList.toggle("selected", Number(b.getAttribute("data-oi")) === oi);
+          });
+          if (checkAnswerBtn) checkAnswerBtn.disabled = false;
         });
       });
+      if (checkAnswerBtn) {
+        checkAnswerBtn.addEventListener("click", () => {
+          if (session.answered || session.chosenIdx < 0) return;
+          judgeCurrent(session.chosenIdx === q.ans);
+          renderQuiz();
+        });
+      }
     } else if (qType === "multi") {
       const multiSubmitBtn = document.getElementById("multiSubmitBtn");
       main.querySelectorAll(".choice-btn").forEach(btn => {
@@ -7354,7 +7370,7 @@ const EXTRA_QUESTIONS = {
         });
       }
       // 次へ進む処理は1つにまとめ、二重進行防止ガード付きで共用する
-      // （バナー内ボタン／下部固定バー／正解時のバナー全体タップのどれからでも1回だけ進む）
+      // （下部固定バーのボタン／正解時のバナー全体タップのどちらからでも1回だけ進む）
       let feedbackAdvanced = false;
       const goNextFromFeedback = () => {
         if (feedbackAdvanced || !session || !session.answered) return;
@@ -7374,7 +7390,6 @@ const EXTRA_QUESTIONS = {
           finishQuiz();
         }
       };
-      document.getElementById("nextQBtn").addEventListener("click", goNextFromFeedback);
       const nextBarBtn = document.getElementById("nextQBtnBar");
       if (nextBarBtn) nextBarBtn.addEventListener("click", goNextFromFeedback);
       if (session.lastCorrect) {
@@ -7577,9 +7592,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.0";
+  const APP_VERSION = "2.3.1";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2.3.1", title: "答えるときの操作が少し変わりました", body: "クイズの答え方が、少しだけ慎重に選べるようになりました。いつものように遊んでみてください。そのほか、細かいところも少し整えました。" },
     { date: "2026-11-22", version: "2.3.0", title: "新しい科目が増えました", body: "あたらしい科目が仲間入りしました。科目選択の画面を開いて、さっそく挑戦してみてください。" },
     { date: "2026-11-22", version: "2.2.0", title: "色が選べるようになりました", body: "アプリの色合いを、お好みに合わせて変えられるようになりました。設定を開いて、お気に入りの色を探してみてください。" },
     { date: "2026-11-22", version: "2.1.4", title: "遊び心地がよくなりました", body: "細かいところの動きを、少し整えました。いつものように遊んでみてください。" },
@@ -9512,8 +9528,8 @@ const EXTRA_QUESTIONS = {
           <h2>📖 使い方</h2>
         </div>
         ${sec("🚀", "はじめ方", `<strong>アカウント</strong>を作ると、ストリーク・フレンド・実績バッジが使えます。<strong>ゲスト</strong>でもクイズは遊べますが、ストリークの記録とフレンド機能は使えません。進捗はこの端末に保存されます。`, true)}
-        ${sec("🗺️", "ステージの進め方", `ステージをタップすると問題が始まります。選んだその場で正解・不正解が分かり、解説を読んでから「次へ」で進みます。クリアすると<strong>次のステージ</strong>が開きます。<strong>難問チャレンジ</strong>は最初からいつでも挑戦できます。間違えた問題は「復習モード」にたまります。`)}
-        ${sec("✍️", "問題の形式", `問題には3つの形式があります。<strong>一択</strong>は、選択肢をタップしたその場で判定されます。<strong>☑️ 複数選択</strong>は、当てはまるものを<strong>すべて</strong>選んで「回答する」を押します。全部ぴったり合っていないと不正解です（部分点はありません）。<strong>✏️ 記述式</strong>は、答えを入力して「回答する」を押します。全角・半角や大文字・小文字、数値の書き方（3.0 と 3 など）の違いは、ある程度自動で吸収されます。複数選択と記述式は<strong>チャレンジステージ</strong>に登場します。`)}
+        ${sec("🗺️", "ステージの進め方", `ステージをタップすると問題が始まります。選択肢を選んで「✔️ 答え合わせ」を押すと、正解・不正解が分かります。押すまでは選び直せるので、間違えてタップしても大丈夫です。解説を読んでから「次へ」で進みます。クリアすると<strong>次のステージ</strong>が開きます。<strong>難問チャレンジ</strong>は最初からいつでも挑戦できます。間違えた問題は「復習モード」にたまります。`)}
+        ${sec("✍️", "問題の形式", `問題には3つの形式があります。<strong>一択</strong>は、選択肢を選んで「✔️ 答え合わせ」を押すと判定されます（押すまでは選び直せます）。<strong>☑️ 複数選択</strong>は、当てはまるものを<strong>すべて</strong>選んで「回答する」を押します。全部ぴったり合っていないと不正解です（部分点はありません）。<strong>✏️ 記述式</strong>は、答えを入力して「回答する」を押します。全角・半角や大文字・小文字、数値の書き方（3.0 と 3 など）の違いは、ある程度自動で吸収されます。複数選択と記述式は<strong>チャレンジステージ</strong>に登場します。`)}
         ${sec("⚡", "XPとショップ", `正解すると<strong>XP</strong>がたまります。右上のXP表示をタップするとショップが開き、ヒントチケット（まちがいの選択肢を2つ消せます）やストリークフリーズが買えます。テーマカラーは買わなくても、設定から無料で好きな色に変えられます。`)}
         ${sec("🔥", "ストリーク", `毎日クイズを解くと<strong>連続日数（ストリーク）</strong>が伸びます。全科目共通です。<strong>ストリークフリーズ</strong>を持っていれば、休んだ日も自動で守られます。ゲストは対象外です。`)}
         ${sec("📚", "単語帳と教科書", `学習タブから開けます。単語帳は用語をタップすると意味が開き、フラッシュカードで暗記もできます。教科書はステージ対応の短いレッスンです。クイズの解説から教科書へ行っても、<strong>「◀ 問題に戻る」</strong>で中断した問題にそのまま戻れます。`)}
