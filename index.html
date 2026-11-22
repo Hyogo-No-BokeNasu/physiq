@@ -249,6 +249,20 @@
     }
     .feedback-banner.ok { background: var(--green-soft); border: 1.5px solid #86efac; }
     .feedback-banner.ng { background: var(--red-soft); border: 1.5px solid #fda4af; }
+    /* Tempo set 2.1.2: compact banner when the explanation is hidden on a correct answer */
+    .feedback-banner.compact { margin-top: 12px; padding: 10px 14px; gap: 4px; }
+    /* Correct answers: the whole banner is a tap target for "next" */
+    .feedback-banner.tap-next { cursor: pointer; }
+    /* Sticky next-action bar shown while feedback is on screen, so a long
+       explanation never has to be scrolled past to move on */
+    .fb-next-bar {
+      position: sticky; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 40;
+      margin-top: 12px; padding: 10px;
+      background: var(--bg-bar); border: 1.5px solid var(--border); border-radius: var(--radius-m);
+      box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    }
+    .fb-next-bar .btn-3d { width: 100%; }
 
     /* Auth / Account Modal */
     .modal-backdrop {
@@ -292,7 +306,7 @@
     @keyframes pulseOk { 0% { transform: scale(1); } 40% { transform: scale(1.02); } 100% { transform: scale(1); } }
     @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
-    .quiz-screen { animation: fadeUp 0.28s ease both; }
+    .quiz-screen { animation: fadeUp 0.16s ease both; }
     .daily-card { animation: fadeUp 0.3s ease both; }
     .stage-node-wrap { animation: fadeUp 0.35s ease both; }
     .stage-path .stage-node-wrap:nth-child(2) { animation-delay: 0.03s; }
@@ -307,7 +321,7 @@
     .choice-btn.correct { animation: pulseOk 0.3s ease; }
     .choice-btn.wrong { animation: shakeX 0.3s ease; }
     .combo-badge { animation: popIn 0.25s ease both; }
-    .feedback-banner { animation: fadeUp 0.25s ease both; }
+    .feedback-banner { animation: fadeUp 0.15s ease both; }
     .modal-card { animation: modalIn 0.22s ease both; }
     .btn-3d:hover { transform: translateY(-1px); }
     .stage-stars { animation: popIn 0.3s ease both; }
@@ -5669,7 +5683,7 @@ const EXTRA_QUESTIONS = {
         </div>
 
         ${session.answered ? `
-          <div class="feedback-banner ${session.lastCorrect ? "ok" : "ng"}">
+          <div id="feedbackBanner" class="feedback-banner ${session.lastCorrect ? "ok" : "ng"}${session.lastCorrect && acc.hideExpOnCorrect ? " compact" : ""}${session.lastCorrect ? " tap-next" : ""}">
             <div style="font-weight:800; font-size:15px;">${fbTitle}</div>
             ${qType === "text" && session.lastCorrect ? `<div style="font-size:13px; font-weight:700; color:var(--text-muted);">模範解答：「${(q.answers || [""])[0]}」（あなたの回答：「${fbEsc(session.textAnswer)}」）</div>` : ""}
             ${qType === "text" && !session.lastCorrect ? `<div style="font-size:13px; font-weight:700; color:var(--text-muted);">あなたの回答：「${fbEsc(session.textAnswer)}」</div>` : ""}
@@ -5677,6 +5691,11 @@ const EXTRA_QUESTIONS = {
             ${session.lastCorrect && acc.hideExpOnCorrect ? "" : `<div style="font-size:14px; color:var(--text-main);">${q.exp}</div>`}
             ${session.lastCorrect ? "" : `<button id="bookReviewBtn" class="btn-3d btn-ghost" style="margin-top:6px;">📚 教科書で復習する</button>`}
             <button id="nextQBtn" class="btn-3d ${session.lastCorrect ? "btn-green" : "btn-blue"}" style="margin-top:6px;">
+              ${session.qIdx + 1 < total ? "つぎの問題へ →" : "結果を見る 🏆"}
+            </button>
+          </div>
+          <div class="fb-next-bar">
+            <button id="nextQBtnBar" class="btn-3d ${session.lastCorrect ? "btn-green" : "btn-blue"}">
               ${session.qIdx + 1 < total ? "つぎの問題へ →" : "結果を見る 🏆"}
             </button>
           </div>
@@ -5843,7 +5862,12 @@ const EXTRA_QUESTIONS = {
           else renderLessonList();
         });
       }
-      document.getElementById("nextQBtn").addEventListener("click", () => {
+      // 次へ進む処理は1つにまとめ、二重進行防止ガード付きで共用する
+      // （バナー内ボタン／下部固定バー／正解時のバナー全体タップのどれからでも1回だけ進む）
+      let feedbackAdvanced = false;
+      const goNextFromFeedback = () => {
+        if (feedbackAdvanced || !session || !session.answered) return;
+        feedbackAdvanced = true;
         if (session.qIdx + 1 < total) {
           session.qIdx++;
           session.answered = false;
@@ -5858,7 +5882,15 @@ const EXTRA_QUESTIONS = {
         } else {
           finishQuiz();
         }
-      });
+      };
+      document.getElementById("nextQBtn").addEventListener("click", goNextFromFeedback);
+      const nextBarBtn = document.getElementById("nextQBtnBar");
+      if (nextBarBtn) nextBarBtn.addEventListener("click", goNextFromFeedback);
+      if (session.lastCorrect) {
+        // 正解時のみ：バナーのどこをタップしても次へ進める（誤答時は誤タップ防止のためボタンだけ）
+        const fbBanner = document.getElementById("feedbackBanner");
+        if (fbBanner) fbBanner.addEventListener("click", goNextFromFeedback);
+      }
     }
 
     renderMath(main);
@@ -6054,9 +6086,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.1.1";
+  const APP_VERSION = "2.1.2";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2.1.2", title: "遊び心地がよくなりました", body: "クイズを遊ぶときの流れが、少し軽やかになりました。いつものように遊んでみてください。そのほか、細かいところも少し整えました。" },
     { date: "2026-11-22", version: "2.1.1", title: "設定に新しい項目が増えました", body: "設定画面に新しい項目が増えました。お好みに合わせて切り替えられますので、設定を開いて探してみてください。そのほか、細かいところも少し整えました。" },
     { date: "2026-11-22", version: "2.1.0", title: "設定画面をiOS風のグループリストに刷新＆細かい不具合を修正", body: "設定画面を、角丸のカードに項目をまとめたiOS風のグループリストに整えました。見出しを大きくし、区切り線と余白のリズムをそろえたので、目的の項目が探しやすくなっています（配色は今までどおりです）。あわせて、結果画面のバナーがダークモードでも読みやすくなるよう色を調整し、名前の表示まわりの細かい不具合を直しました。バージョンの表記は、これまでの日付形式から「2.1.0」のような形式（セマンティックバージョン）に変更しました。はじめ方の選択画面に「ホームに戻る」ボタンを追加しました。" },
     { date: "2026-11-22", version: "2.0.0", title: "実績バッジがたくさん増えました（隠し実績も）", body: "実績バッジを大幅に追加しました。累計の回答数・正解数、ステージクリア数などのマイルストーンに加えて、連続正解コンボや復習モード、フレンドやショップにまつわる実績もあります。思わず笑ってしまうようなネタ実績や、一覧で「？？？」と表示される隠し実績もいくつか隠れているので、遊びながら探してみてください。" },
