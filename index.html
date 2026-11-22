@@ -304,12 +304,16 @@
     @keyframes pqBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     .loading-text { margin-top: 20px; font-size: 16px; font-weight: 800; color: var(--text-main); letter-spacing: 2px; }
     .loading-tip {
-      position: absolute; left: 20px; right: 20px; bottom: calc(26px + env(safe-area-inset-bottom));
-      max-width: 520px; margin: 0 auto; background: var(--bg-card); border: 1.5px solid var(--border);
-      border-radius: 16px; padding: 12px 16px; box-shadow: var(--shadow-lift);
+      margin-top: 24px; width: 100%; max-width: 520px;
+      background: var(--bg-card); border: 1.5px solid var(--border);
+      border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow-lift);
     }
-    .loading-tip-cat { font-size: 11px; font-weight: 800; color: var(--blue); letter-spacing: 1px; margin-bottom: 3px; }
-    .loading-tip-text { font-size: 13.5px; font-weight: 600; color: var(--text-muted); line-height: 1.65; }
+    .loading-tip-cat {
+      display: inline-block; background: var(--blue-soft); color: var(--blue-dark);
+      font-size: 11.5px; font-weight: 800; letter-spacing: 1px;
+      padding: 3px 12px; border-radius: 999px; margin-bottom: 8px;
+    }
+    .loading-tip-text { font-size: 1.05rem; font-weight: 600; color: var(--text-main); line-height: 1.8; }
     @media (prefers-reduced-motion: reduce) {
       .loading-spinner { animation: pqBlink 1.6s ease-in-out infinite; }
     }
@@ -7788,9 +7792,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.4";
+  const APP_VERSION = "2.3.5";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2.3.5", title: "待ち時間の読みものが見やすくなりました", body: "読み込み中の短い読みものが、少し読みやすくなりました。待ち時間のおともにお楽しみください。" },
     { date: "2026-11-22", version: "2.3.4", title: "はじまりと途中の演出を整えました", body: "アプリを開くときやステージを始めるときの時間が、また少し楽しくなりました。途中でやめるときも、うっかり押し間違えが減るようになっています。" },
     { date: "2026-11-22", version: "2.3.3", title: "表示の細かな不具合を直しました", body: "問題や解説の表示で、まれに文字がそのまま出てしまうことがあったのを直しました。いつものように遊んでみてください。" },
     { date: "2026-11-22", version: "2.3.2", title: "はじまりの演出が増えました", body: "アプリを開くときやステージを始めるときの時間が、少し楽しくなりました。待ち時間のおともになる、短い読みものも用意しました。" },
