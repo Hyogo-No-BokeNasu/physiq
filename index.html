@@ -42,6 +42,17 @@
       --accent-deep: #1e3a8a;
       --accent-bg: #eff6ff;
       --font-sans: 'Inter', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+      /* Design tokens (UI refresh .14: radius / shadow / spacing / duration scale. Colors unchanged) */
+      --radius-s: 12px;
+      --radius-m: 16px;
+      --radius-l: 20px;
+      --shadow-sm: 0 3px 0 var(--border);
+      --shadow-card: 0 4px 0 var(--border);
+      --shadow-lift: 0 5px 0 var(--border);
+      --shadow-pop: 0 10px 30px rgba(15, 23, 42, 0.07);
+      --dur-fast: 0.12s;
+      --dur: 0.2s;
+      --tap-min: 44px;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -73,14 +84,14 @@
     .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; color: var(--blue-dark); flex-shrink: 0; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-sans); }
     .brand:hover { opacity: 0.75; }
     .brand-icon {
-      width: 34px; height: 34px; border-radius: 10px;
+      width: 34px; height: 34px; border-radius: var(--radius-s);
       background: linear-gradient(135deg, var(--blue), #16a34a);
       color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 18px;
     }
-    .brand-icon-img { width: 34px; height: 34px; border-radius: 10px; display: block; }
+    .brand-icon-img { width: 34px; height: 34px; border-radius: var(--radius-s); display: block; }
     .title-logo-img { width: 84px; height: 84px; border-radius: 22px; display: block; margin: 0 auto; box-shadow: 0 8px 24px rgba(37,99,235,.25); animation: titleFloat 3.2s ease-in-out infinite, titleFadeUp .5s ease both; }
     .icon-pick-grid { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; }
-    .icon-pick { width: 56px; height: 56px; border-radius: 14px; border: 3px solid var(--border); padding: 0; cursor: pointer; background: none; overflow: hidden; }
+    .icon-pick { width: 56px; height: 56px; border-radius: var(--radius-m); border: 3px solid var(--border); padding: 0; cursor: pointer; background: none; overflow: hidden; }
     .icon-pick.selected { border-color: var(--blue); }
     .icon-pick img { width: 100%; height: 100%; display: block; object-fit: cover; }
     .auth-field { margin-bottom: 10px; }
@@ -97,7 +108,7 @@
     .stat-streak { color: #ea580c; border-color: #fed7aa; background: #fff7ed; }
     .stat-xp { color: var(--blue); border-color: var(--accent-ring); background: var(--accent-bg); }
     .stat-btn {
-      min-height: 36px; padding: 5px 10px; border-radius: 999px; border: 1.5px solid var(--border);
+      min-height: 44px; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--border);
       background: var(--bg-card); color: var(--text-main); font-size: 12.5px; font-weight: 700;
       cursor: pointer; font-family: var(--font-sans); display: inline-flex; align-items: center; gap: 4px;
     }
@@ -108,13 +119,13 @@
 
     /* Main Layout */
     .container {
-      max-width: 720px; margin: 0 auto; padding: 18px 14px 80px;
+      max-width: 720px; margin: 0 auto; padding: 20px 16px 80px;
     }
 
     /* Daily Challenge & Streak Card */
     .daily-card {
       background: linear-gradient(135deg, var(--accent-deep), var(--blue));
-      color: #fff; border-radius: 18px; padding: 18px 20px; margin-bottom: 22px;
+      color: #fff; border-radius: var(--radius-l); padding: 20px 22px; margin-bottom: 22px;
       box-shadow: 0 8px 24px rgba(37, 99, 235, 0.22);
     }
     .daily-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -127,26 +138,27 @@
     }
     .day-dot {
       flex: 1; text-align: center; background: rgba(255,255,255,0.14);
-      border-radius: 10px; padding: 6px 4px; font-size: 11px; font-weight: 700;
+      border-radius: var(--radius-s); padding: 6px 4px; font-size: 11px; font-weight: 700;
     }
     .day-dot.done { background: #22c55e; color: #052e16; }
 
     /* Buttons (3D tactile Duolingo style) */
     .btn-3d {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      min-height: 46px; padding: 10px 20px; border-radius: 14px; border: none;
+      min-height: 48px; padding: 12px 22px; border-radius: var(--radius-m); border: none;
       font-family: var(--font-sans); font-size: 15px; font-weight: 800; cursor: pointer;
-      transition: transform 0.08s, box-shadow 0.08s;
+      transition: transform var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
     }
-    .btn-3d:active { transform: translateY(3px); }
+    .btn-3d:active { transform: translateY(3px) scale(0.97); }
     .btn-green { background: #22c55e; color: #fff; box-shadow: 0 4px 0 #15803d; }
     .btn-green:active { box-shadow: 0 1px 0 #15803d; }
     .btn-blue { background: var(--accent-light); color: #fff; box-shadow: 0 4px 0 var(--blue-dark); }
     .btn-blue:active { box-shadow: 0 1px 0 var(--blue-dark); }
     .btn-amber { background: #f59e0b; color: #fff; box-shadow: 0 4px 0 #b45309; }
     .btn-amber:active { box-shadow: 0 1px 0 #b45309; }
-    .btn-ghost { background: var(--bg-card); color: var(--text-main); border: 2px solid var(--border); box-shadow: 0 3px 0 var(--border); }
+    .btn-ghost { background: var(--bg-card); color: var(--text-main); border: 2px solid var(--border); box-shadow: var(--shadow-sm); }
     .btn-ghost:active { box-shadow: 0 1px 0 var(--border); }
+    .btn-3d:disabled { opacity: 0.55; cursor: not-allowed; }
 
     /* Winding Stage Path */
     .stage-path {
@@ -158,9 +170,9 @@
     }
     .stage-node {
       width: 100%; background: var(--bg-card); border: 2px solid var(--border);
-      border-radius: 18px; padding: 14px 16px;
+      border-radius: var(--radius-m); padding: 14px 16px;
       display: flex; align-items: center; gap: 14px;
-      box-shadow: 0 5px 0 var(--border); cursor: pointer;
+      box-shadow: var(--shadow-lift); cursor: pointer;
       transition: transform 0.12s, border-color 0.15s;
       text-align: left; font-family: var(--font-sans);
     }
@@ -176,13 +188,13 @@
     .stage-stars { font-size: 13px; color: #eab308; letter-spacing: 2px; margin-top: 2px; }
     .intro-btn {
       background: var(--blue-soft); border: 1.5px solid var(--blue); color: var(--blue-dark);
-      border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 800;
+      border-radius: 999px; padding: 8px 14px; min-height: 44px; display: inline-flex; align-items: center; font-size: 12px; font-weight: 800;
       cursor: pointer; font-family: var(--font-sans); white-space: nowrap;
     }
     .intro-btn:active { transform: translateY(1px); }
     .term-card {
-      background: #f8fafc; border: 2px solid var(--border); border-radius: 14px;
-      padding: 12px 14px; margin-bottom: 10px; text-align: left;
+      background: var(--bg-subtle); border: 2px solid var(--border); border-radius: var(--radius-m);
+      padding: 14px 16px; margin-bottom: 10px; text-align: left;
     }
     .term-card .t-word { font-weight: 800; font-size: 15.5px; }
     .term-card .t-what { font-size: 14px; line-height: 1.65; margin-top: 4px; }
@@ -194,8 +206,8 @@
     /* Quiz Screen */
     .quiz-screen {
       background: var(--bg-card); border: 2px solid var(--border);
-      border-radius: 20px; padding: 22px 20px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+      border-radius: var(--radius-l); padding: 22px 20px;
+      box-shadow: var(--shadow-pop);
     }
     .quiz-progress-row {
       display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
@@ -212,9 +224,9 @@
     .choices-grid { display: grid; gap: 10px; }
     .choice-btn {
       display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-      min-height: 54px; padding: 12px 16px; border-radius: 14px;
+      min-height: 54px; padding: 12px 16px; border-radius: var(--radius-m);
       border: 2px solid var(--border); background: var(--bg-card);
-      box-shadow: 0 3px 0 var(--border); color: var(--text-main);
+      box-shadow: var(--shadow-sm); color: var(--text-main);
       font-size: 15.5px; font-weight: 600; cursor: pointer; font-family: var(--font-sans);
       transition: all 0.1s;
     }
@@ -224,7 +236,7 @@
     .choice-btn.wrong { border-color: var(--red); background: var(--red-soft); box-shadow: 0 3px 0 #fda4af; }
 
     .feedback-banner {
-      margin-top: 18px; padding: 14px 16px; border-radius: 14px;
+      margin-top: 18px; padding: 14px 16px; border-radius: var(--radius-m);
       display: flex; flex-direction: column; gap: 8px;
     }
     .feedback-banner.ok { background: var(--green-soft); border: 1.5px solid #86efac; }
@@ -238,20 +250,20 @@
     }
     .modal-backdrop.open { display: flex; }
     .modal-card {
-      background: var(--bg-card); border-radius: 20px; max-width: 460px; width: 100%;
+      background: var(--bg-card); border-radius: var(--radius-l); max-width: 460px; width: 100%;
       padding: 24px 22px; box-shadow: 0 24px 50px rgba(0,0,0,0.28);
       max-height: 90vh; max-height: 90dvh; overflow-y: auto;
     }
     .avatar-grid { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 16px; }
     .avatar-opt {
-      width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--border);
+      width: 44px; height: 44px; border-radius: var(--radius-s); border: 2px solid var(--border);
       background: var(--bg-subtle); font-size: 22px; cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
     }
     .avatar-opt.selected { border-color: var(--blue); background: var(--blue-soft); }
 
     .text-input {
-      width: 100%; padding: 11px 14px; border: 2px solid var(--border); border-radius: 12px;
+      width: 100%; padding: 11px 14px; border: 2px solid var(--border); border-radius: var(--radius-s);
       font-size: 15px; font-family: var(--font-sans); -webkit-appearance: none;
       background: var(--bg-card); color: var(--text-main);
     }
@@ -296,9 +308,9 @@
     .home-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
     .nav-card {
       display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-      background: var(--bg-card); border: 2px solid var(--border); border-radius: 18px;
-      padding: 16px; cursor: pointer; font-family: var(--font-sans); text-align: left;
-      box-shadow: 0 5px 0 var(--border); transition: transform 0.12s, border-color 0.15s;
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m);
+      padding: 18px; cursor: pointer; font-family: var(--font-sans); text-align: left;
+      box-shadow: var(--shadow-lift); transition: transform 0.12s, border-color 0.15s;
       animation: fadeUp 0.35s ease both;
     }
     .nav-card:hover { transform: translateY(-2px); border-color: var(--blue); }
@@ -312,7 +324,7 @@
     .sub-head h2 { margin: 0; font-size: 19px; }
     .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
     .chip {
-      padding: 7px 14px; border-radius: 999px; border: 2px solid var(--border);
+      padding: 8px 16px; border-radius: 999px; border: 2px solid var(--border); min-height: 44px; display: inline-flex; align-items: center;
       background: var(--bg-card); color: var(--text-muted); font-size: 13px; font-weight: 800;
       cursor: pointer; font-family: var(--font-sans);
     }
@@ -320,9 +332,9 @@
 
     /* Word list */
     .word-item {
-      width: 100%; background: var(--bg-card); border: 2px solid var(--border); border-radius: 14px;
-      padding: 12px 16px; margin-bottom: 10px; text-align: left; cursor: pointer;
-      font-family: var(--font-sans); box-shadow: 0 3px 0 var(--border); color: var(--text-main);
+      width: 100%; background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m);
+      padding: 14px 16px; margin-bottom: 10px; text-align: left; cursor: pointer;
+      font-family: var(--font-sans); box-shadow: var(--shadow-sm); color: var(--text-main);
     }
     .word-item .w-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .word-item .w-term { font-size: 16.5px; font-weight: 800; }
@@ -344,8 +356,8 @@
     .flash-card.flipped { transform: rotateY(180deg); }
     .flash-face {
       position: absolute; inset: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden;
-      background: var(--bg-card); border: 2px solid var(--border); border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-l);
+      box-shadow: var(--shadow-pop);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       padding: 24px 20px; text-align: center; gap: 8px;
     }
@@ -360,9 +372,9 @@
     /* Textbook */
     .lesson-item {
       width: 100%; display: flex; align-items: center; gap: 14px;
-      background: var(--bg-card); border: 2px solid var(--border); border-radius: 18px;
-      padding: 14px 16px; margin-bottom: 12px; cursor: pointer; text-align: left;
-      font-family: var(--font-sans); box-shadow: 0 5px 0 var(--border); color: var(--text-main);
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m);
+      padding: 16px; margin-bottom: 12px; cursor: pointer; text-align: left;
+      font-family: var(--font-sans); box-shadow: var(--shadow-lift); color: var(--text-main);
       transition: transform 0.12s, border-color 0.15s;
     }
     .lesson-item:hover { transform: translateY(-2px); border-color: var(--blue); }
@@ -371,17 +383,17 @@
     .lesson-body ul { margin: 6px 0; padding-left: 20px; }
     .lesson-body li { margin-bottom: 6px; }
     .formula-box {
-      background: var(--blue-soft); border: 1.5px solid var(--accent-ring); border-radius: 14px;
+      background: var(--blue-soft); border: 1.5px solid var(--accent-ring); border-radius: var(--radius-m);
       padding: 14px 16px; text-align: center; font-size: 18px; margin: 10px 0;
     }
     .example-box {
-      background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 14px;
+      background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: var(--radius-m);
       padding: 14px 16px; margin: 10px 0; font-size: 14.5px; line-height: 1.7;
     }
 
     /* Account benefits box */
     .benefit-box {
-      background: var(--green-soft); border: 1.5px solid #86efac; border-radius: 14px;
+      background: var(--green-soft); border: 1.5px solid #86efac; border-radius: var(--radius-m);
       padding: 12px 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; color: var(--text-main);
     }
     .benefit-box .b-title { font-weight: 800; margin-bottom: 4px; }
@@ -391,9 +403,9 @@
     /* Title strip (home) */
     .title-strip {
       display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
-      background: var(--bg-card); border: 2px solid var(--border); border-radius: 16px;
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m);
       padding: 10px 14px; margin-bottom: 14px; font-size: 13px;
-      box-shadow: 0 4px 0 var(--border);
+      box-shadow: var(--shadow-card);
     }
     .title-strip > span { min-width: 0; overflow-wrap: anywhere; }
     .title-strip .t-progress {
@@ -404,15 +416,15 @@
 
     /* Beginner guide steps (home) */
     .guide-card {
-      background: var(--blue-soft); border: 1.5px solid var(--accent-ring); border-radius: 18px;
+      background: var(--blue-soft); border: 1.5px solid var(--accent-ring); border-radius: var(--radius-m);
       padding: 14px 16px; margin-bottom: 14px;
     }
     .guide-steps { display: flex; gap: 10px; flex-wrap: wrap; }
     .guide-step {
       flex: 1 1 150px; display: flex; align-items: center; gap: 10px; text-align: left;
-      background: var(--bg-card); border: 2px solid var(--border); border-radius: 14px;
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m);
       padding: 10px 12px; cursor: pointer; font-family: var(--font-sans); color: var(--text-main);
-      box-shadow: 0 3px 0 var(--border); transition: transform 0.12s, border-color 0.15s;
+      box-shadow: var(--shadow-sm); transition: transform 0.12s, border-color 0.15s;
     }
     .guide-step:hover { transform: translateY(-2px); border-color: var(--blue); }
     .guide-step .g-num {
@@ -427,7 +439,7 @@
     /* Badges (profile modal) */
     .badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
     .badge-item {
-      border: 2px solid var(--border); border-radius: 14px; padding: 10px 6px;
+      border: 2px solid var(--border); border-radius: var(--radius-m); padding: 10px 6px;
       text-align: center; background: var(--bg-card); opacity: 0.45; filter: grayscale(0.8);
     }
     .badge-item.earned { opacity: 1; filter: none; border-color: #fbbf24; background: #fffbeb; }
@@ -458,7 +470,7 @@
       width: fit-content; max-width: calc(100% - 16px); box-sizing: border-box;
       margin: 20px auto 0; text-align: left; overflow-wrap: anywhere;
       background: var(--bg-card); color: var(--text-main);
-      border: 2px solid var(--border); border-radius: 14px;
+      border: 2px solid var(--border); border-radius: var(--radius-m);
       box-shadow: 0 8px 24px rgba(0,0,0,0.18);
       padding: 9px 36px 9px 14px; cursor: pointer;
       animation: updateNoticeIn 0.3s ease both;
@@ -478,8 +490,8 @@
 
     /* XP Shop */
     .shop-item {
-      background: var(--bg-card); border: 2px solid var(--border); border-radius: 16px;
-      padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 4px 0 var(--border);
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m);
+      padding: 16px 18px; margin-bottom: 12px; box-shadow: var(--shadow-card);
       display: flex; gap: 12px; align-items: flex-start;
       animation: fadeUp 0.3s ease both;
     }
@@ -506,7 +518,7 @@
     .memo-box { margin: 14px 0 4px; }
     .memo-canvas {
       display: block; width: 100%; height: 160px;
-      background: #fffef5; border: 2px dashed var(--border); border-radius: 14px;
+      background: #fffef5; border: 2px dashed var(--border); border-radius: var(--radius-m);
       touch-action: none; cursor: crosshair;
     }
     .memo-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
@@ -520,13 +532,13 @@
     /* Friends */
     .friend-code {
       font-size: 22px; font-weight: 900; letter-spacing: 2px;
-      background: rgba(255,255,255,0.18); border-radius: 10px; padding: 6px 14px;
+      background: rgba(255,255,255,0.18); border-radius: var(--radius-s); padding: 6px 14px;
       display: inline-block; margin-top: 6px; max-width: 100%; overflow-wrap: anywhere;
     }
     .leader-row {
       display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
-      background: var(--bg-card); border: 2px solid var(--border); border-radius: 14px;
-      padding: 10px 14px; margin-bottom: 8px; box-shadow: 0 3px 0 var(--border);
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m);
+      padding: 12px 16px; margin-bottom: 8px; box-shadow: var(--shadow-sm);
       min-width: 0;
     }
     .leader-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; min-width: 0; }
@@ -540,7 +552,7 @@
     /* XP Boost banner (home) */
     .boost-banner {
       display: flex; align-items: center; gap: 10px;
-      background: #fef9c3; border: 2px solid #fde047; border-radius: 16px;
+      background: #fef9c3; border: 2px solid #fde047; border-radius: var(--radius-m);
       padding: 10px 14px; margin-bottom: 14px; font-size: 13.5px; font-weight: 800; color: #854d0e;
       box-shadow: 0 4px 0 #fde047;
       animation: fadeUp 0.3s ease both;
@@ -548,13 +560,13 @@
 
     /* Weekly daily-bonus board */
     .bonus-board-card {
-      background: var(--bg-card); border: 2px solid var(--border); border-radius: 18px;
-      padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 5px 0 var(--border);
+      background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m);
+      padding: 14px 16px; margin-bottom: 16px; box-shadow: var(--shadow-lift);
       animation: fadeUp 0.35s ease both;
     }
     .bonus-cells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
     .bonus-cell {
-      border: 2px solid var(--border); border-radius: 12px; padding: 8px 2px 6px;
+      border: 2px solid var(--border); border-radius: var(--radius-s); padding: 8px 2px 6px;
       text-align: center; background: var(--bg-subtle); min-width: 0;
     }
     .bonus-cell .bc-icon { font-size: 19px; line-height: 1.25; }
@@ -564,7 +576,7 @@
     .bonus-cell.done .bc-label { color: var(--green-dark); }
     .bonus-cell.next { border-color: var(--gold); background: #fefce8; box-shadow: 0 0 0 2px #fef08a; }
     .bonus-complete {
-      margin-top: 10px; border: 2px dashed #f59e0b; background: #fffbeb; border-radius: 12px;
+      margin-top: 10px; border: 2px dashed #f59e0b; background: #fffbeb; border-radius: var(--radius-s);
       padding: 8px 12px; font-size: 13px; font-weight: 800; color: #92400e; text-align: center;
     }
     .bonus-complete.got { border-style: solid; background: var(--green-soft); border-color: #22c55e; color: var(--green-dark); }
@@ -573,7 +585,7 @@
     .stage-node.challenge-node { border-color: #fca5a5; background: #fff8f6; box-shadow: 0 5px 0 #fecaca; }
     .stage-node.challenge-node.cleared { border-color: #22c55e; background: #ffffff; box-shadow: 0 5px 0 #bbf7d0; }
     .challenge-head {
-      margin: 24px 4px 12px; padding: 12px 16px; border-radius: 14px;
+      margin: 24px 4px 12px; padding: 12px 16px; border-radius: var(--radius-m); position: relative;
       background: linear-gradient(120deg, #7f1d1d, #b91c1c); color: #fff;
       font-size: 17px; font-weight: 900; letter-spacing: 0.5px;
     }
@@ -589,7 +601,7 @@
     }
     .tab-btn {
       flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
-      background: none; border: none; border-radius: 12px; padding: 6px 2px;
+      background: none; border: none; border-radius: var(--radius-s); padding: 6px 2px;
       font-size: 11px; font-weight: 800; color: var(--text-light); cursor: pointer;
       position: relative; z-index: 1;
       transition: color 0.25s ease, transform 0.12s ease;
@@ -610,7 +622,7 @@
       position: absolute; z-index: 0; pointer-events: none;
       top: 6px; bottom: calc(6px + env(safe-area-inset-bottom));
       left: 8px; width: calc((100% - 16px) / 3);
-      background: var(--blue-soft); border-radius: 12px;
+      background: var(--blue-soft); border-radius: var(--radius-s);
       transition: transform 0.32s cubic-bezier(0.25, 0.9, 0.3, 1.05);
       will-change: transform;
     }
@@ -654,7 +666,7 @@
     /* Subject select screen */
     .subject-screen { padding-top: 6vh; }
     .subject-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-    .subject-btn { background: var(--bg-card); border: 2px solid var(--border); border-radius: 18px; padding: 22px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font-family: inherit; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); }
+    .subject-btn { background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-m); padding: 22px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font-family: inherit; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); }
     .subject-btn .s-icon { font-size: 40px; line-height: 1.1; }
     .subject-btn .s-name { font-size: 19px; font-weight: 900; color: var(--text-main); }
     .subject-btn .s-sub { font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-align: center; }
@@ -671,7 +683,7 @@
 
     /* Data tab */
     .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
-    .stat-card { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+    .stat-card { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 12px 14px; }
     .stat-card .sc-label { font-size: 11.5px; font-weight: 800; color: var(--text-muted); }
     .stat-card .sc-value { font-size: 21px; font-weight: 900; margin-top: 2px; }
     .stat-card .sc-sub { font-size: 11.5px; color: var(--text-light); font-weight: 700; margin-top: 1px; }
@@ -680,7 +692,7 @@
     .daily-log-table th, .daily-log-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: right; }
     .daily-log-table th:first-child, .daily-log-table td:first-child { text-align: left; }
     .feedback-box {
-      border: 1.5px solid var(--border); border-radius: 14px; padding: 14px; margin-top: 18px; background: var(--accent-bg);
+      border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 14px; margin-top: 18px; background: var(--accent-bg);
     }
 
     /* Profile settings (toggle switches) */
@@ -704,7 +716,7 @@
 
     /* Update history (shown in Settings) */
     .update-item {
-      border: 1.5px solid var(--border); border-radius: 14px; padding: 12px 14px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 12px 14px;
       margin-bottom: 10px; background: var(--bg-subtle); text-align: left;
     }
     .update-item .n-date { font-size: 11px; font-weight: 800; color: var(--text-light); }
@@ -713,22 +725,22 @@
 
     /* Result summary frame */
     .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
-    .result-stat { background: var(--bg-subtle); border: 2px solid var(--border); border-radius: 14px; padding: 12px 6px; }
+    .result-stat { background: var(--bg-subtle); border: 2px solid var(--border); border-radius: var(--radius-m); padding: 12px 6px; }
     .result-stat .rs-icon { font-size: 22px; }
     .result-stat .rs-value { font-size: 18px; font-weight: 900; margin-top: 2px; }
     .result-stat .rs-label { font-size: 11px; font-weight: 800; color: var(--text-muted); margin-top: 2px; }
 
     /* Settings sections */
-    .settings-section { background: var(--bg-subtle); border: 1.5px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 14px; }
+    .settings-section { background: var(--bg-subtle); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 14px; margin-bottom: 14px; }
     .settings-section:last-child { margin-bottom: 0; }
 
     /* Profile hero */
-    .profile-hero { display: flex; align-items: center; gap: 14px; background: var(--bg-subtle); border: 1.5px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+    .profile-hero { display: flex; align-items: center; gap: 14px; background: var(--bg-subtle); border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 14px; margin-bottom: 12px; }
     .profile-hero .ph-avatar { font-size: 44px; line-height: 1; }
     .profile-hero .ph-name { font-size: 18px; font-weight: 900; }
     .profile-hero .ph-title { font-size: 13px; color: var(--text-muted); font-weight: 700; margin-top: 2px; }
     .profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-    .profile-stat { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 12px; padding: 8px 4px; text-align: center; }
+    .profile-stat { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-s); padding: 8px 4px; text-align: center; }
     .profile-stat .ps-value { font-size: 16px; font-weight: 900; }
     .profile-stat .ps-label { font-size: 10.5px; font-weight: 800; color: var(--text-muted); margin-top: 1px; }
 
@@ -762,7 +774,7 @@
       .brand-icon-img { width: 30px; height: 30px; }
       .hud-stats { gap: 5px; }
       .stat-pill { font-size: 12px; padding: 4px 8px; }
-      .stat-btn { font-size: 11.5px; padding: 4px 8px; min-height: 32px; }
+      .stat-btn { font-size: 11.5px; padding: 4px 10px; min-height: 44px; }
       .container { padding: 14px 10px 70px; }
       .daily-card { padding: 14px; }
       .daily-card h1 { font-size: 17.5px !important; line-height: 1.4; }
@@ -793,7 +805,48 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.01s !important; transition-duration: 0.01s !important; }
     }
-  </style>
+  
+    /* === UI refresh .14: clarity helpers (colors unchanged) === */
+    button.stat-pill { min-height: 44px; }
+    .stage-path { position: relative; }
+    .stage-path::before {
+      content: ""; position: absolute; top: 8px; bottom: 16px; left: 50%;
+      width: 4px; margin-left: -2px; border-radius: 2px; background: var(--border);
+    }
+    .stage-node { position: relative; }
+    .stage-node.current { border-width: 3px; transform: scale(1.02); }
+    .stage-node.current .stage-circle { animation: currentPulse 1.6s ease-in-out infinite; }
+    @keyframes currentPulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--accent-ring); }
+      50% { box-shadow: 0 0 0 7px var(--accent-ring); }
+    }
+    .stage-now-badge {
+      position: absolute; top: -11px; right: 14px; z-index: 2;
+      background: var(--blue); color: #fff; font-size: 11px; font-weight: 800;
+      padding: 3px 10px; border-radius: 999px; box-shadow: var(--shadow-pop);
+    }
+    .subject-btn .s-progress {
+      width: 100%; max-width: 160px; height: 8px; margin-top: 6px;
+      border-radius: 99px; background: var(--border); overflow: hidden;
+    }
+    .subject-btn .s-progress > span { display: block; height: 100%; background: var(--blue); border-radius: 99px; }
+    .subject-btn .s-prog-label { font-size: 11px; font-weight: 700; color: var(--text-light); }
+    .subject-btn:disabled { border-style: dashed; }
+    /* Usage guide (details accordion) */
+    .guide-sec {
+      background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius-m);
+      margin-bottom: 10px; overflow: hidden; text-align: left;
+    }
+    .guide-sec summary {
+      display: flex; align-items: center; gap: 8px; min-height: 52px;
+      padding: 12px 16px; font-size: 15px; font-weight: 800; cursor: pointer; list-style: none;
+    }
+    .guide-sec summary::-webkit-details-marker { display: none; }
+    .guide-sec summary::after { content: "\25BE"; margin-left: auto; color: var(--text-light); font-weight: 800; }
+    .guide-sec[open] summary::after { content: "\25B4"; }
+    .guide-sec .guide-sec-body { padding: 0 16px 14px; font-size: 13.5px; line-height: 1.75; color: var(--text-muted); }
+    .guide-sec .guide-sec-body strong { color: var(--text-main); }
+</style>
   <!-- Firebase（フレンドのサーバー共有・リアルタイムレース用 compat SDK。読み込み失敗時はフレンド以外の機能が動作） -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -5066,8 +5119,10 @@ const EXTRA_QUESTIONS = {
       days.push({ label, done: acc.weekDates.includes(ds) });
     }
 
+    const currentStageIdx = STAGES.findIndex((s, i) => !s.challenge && isStageUnlocked(acc, i) && !(acc.stars[s.id] > 0));
     const main = document.getElementById("appMain");
     main.innerHTML = `
+      ${quizResumeHtml("▶ クイズの続きを解く（途中の問題があります）")}
       <section class="daily-card">
         <div class="daily-top">
           <div>
@@ -5109,13 +5164,15 @@ const EXTRA_QUESTIONS = {
           const unlocked = isStageUnlocked(acc, idx);
           const stars = acc.stars[st.id] || 0;
           const cls = stars > 0 ? "cleared" : unlocked ? "unlocked" : "locked";
+          const isCurrent = idx === currentStageIdx;
           const offset = (idx % 2 === 0 ? -14 : 14);
           const challengeHead = st.challenge && (idx === 0 || !STAGES[idx - 1].challenge)
             ? `<div class="challenge-head">🔥 難問チャレンジ<span>難易度高めの発展ステージ（全${STAGES.filter(s => s.challenge).length}ステージ）― 最初からいつでも挑戦できます</span></div>` : "";
           return `
             ${challengeHead}
             <div class="stage-node-wrap" style="transform:translateX(${offset}px);">
-              <div class="stage-node ${cls}${st.challenge ? " challenge-node" : ""}" data-st-idx="${idx}">
+              <div class="stage-node ${cls}${isCurrent ? " current" : ""}${st.challenge ? " challenge-node" : ""}" data-st-idx="${idx}">
+                ${isCurrent ? `<span class="stage-now-badge">▶ いまここ</span>` : ""}
                 <div class="stage-circle" style="background:${unlocked ? st.color : "#94a3b8"};">
                   ${unlocked ? st.icon : "🔒"}
                 </div>
@@ -5136,6 +5193,7 @@ const EXTRA_QUESTIONS = {
       </section>
     `;
 
+    bindQuizResume();
     document.getElementById("startDailyBtn").addEventListener("click", startDailyQuiz);
     const changeSubjectHomeBtn = document.getElementById("changeSubjectHomeBtn");
     if (changeSubjectHomeBtn) changeSubjectHomeBtn.addEventListener("click", () => renderSubjectSelect());
@@ -5300,7 +5358,7 @@ const EXTRA_QUESTIONS = {
           ${session.hintUsed
             ? `<span style="font-size:12.5px; color:var(--text-muted); font-weight:700;">💡 ヒント使用済み（この問題ではもう使えません）</span>`
             : acc.hintTickets > 0
-              ? `<button id="hintBtn" class="btn-3d btn-ghost" style="min-height:40px; padding:7px 14px; font-size:13.5px;">💡 ヒントを使う（残り${acc.hintTickets}枚）― 選択肢を2つ消す</button>`
+              ? `<button id="hintBtn" class="btn-3d btn-ghost" style="min-height:44px; padding:8px 14px; font-size:13.5px;">💡 ヒントを使う（残り${acc.hintTickets}枚）― 選択肢を2つ消す</button>`
               : `<span style="font-size:12.5px; color:var(--text-light); font-weight:700;">💡 ヒントチケットはXPショップで買えます（残り0枚）</span>`}
         </div>` : ""}
 
@@ -5337,7 +5395,7 @@ const EXTRA_QUESTIONS = {
         ${session.answered ? `
           <div class="feedback-banner ${session.chosenIdx === q.ans ? "ok" : "ng"}">
             <div style="font-weight:800; font-size:15px;">
-              ${session.chosenIdx === q.ans ? "🎉 正解！ (+10 XP)" : "💡 惜しい！解説を確認しよう"}
+              ${session.chosenIdx === q.ans ? "⭕ 正解！ (+10 XP)" : "❌ 不正解… 正解は「" + q.opts[q.ans] + "」"}
             </div>
             <div style="font-size:12.5px; font-weight:700; color:var(--text-muted);">⏱ この問題：${typeof session.lastAnswerSec === "number" ? session.lastAnswerSec + "秒" : "—"}で回答</div>
             <div style="font-size:14px; color:var(--text-main);">${q.exp}</div>
@@ -5448,7 +5506,7 @@ const EXTRA_QUESTIONS = {
           const ref = session.refs[session.qIdx];
           const st = ref ? STAGES.find(s => s.id === ref.stageId) : null;
           const li = st ? curLessons().findIndex(ls => ls.stageId === st.id) : -1;
-          session = null;
+          // クイズのセッションは保持する（教科書側の「◀ 問題に戻る」で中断した問題に復帰できる）
           if (li >= 0) renderLesson(li);
           else renderLessonList();
         });
@@ -5654,9 +5712,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.13";
+  const APP_VERSION = "2026-11-22.14";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2026-11-22.14", title: "操作を分かりやすくUIを改善（配色はそのまま）＋使い方ガイド追加", body: "ボタンの大きさ・余白・並びを整えて、次に押すものが一目で分かるUIに改善しました（配色は今までどおりです）。ステージマップでは「▶ いまここ」のステージが目立つようになりました。クイズは選んだその場で正解・不正解が分かり（即時判定）、解説から教科書へ行っても「問題に戻る」ボタンで中断した問題にそのまま戻れます。タイトル画面と設定画面に「📖 使い方」ガイドを追加しました。" },
     { date: "2026-11-22", version: "2026-11-22.13", title: "フレンド申請機能を追加（承認されると双方フレンドに）", body: "フレンド追加が「申請 → 承認」方式になりました。コード入力・QR読み取り・共有リンクからは、その場で追加ではなくフレンド申請を送ります。申請が届くとフレンド画面の「📩 届いた申請」欄にリアルタイムで表示され、承認すると両方がフレンドになります。送った申請は「申請中」として表示され、相手が承認すると自動でフレンドに追加されます。承認方法はフレンド画面で「手動承認／自動承認」から選べます（自動承認にすると、届いた申請がその場で承認されます）。" },
     { date: "2026-11-22", version: "2026-11-22.12", title: "初回のはじめ方を選べるようになりました", body: "初めてアプリを開いたとき、最初に「🆕 新規アカウント作成」と「👤 ゲストではじめる」の2つの選択肢が大きく表示されるようになりました。選んでから、それぞれの画面に進みます。すでにアカウントがある人は、その画面からサインインも選べます。作成・サインインの画面からは「もどる」で選択画面に戻れます。" },
     { date: "2026-11-22", version: "2026-11-22.11", title: "フレンドはサーバー共有のみになりました（QR追加も）", body: "フレンドはサーバー共有のみになりました。これまでの手入力（ローカル）フレンドは表示されなくなります。フレンド画面に自分のQRコードが表示されるようになり、相手に読み取ってもらうだけで追加できるようになりました。フレンド画面の「QRを読み取る」から相手のQRを読み取ることもできます。共有リンク（QRのURL）を開いたときも、ログインしていれば確認してそのまま追加できます。ゲストはフレンド機能を使えません。" },
@@ -5889,6 +5948,7 @@ const EXTRA_QUESTIONS = {
           </div>`).join("")}
       </div>
       <button id="settingsOpenAccountBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:16px;">👤 アカウントの切り替え・作成・サインイン</button>
+      <button id="settingsGuideBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:16px;">📖 使い方ガイド</button>
       </div>
 
       <div class="settings-section">
@@ -6014,6 +6074,8 @@ const EXTRA_QUESTIONS = {
     }));
     const setOpenAccBtn = body.querySelector("#settingsOpenAccountBtn");
     if (setOpenAccBtn) setOpenAccBtn.addEventListener("click", () => { closeAuthModals(); openAccountModal(); });
+    const setGuideBtn = body.querySelector("#settingsGuideBtn");
+    if (setGuideBtn) setGuideBtn.addEventListener("click", () => { closeAuthModals(); renderGuide("settings"); });
     const dmT = body.querySelector("#setDarkToggle");
     if (dmT) dmT.addEventListener("click", () => { const a = curAcc(); a.darkMode = !a.darkMode; saveData(); applyAppearance(); renderSettings(); });
     const sndT = body.querySelector("#setSoundToggle");
@@ -6163,12 +6225,15 @@ const EXTRA_QUESTIONS = {
         <div class="title-tagline">あそんで学べる、クイズアプリ</div>
         <div><span class="title-user">${acc.avatar} ${acc.name} でログイン中</span></div>
         <div><button id="titleAccountBtn" class="stat-btn" style="margin-top:14px;">👤 アカウント・サインイン</button></div>
+        <div><button id="titleGuideBtn" class="stat-btn" style="margin-top:10px;">📖 使い方</button></div>
         <div class="title-start">▶ タップしてスタート</div>
       </div>
     `;
     document.getElementById("titleScreen").addEventListener("click", () => renderSubjectSelect());
     const titleAccountBtn = document.getElementById("titleAccountBtn");
     if (titleAccountBtn) titleAccountBtn.addEventListener("click", (e) => { e.stopPropagation(); openAccountModal(); });
+    const titleGuideBtn = document.getElementById("titleGuideBtn");
+    if (titleGuideBtn) titleGuideBtn.addEventListener("click", (e) => { e.stopPropagation(); renderGuide("title"); });
     window.scrollTo(0, 0);
   }
 
@@ -6181,6 +6246,12 @@ const EXTRA_QUESTIONS = {
   function renderSubjectSelect() {
     setChromeVisible(false);
     session = null;
+    const acc = curAcc();
+    const subjProg = (id) => {
+      const ss = SUBJECTS[id].stages || [];
+      const cleared = ss.filter(s => (acc.stars[s.id] || 0) > 0).length;
+      return { cleared, total: ss.length, pct: ss.length ? Math.round((cleared / ss.length) * 100) : 0 };
+    };
     const main = document.getElementById("appMain");
     main.innerHTML = `
       <div class="subject-screen">
@@ -6191,16 +6262,22 @@ const EXTRA_QUESTIONS = {
             <span class="s-icon">⚛️</span>
             <span class="s-name">物理</span>
             <span class="s-sub">${subjectSummary("physics")}</span>
+            <span class="s-progress"><span style="width:${subjProg("physics").pct}%"></span></span>
+            <span class="s-prog-label">クリア ${subjProg("physics").cleared} / ${subjProg("physics").total} ステージ</span>
           </button>
           <button class="subject-btn" id="subjectChemBtn">
             <span class="s-icon">🧪</span>
             <span class="s-name">化学</span>
             <span class="s-sub">${subjectSummary("chem")}</span>
+            <span class="s-progress"><span style="width:${subjProg("chem").pct}%"></span></span>
+            <span class="s-prog-label">クリア ${subjProg("chem").cleared} / ${subjProg("chem").total} ステージ</span>
           </button>
           <button class="subject-btn" id="subjectMathBtn">
             <span class="s-icon">🔢</span>
             <span class="s-name">数学</span>
             <span class="s-sub">${subjectSummary("math")}</span>
+            <span class="s-progress"><span style="width:${subjProg("math").pct}%"></span></span>
+            <span class="s-prog-label">クリア ${subjProg("math").cleared} / ${subjProg("math").total} ステージ</span>
           </button>
           <button class="subject-btn" disabled>
             <span class="s-icon">🔤</span>
@@ -7201,6 +7278,16 @@ const EXTRA_QUESTIONS = {
     document.getElementById("wordModeFlash").addEventListener("click", () => renderFlashcards(true));
   }
 
+  // クイズ中に教科書・単語帳へ寄り道したときの「問題に戻る」導線（セッションが生きている間だけ表示）
+  function quizResumeHtml(label) {
+    if (!session) return "";
+    return `<button id="quizResumeBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:12px;">${label || "◀ 問題に戻る（クイズの途中です）"}</button>`;
+  }
+  function bindQuizResume() {
+    const b = document.getElementById("quizResumeBtn");
+    if (b) b.addEventListener("click", () => renderQuiz());
+  }
+
   function renderWordList() {
     setChromeVisible(true);
     updateHUD();
@@ -7212,6 +7299,7 @@ const EXTRA_QUESTIONS = {
           <button id="wordsBackBtn" class="stat-btn">← もどる</button>
           <h2>📖 ${SUBJECTS[currentSubject].name}用語の単語帳</h2>
         </div>
+        ${quizResumeHtml()}
         ${wordChipsHtml("list")}
         <div style="font-size:12.5px; color:var(--text-light); font-weight:700; margin-bottom:10px;">${list.length} 語（タップで意味が開きます）</div>
         ${list.map((t, i) => `
@@ -7230,6 +7318,7 @@ const EXTRA_QUESTIONS = {
       </div>
     `;
     document.getElementById("wordsBackBtn").addEventListener("click", () => renderMain());
+    bindQuizResume();
     bindWordChips("list");
     main.querySelectorAll(".word-item").forEach(item => {
       item.addEventListener("click", () => item.classList.toggle("open"));
@@ -7253,10 +7342,12 @@ const EXTRA_QUESTIONS = {
             <button id="wordsBackBtn" class="stat-btn">← もどる</button>
             <h2>🃏 フラッシュカード</h2>
           </div>
+          ${quizResumeHtml()}
           ${wordChipsHtml("flash")}
           <div style="color:var(--text-muted);">この分野の用語はまだありません。</div>
         </div>`;
       document.getElementById("wordsBackBtn").addEventListener("click", () => renderMain());
+      bindQuizResume();
       bindWordChips("flash");
       return;
     }
@@ -7268,6 +7359,7 @@ const EXTRA_QUESTIONS = {
           <button id="wordsBackBtn" class="stat-btn">← もどる</button>
           <h2>🃏 フラッシュカード</h2>
         </div>
+        ${quizResumeHtml()}
         ${wordChipsHtml("flash")}
         <div style="font-size:12.5px; color:var(--text-light); font-weight:700; margin-bottom:10px;">${flashPos + 1} / ${flashDeck.length} 枚（カードをタップで裏返ります）</div>
         <div class="flash-wrap">
@@ -7291,6 +7383,7 @@ const EXTRA_QUESTIONS = {
       </div>
     `;
     document.getElementById("wordsBackBtn").addEventListener("click", () => renderMain());
+    bindQuizResume();
     bindWordChips("flash");
     document.getElementById("flashCard").addEventListener("click", () => {
       flashFlipped = !flashFlipped;
@@ -7332,6 +7425,7 @@ const EXTRA_QUESTIONS = {
           <button id="bookBackBtn" class="stat-btn">← もどる</button>
           <h2>📚 簡易教科書</h2>
         </div>
+        ${quizResumeHtml()}
         <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
           クイズのステージに対応した、はじめて${SUBJECTS[currentSubject].name}に触れる人向けの短いレッスンです。読んでから問題に挑むと効果的です。
         </div>
@@ -7351,6 +7445,7 @@ const EXTRA_QUESTIONS = {
       </div>
     `;
     document.getElementById("bookBackBtn").addEventListener("click", () => renderMain());
+    bindQuizResume();
     main.querySelectorAll(".lesson-item").forEach(btn => {
       btn.addEventListener("click", () => renderLesson(Number(btn.getAttribute("data-lesson-idx"))));
     });
@@ -7371,6 +7466,7 @@ const EXTRA_QUESTIONS = {
         <div class="sub-head">
           <button id="lessonBackBtn" class="stat-btn">← レッスン一覧</button>
         </div>
+        ${quizResumeHtml()}
         <div class="quiz-screen">
           <div style="font-size:12px; font-weight:800; color:${st.color}; margin-bottom:4px;">STAGE ${st.num} 対応 ${st.icon}</div>
           <h2 style="margin:0 0 12px; font-size:21px;">${ls.title}</h2>
@@ -7395,10 +7491,45 @@ const EXTRA_QUESTIONS = {
       </div>
     `;
     document.getElementById("lessonBackBtn").addEventListener("click", () => renderLessonList());
+    bindQuizResume();
     if (unlocked) {
       document.getElementById("lessonQuizBtn").addEventListener("click", () => startStageQuiz(stIdx));
     }
     renderMath(main);
+  }
+
+  // 使い方ガイド（タイトル画面・設定画面から開く、アプリ全体の使い方。セクションは折りたたみ式）
+  let guideFrom = "title";
+  function renderGuide(from) {
+    guideFrom = from || "title";
+    setChromeVisible(guideFrom !== "title");
+    window.scrollTo(0, 0);
+    const main = document.getElementById("appMain");
+    const sec = (icon, title, body, open) => `
+      <details class="guide-sec" ${open ? "open" : ""}>
+        <summary>${icon} ${title}</summary>
+        <div class="guide-sec-body">${body}</div>
+      </details>`;
+    main.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="guideBackBtn" class="stat-btn">← もどる</button>
+          <h2>📖 使い方</h2>
+        </div>
+        ${sec("🚀", "はじめ方", `<strong>アカウント</strong>を作ると、ストリーク・フレンド・実績バッジが使えます。<strong>ゲスト</strong>でもクイズは遊べますが、ストリークの記録とフレンド機能は使えません。進捗はこの端末に保存されます。`, true)}
+        ${sec("🗺️", "ステージの進め方", `ステージをタップすると問題が始まります。選んだその場で正解・不正解が分かり、解説を読んでから「次へ」で進みます。クリアすると<strong>次のステージ</strong>が開きます。<strong>難問チャレンジ</strong>は最初からいつでも挑戦できます。間違えた問題は「復習モード」にたまります。`)}
+        ${sec("⚡", "XPとショップ", `正解すると<strong>XP</strong>がたまります。右上のXP表示をタップするとショップが開き、ヒントチケット（まちがいの選択肢を2つ消せます）やストリークフリーズ、テーマカラーが買えます。`)}
+        ${sec("🔥", "ストリーク", `毎日クイズを解くと<strong>連続日数（ストリーク）</strong>が伸びます。全科目共通です。<strong>ストリークフリーズ</strong>を持っていれば、休んだ日も自動で守られます。ゲストは対象外です。`)}
+        ${sec("📚", "単語帳と教科書", `学習タブから開けます。単語帳は用語をタップすると意味が開き、フラッシュカードで暗記もできます。教科書はステージ対応の短いレッスンです。クイズの解説から教科書へ行っても、<strong>「◀ 問題に戻る」</strong>で中断した問題にそのまま戻れます。`)}
+        ${sec("👥", "フレンド", `フレンド画面で<strong>コードやQRコード</strong>から申請を送り、相手が<strong>承認</strong>するとフレンドになります。承認方法はフレンド画面で<strong>手動承認／自動承認</strong>を選べます。フレンドとはXPレースで競えます。`)}
+        ${sec("💾", "データの移行", `設定画面の<strong>データ移行（バックアップコード）</strong>でコードを書き出すと、別の端末で読み込んで進捗を移せます。コードはなくさないよう大切に保管してください。`)}
+        ${sec("⚙️", "設定", `右上の<strong>⚙️ボタン</strong>から、ダークモード・効果音・テーマカラー・アプリアイコンを変更できます。設定はアカウントごとに保存されます。`)}
+      </div>
+    `;
+    document.getElementById("guideBackBtn").addEventListener("click", () => {
+      if (guideFrom === "settings") { renderMain(); openSettingsModal(); }
+      else renderTitleScreen();
+    });
   }
 
   // ゲストで始める（モーダルを閉じてゲストのままタイトル画面へ）
