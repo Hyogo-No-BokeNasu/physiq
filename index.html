@@ -4188,7 +4188,7 @@ const EXTRA_QUESTIONS = {
       acc.serverFriends.push(entry);
       saveData(); // users/{uid} の friends 配列にも同期される
       fbSubscribeFriends();
-      showToast(`👥 ${entry.name} をフレンドに追加しました！`);
+      showToast(`👥 ${fbEsc(entry.name)} をフレンドに追加しました！`);
       renderFriends();
     } catch (e) {
       showToast("⚠️ 追加できませんでした。通信環境を確認してね");
@@ -4472,7 +4472,7 @@ const EXTRA_QUESTIONS = {
           <div class="s-icon">🏁</div>
           <div class="s-main">
             <div class="s-name">XPレース ${raceDone ? "― 達成！🎉" : raceExpired ? "― 期限切れ" : "― 進行中"}</div>
-            <div class="s-desc">ライバル：${race.friendName} ／ 7日間で ${RACE_GOAL} XP稼ぐのが目標（残り ${raceDaysLeft(race)} 日）${raceRivalInfo}</div>
+            <div class="s-desc">ライバル：${fbEsc(race.friendName)} ／ 7日間で ${RACE_GOAL} XP稼ぐのが目標（残り ${raceDaysLeft(race)} 日）${raceRivalInfo}</div>
             <div class="s-own">進捗：${raceProgress} / ${RACE_GOAL} XP</div>
             <div style="background:var(--border); border-radius:99px; overflow:hidden; height:10px; margin-top:6px;"><div style="width:${Math.round(raceProgress / RACE_GOAL * 100)}%; height:100%; background:var(--blue);"></div></div>
           </div>
@@ -4539,7 +4539,7 @@ const EXTRA_QUESTIONS = {
       if (!f) return;
       if (acc.xpBalance < CHEER_PRICE) { showToast("⚡ XPが足りません。クイズで貯めよう！"); return; }
       acc.xpBalance -= CHEER_PRICE; f.cheers = (f.cheers || 0) + 1; acc.cheersSent = (acc.cheersSent || 0) + 1;
-      saveData(); showToast(`👏 ${f.name} に応援を送ったよ！`); renderFriends();
+      saveData(); showToast(`👏 ${fbEsc(f.name)} に応援を送ったよ！`); renderFriends();
     }));
     main.querySelectorAll("[data-race]").forEach(b => b.addEventListener("click", () => {
       const f = findAnyFriend(b.getAttribute("data-race"));
@@ -4550,7 +4550,7 @@ const EXTRA_QUESTIONS = {
       const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
       acc.xpBalance -= RACE_PRICE;
       acc.xpRace = { friendId: f.id, friendName: f.name, startXp: acc.xp, startDate: todayStr(), endDate: endStr, goal: RACE_GOAL, reward: RACE_REWARD };
-      saveData(); showToast(`🏁 ${f.name} とのXPレース開始！7日間で${RACE_GOAL}XP稼ごう`); renderFriends();
+      saveData(); showToast(`🏁 ${fbEsc(f.name)} とのXPレース開始！7日間で${RACE_GOAL}XP稼ごう`); renderFriends();
     }));
     main.querySelectorAll("[data-remove-server]").forEach(b => b.addEventListener("click", () => {
       const uid = b.getAttribute("data-remove-server");
