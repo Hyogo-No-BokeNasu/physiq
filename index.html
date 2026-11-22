@@ -834,10 +834,18 @@
 <div id="accountModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-      <h2 style="margin:0; font-size:18px;">プロフィール</h2>
+      <h2 id="accountModalTitle" style="margin:0; font-size:18px;">プロフィール</h2>
       <button id="closeAccountModal" class="stat-btn">✕</button>
     </div>
 
+    <div id="accountChoiceView" style="display:none;">
+      <div style="font-size:13.5px; color:var(--text-muted); line-height:1.7; margin-bottom:16px;">まずは、はじめ方を選んでください。アカウントを作ると、毎日のストリークやフレンド機能が使えます。</div>
+      <button id="choiceCreateBtn" class="btn-3d btn-blue" style="width:100%; padding:16px 12px; font-size:16px; margin-bottom:10px;">🆕 新規アカウント作成</button>
+      <button id="choiceGuestBtn" class="btn-3d btn-ghost" style="width:100%; padding:16px 12px; font-size:16px; margin-bottom:14px;">👤 ゲストではじめる（ゲストログイン）</button>
+      <button id="choiceSigninBtn" class="glossary-link" style="display:block; width:100%; padding:6px 0; font-size:13px; text-align:center;">🔑 すでにアカウントがある人はこちら（サインイン）</button>
+    </div>
+
+    <div id="accountProfileView">
     <div id="myProfileWrap" style="margin-bottom:16px;"></div>
 
     <div style="border-top:1.5px solid var(--border); padding-top:14px;">
@@ -857,6 +865,7 @@
       <button id="openCreateAccBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:8px;">✨ 新しいアカウントを作成</button>
       <button id="openSigninBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:8px;">🔑 サインイン（ユーザーIDとパスワード）</button>
       <button id="guestStartBtn" class="btn-3d btn-ghost" style="width:100%;">ゲストで始める（アカウントなしでもOK）</button>
+    </div>
     </div>
 
     <div style="margin-top:14px; font-size:11.5px; color:var(--text-light); line-height:1.5;">
@@ -907,6 +916,7 @@
     </div>
     <div id="createError" class="auth-error"></div>
     <button id="createSubmitBtn" class="btn-3d btn-blue" style="width:100%;">このIDとパスワードでアカウントを作成</button>
+    <button id="createBackBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:8px;">← もどる</button>
     <div style="margin-top:10px; font-size:11.5px; color:var(--text-light); line-height:1.5;">※パスワードは端末内にハッシュ化して保存され、サーバーには送られません。パスワードを忘れると復旧できないので、忘れないものを設定してください。</div>
   </div>
 </div>
@@ -923,6 +933,7 @@
     <div class="auth-field"><label>パスワード</label><input id="signinPassword" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="current-password" /></div>
     <div id="signinError" class="auth-error"></div>
     <button id="signinSubmitBtn" class="btn-3d btn-blue" style="width:100%;">サインインする</button>
+    <button id="signinBackBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:8px;">← もどる</button>
     <div style="margin-top:10px; font-size:11.5px; color:var(--text-light); line-height:1.5;">※他の端末で作ったアカウントは、この端末にまだありません。先に設定画面の「データ移行（バックアップコード）」で取り込んでください。パスワードを忘れた場合の復旧はできません。</div>
   </div>
 </div>
@@ -5237,7 +5248,19 @@ const EXTRA_QUESTIONS = {
 
   // Account Modal Logic
   let pickedAvatar = "🚀";
-  function openAccountModal() {
+  // アカウントモーダルの表示モード："choice"=初回のはじめ方選択画面、"profile"=通常のプロフィール画面
+  let accountFlowMode = "profile";
+  function openAccountModal(mode) {
+    if (mode) accountFlowMode = mode;
+    const choiceView = document.getElementById("accountChoiceView");
+    const profileView = document.getElementById("accountProfileView");
+    const titleEl = document.getElementById("accountModalTitle");
+    if (choiceView && profileView) {
+      const isChoice = accountFlowMode === "choice";
+      choiceView.style.display = isChoice ? "" : "none";
+      profileView.style.display = isChoice ? "none" : "";
+      if (titleEl) titleEl.textContent = isChoice ? "👋 ようこそ！" : "プロフィール";
+    }
     const acc = curAcc();
     const ti = titleInfo(acc);
     const prof = document.getElementById("myProfileWrap");
@@ -5340,9 +5363,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2026-11-22.11";
+  const APP_VERSION = "2026-11-22.12";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-22", version: "2026-11-22.12", title: "初回のはじめ方を選べるようになりました", body: "初めてアプリを開いたとき、最初に「🆕 新規アカウント作成」と「👤 ゲストではじめる」の2つの選択肢が大きく表示されるようになりました。選んでから、それぞれの画面に進みます。すでにアカウントがある人は、その画面からサインインも選べます。作成・サインインの画面からは「もどる」で選択画面に戻れます。" },
     { date: "2026-11-22", version: "2026-11-22.11", title: "フレンドはサーバー共有のみになりました（QR追加も）", body: "フレンドはサーバー共有のみになりました。これまでの手入力（ローカル）フレンドは表示されなくなります。フレンド画面に自分のQRコードが表示されるようになり、相手に読み取ってもらうだけで追加できるようになりました。フレンド画面の「QRを読み取る」から相手のQRを読み取ることもできます。共有リンク（QRのURL）を開いたときも、ログインしていれば確認してそのまま追加できます。ゲストはフレンド機能を使えません。" },
     { date: "2026-11-22", version: "2026-11-22.10", title: "設定ボタンを追加し、ヘッダーの導線を整理しました", body: "ヘッダーに⚙️設定ボタンを追加し、プロフィールを経由せず直接設定を開けるようにしました。名前・アバターの変更、称号、実績バッジなどのプロフィールは設定画面の中にまとめています。ヘッダーのストリーク表示をタップするとデータ画面へ、XP表示をタップするとショップへ移動できるようになりました。ヘッダーのアカウントボタンは削除しました（アカウントの切り替え・作成・サインインは、タイトル画面のボタンと設定画面から開けます）。" },
     { date: "2026-11-22", version: "2026-11-22.9", title: "フレンドがサーバー共有になりました（リアルタイムでレース更新）", body: "フレンド機能がサーバー共有になりました。フレンドコードで追加した相手のXPはリアルタイムでランキングとXPレースに反映されます。コードはフレンド画面に表示される8文字のコードを相手に教えてください。これまでの手入力のフレンドは「ローカルフレンド」としてそのまま残ります。ゲストはサーバー共有の対象外です。" },
@@ -5436,6 +5460,24 @@ const EXTRA_QUESTIONS = {
     document.getElementById("accountModal").classList.remove("open");
     openSigninModal();
   });
+  // 初回のはじめ方選択画面 → 各フローへの導線と、各フォームから選択画面への「もどる」
+  document.getElementById("choiceCreateBtn").addEventListener("click", () => {
+    document.getElementById("accountModal").classList.remove("open");
+    openCreateModal();
+  });
+  document.getElementById("choiceSigninBtn").addEventListener("click", () => {
+    document.getElementById("accountModal").classList.remove("open");
+    openSigninModal();
+  });
+  document.getElementById("choiceGuestBtn").addEventListener("click", () => startAsGuest());
+  document.getElementById("createBackBtn").addEventListener("click", () => {
+    document.getElementById("createAccountModal").classList.remove("open");
+    openAccountModal(accountFlowMode);
+  });
+  document.getElementById("signinBackBtn").addEventListener("click", () => {
+    document.getElementById("signinModal").classList.remove("open");
+    openAccountModal(accountFlowMode);
+  });
   document.getElementById("closeCreateModal").addEventListener("click", closeAuthModals);
   document.getElementById("closeSigninModal").addEventListener("click", closeAuthModals);
   document.getElementById("createAccountModal").addEventListener("click", (e) => { if (e.target.id === "createAccountModal") closeAuthModals(); });
@@ -5470,6 +5512,7 @@ const EXTRA_QUESTIONS = {
     document.getElementById("createPassword2").value = "";
     document.getElementById("createLoginId").value = "";
     document.getElementById("createNick").value = "";
+    accountFlowMode = "profile";
     closeAuthModals();
     updateHUD();
     session = null;
@@ -5492,6 +5535,7 @@ const EXTRA_QUESTIONS = {
     appData.activeId = acc.id;
     saveData();
     document.getElementById("signinPassword").value = "";
+    accountFlowMode = "profile";
     closeAuthModals();
     updateHUD();
     session = null;
@@ -7066,13 +7110,15 @@ const EXTRA_QUESTIONS = {
   }
 
   // ゲストで始める（モーダルを閉じてゲストのままタイトル画面へ）
-  document.getElementById("guestStartBtn").addEventListener("click", () => {
+  function startAsGuest() {
+    accountFlowMode = "profile";
     appData.activeId = "guest";
     saveData();
     document.getElementById("accountModal").classList.remove("open");
     session = null;
     if (appStarted) renderMain(); else renderTitleScreen();
-  });
+  }
+  document.getElementById("guestStartBtn").addEventListener("click", startAsGuest);
 
 
   // 初回インストール（保存データ自体がない）かどうかは、loadData() の前に判定しておく
@@ -7097,7 +7143,7 @@ const EXTRA_QUESTIONS = {
   if (!appData.onboarded) {
     appData.onboarded = true;
     saveData();
-    openAccountModal();
+    openAccountModal("choice");
   }
 })();
 </script>
