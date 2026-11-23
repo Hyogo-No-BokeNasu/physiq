@@ -7933,9 +7933,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.10";
+  const APP_VERSION = "2.3.11";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-23", version: "2.3.11", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.10", title: "端末を変えても続きから遊べるようになりました", body: "進捗をクラウドに保存できるようになりました。端末を変えても、これまでのつづきから遊べます。くわしくは設定の「☁️ クラウド同期」を見てください。" },
     { date: "2026-11-23", version: "2.3.9", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.8", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
@@ -8657,7 +8658,7 @@ const EXTRA_QUESTIONS = {
       const rawCode = body.querySelector("#importCode").value.trim();
       try {
         const data = JSON.parse(decodeURIComponent(escape(atob(rawCode))));
-        if (!data || typeof data !== "object" || !data.name || !Array.isArray(data.stars)) throw new Error("bad");
+        if (!data || typeof data !== "object" || !data.name || !data.stars || typeof data.stars !== "object") throw new Error("bad");
         let id = data.id;
         if (!id || appData.accounts[id] || id === "guest") id = "acc_" + Date.now();
         data.id = id;
@@ -8712,7 +8713,7 @@ const EXTRA_QUESTIONS = {
         const d = snap.data() || {};
         let parsed = null;
         try { parsed = JSON.parse(decodeURIComponent(escape(atob(String(d.data || ""))))); } catch (e) {}
-        if (!parsed || typeof parsed !== "object" || !parsed.name || !Array.isArray(parsed.stars)) return fail("同期データが正しく読み込めませんでした");
+        if (!parsed || typeof parsed !== "object" || !parsed.name || !parsed.stars || typeof parsed.stars !== "object") return fail("同期データが正しく読み込めませんでした");
         const salt = d.pwSalt || parsed.pwSalt || "";
         const hash = await hashPassword(rpw, salt);
         if (!d.pwHash || hash !== d.pwHash) return fail("パスワードがちがいます");
