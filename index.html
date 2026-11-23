@@ -6053,6 +6053,19 @@ const EXTRA_QUESTIONS = {
       csSyncTimer = setTimeout(() => { csSyncTimer = null; try { csUploadNow(false).catch(() => {}); } catch (e) {} }, 4000 - (now - csLastUploadAt));
     }
   }
+  // ページを閉じる/隠れるタイミングで、スロットル待ちの未アップロード分を即フラッシュする（取りこぼし対策）。
+  // csUploadNow(false) の変更なしガード（"unchanged"）があるため、変更がなければ書き込みは発生しない。
+  function csFlushUpload() {
+    try {
+      const acc = curAcc();
+      if (!csCanSync(acc)) return;
+      if (!fbDb || !fbUser) return;
+      if (csSyncTimer) { clearTimeout(csSyncTimer); csSyncTimer = null; }
+      csUploadNow(false).catch(() => {});
+    } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", () => { if (document.hidden) csFlushUpload(); });
+  window.addEventListener("pagehide", () => { csFlushUpload(); });
   // フレンドコードの発行・登録（codes/{code} = {uid}）とプロフィール公開
   async function fbEnsureCodeAndPublish() {
     const acc = curAcc();
@@ -7933,9 +7946,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.11";
+  const APP_VERSION = "2.3.12";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-23", version: "2.3.12", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.11", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.10", title: "端末を変えても続きから遊べるようになりました", body: "進捗をクラウドに保存できるようになりました。端末を変えても、これまでのつづきから遊べます。くわしくは設定の「☁️ クラウド同期」を見てください。" },
     { date: "2026-11-23", version: "2.3.9", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
