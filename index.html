@@ -1228,6 +1228,18 @@
   </div>
 </div>
 
+<!-- Sync Conflict Modal -->
+<div id="syncConflictModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="font-size:17px; font-weight:800; line-height:1.55; margin-bottom:10px;">☁️ 同期の確認</div>
+    <div style="font-size:13.5px; color:var(--text-muted); line-height:1.8; margin-bottom:16px;">
+      クラウドとこの端末の両方に新しい進捗があります。どちらを使いますか？<br>選ばなかった方の進捗は上書きされます。
+    </div>
+    <button id="syncConflictCloudBtn" class="btn-3d btn-blue" style="width:100%;">クラウドのデータを使う</button>
+    <button id="syncConflictLocalBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:8px;">この端末のデータを使う</button>
+  </div>
+</div>
+
 <!-- Loading Overlay (演出としての読み込み中画面) -->
 <div id="loadingOverlay" class="loading-overlay" role="status" aria-label="読み込み中">
   <svg id="loadingSpinner" class="loading-spinner" viewBox="0 0 120 120" aria-hidden="true">
@@ -5927,7 +5939,7 @@ const EXTRA_QUESTIONS = {
         if (u) {
           fbReady = true;
           try { fbScheduleProfileSync(); } catch (e) {}
-          try { csScheduleUpload(); } catch (e) {}
+          try { csPullThenUpload(); } catch (e) {} // 接続完了時：まず自動プルを確認し、クラウドが新しくない場合だけアップロード
           try { fbStartRequestsWatch(); } catch (e) {}
           try { fbProcessPendingFriend(); } catch (e) {}
           if (friendsScreenActive) { try { renderFriends(); } catch (e) {} }
@@ -6000,6 +6012,7 @@ const EXTRA_QUESTIONS = {
   let csLastUploadAt = 0;
   let csLastPayloadSig = "";
   let csLastAccId = null;
+  let csPullGate = false; // 自動プルの確認中は通常アップロードを待たせ、古いローカルでクラウドを上書きしないようにする
   function csFmtTime(ts) {
     if (!ts) return "まだ同期していません";
     const d = new Date(ts);
@@ -6009,18 +6022,27 @@ const EXTRA_QUESTIONS = {
   function csCanSync(acc) {
     return !!(acc && acc.id !== "guest" && acc.loginId && acc.pwHash);
   }
+  function csSigOf(str) {
+    // ペイロードの変更検知用の軽量ハッシュ（FNV-1a）。同期済みペイロードの署名としてアカウントに保存する
+    const s = String(str || "");
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return "s" + (h >>> 0).toString(16) + "_" + s.length;
+  }
   function csBuildPayload(acc) {
-    // バックアップコード書き出しと同じシリアライズ。cloudSyncAt（最終同期時刻）だけは同期対象から外し、
+    // バックアップコード書き出しと同じシリアライズ。cloudSyncAt（最終同期時刻）と cloudSyncSig（同期済み署名）は同期対象から外し、
     // 同期するたびに中身が変わって無限に再アップロードされるのを防ぐ
     const copy = Object.assign({}, acc);
     delete copy.cloudSyncAt;
+    delete copy.cloudSyncSig;
     try { return btoa(unescape(encodeURIComponent(JSON.stringify(copy)))); } catch (e) { return ""; }
   }
-  // アップロード本体。戻り値: "ok" | "unchanged" | "nocred" | "unavailable" | "error"
+  // アップロード本体。戻り値: "ok" | "unchanged" | "nocred" | "unavailable" | "deferred" | "error"
   async function csUploadNow(manual) {
     try {
       const acc = curAcc();
       if (!csCanSync(acc)) return "nocred";
+      if (!manual && csPullGate) return "deferred"; // プル確認中は待つ（確認後に csPullThenUpload が改めてアップロードする）
       if (!fbDb || !fbUser) return "unavailable";
       const dataStr = csBuildPayload(acc);
       if (!dataStr) return "error";
@@ -6035,6 +6057,7 @@ const EXTRA_QUESTIONS = {
       csLastAccId = acc.id;
       csLastUploadAt = Date.now();
       acc.cloudSyncAt = Date.now();
+      acc.cloudSyncSig = csSigOf(dataStr); // 同期済みペイロードの署名（自動プルの競合判定に使う）
       try { saveData(); } catch (e) {}
       try { logEvent("sync_upload", acc.loginId); } catch (e) {}
       return "ok";
@@ -6066,6 +6089,127 @@ const EXTRA_QUESTIONS = {
   }
   document.addEventListener("visibilitychange", () => { if (document.hidden) csFlushUpload(); });
   window.addEventListener("pagehide", () => { csFlushUpload(); });
+  // ===== クラウド同期：自動プル（双方向同期の下り） =====
+  // チェックは接続完了時とログイン/アカウント切替直後だけ。クラウドの方が新しく、ローカルに未アップロードの
+  // 変更がなければ自動で取り込む。両方に変更がある場合はモーダルで選んでもらう（自動では上書きしない）。
+  let csPullInFlight = false;
+  let csPullHandledKey = ""; // 処理済みの "loginId@updatedAt"（同じ更新に対してモーダルを二重に出さない）
+  let csPendingConflict = null; // { accId, cloudData, cloudAt, key }
+  let csConflictWired = false;
+  // クラウドのペイロードを現在のローカルアカウントへ適用する（手動復元と同じ検証方式）。成功したら true
+  function csApplyCloudData(acc, cloudData, cloudAt, key) {
+    try {
+      let parsed = null;
+      try { parsed = JSON.parse(decodeURIComponent(escape(atob(String(cloudData || ""))))); } catch (e) {}
+      if (!parsed || typeof parsed !== "object" || !parsed.name || !parsed.stars || typeof parsed.stars !== "object") return false;
+      parsed.id = acc.id;
+      if (!parsed.loginId) parsed.loginId = acc.loginId;
+      const merged = Object.assign(newAccountFields(acc.id, parsed.name, parsed.avatar || "🚀"), parsed, { id: acc.id });
+      merged.cloudSyncAt = cloudAt || Date.now();
+      merged.cloudSyncSig = csSigOf(cloudData);
+      appData.accounts[acc.id] = merged;
+      csLastPayloadSig = cloudData; // 取り込んだ内容を「同期済み」として登録し、即座の再アップロードを防ぐ
+      csLastAccId = acc.id;
+      if (key) csPullHandledKey = key;
+      saveData();
+      try { logEvent("sync_download", acc.loginId); } catch (e) {}
+      session = null;
+      updateHUD();
+      const settingsModal = document.getElementById("settingsModal");
+      if (settingsModal && settingsModal.classList.contains("open")) { try { renderSettings(); } catch (e) {} }
+      else if (appStarted) renderMain(); else renderTitleScreen();
+      showToast("☁️ クラウドの最新データを読み込みました");
+      return true;
+    } catch (e) { return false; }
+  }
+  function csWireConflictModal() {
+    if (csConflictWired) return;
+    csConflictWired = true;
+    const cloudBtn = document.getElementById("syncConflictCloudBtn");
+    const localBtn = document.getElementById("syncConflictLocalBtn");
+    if (cloudBtn) cloudBtn.addEventListener("click", () => {
+      const p = csPendingConflict; csPendingConflict = null;
+      const m = document.getElementById("syncConflictModal"); if (m) m.classList.remove("open");
+      if (!p) return;
+      const acc = curAcc();
+      if (!acc || acc.id !== p.accId) return;
+      csApplyCloudData(acc, p.cloudData, p.cloudAt, p.key);
+    });
+    if (localBtn) localBtn.addEventListener("click", async () => {
+      const p = csPendingConflict; csPendingConflict = null;
+      const m = document.getElementById("syncConflictModal"); if (m) m.classList.remove("open");
+      if (!p) return;
+      const acc = curAcc();
+      if (!acc || acc.id !== p.accId) return;
+      try {
+        const r = await csUploadNow(true); // ローカルをクラウドへ強制アップロード（最終同期マーカーも更新される）
+        if (r === "ok") showToast("☁️ この端末のデータをクラウドに保存しました");
+      } catch (e) {}
+    });
+  }
+  function csShowConflictModal(acc, cloudData, cloudAt, key) {
+    try {
+      if (csPendingConflict) return; // すでに表示中
+      csWireConflictModal();
+      csPendingConflict = { accId: acc.id, cloudData, cloudAt, key };
+      const m = document.getElementById("syncConflictModal");
+      if (m) m.classList.add("open");
+    } catch (e) {}
+  }
+  // 自動プル本体。戻り値: "applied" | "conflict" | "none" | "nocred" | "unavailable" | "busy" | "deferred" | "error"
+  async function csAutoPull() {
+    try {
+      const acc = curAcc();
+      if (!csCanSync(acc)) return "nocred";
+      if (!fbDb || !fbUser) return "unavailable";
+      if (csPullInFlight) return "busy";
+      csPullInFlight = true;
+      try {
+        const snap = await fbDb.collection("sync").doc(acc.loginId).get();
+        if (!snap.exists) return "none";
+        const d = snap.data() || {};
+        if (!d.pwHash || d.pwHash !== acc.pwHash) return "none"; // パスワード変更済み等のケースは手動復元に任せる
+        const cloudAt = (d.updatedAt && typeof d.updatedAt.toMillis === "function") ? d.updatedAt.toMillis() : 0;
+        if (!cloudAt || cloudAt <= (acc.cloudSyncAt || 0)) return "none"; // クラウドの方が新しくない
+        const key = acc.loginId + "@" + cloudAt;
+        if (csPullHandledKey === key) return "none";
+        const cloudData = String(d.data || "");
+        if (!cloudData) return "none";
+        const localPayload = csBuildPayload(acc);
+        if (localPayload && localPayload === cloudData) {
+          // 中身は同一：取り込みは不要で、マーカーだけ進める
+          acc.cloudSyncAt = cloudAt;
+          acc.cloudSyncSig = csSigOf(cloudData);
+          csLastPayloadSig = cloudData;
+          csLastAccId = acc.id;
+          csPullHandledKey = key;
+          try { saveData(); } catch (e) {}
+          return "none";
+        }
+        let inQuiz = false;
+        try { inQuiz = !!session; } catch (e) {}
+        if (inQuiz) return "deferred"; // クイズ中は取り込まない（次回ログイン/起動時に再チェックされる）
+        const localClean = !!(acc.cloudSyncSig && localPayload && csSigOf(localPayload) === acc.cloudSyncSig);
+        if (localClean) {
+          return csApplyCloudData(acc, cloudData, cloudAt, key) ? "applied" : "error";
+        }
+        // 競合：自動で上書きせず、モーダルで選んでもらう
+        csPullHandledKey = key;
+        csShowConflictModal(acc, cloudData, cloudAt, key);
+        return "conflict";
+      } finally { csPullInFlight = false; }
+    } catch (e) { return "error"; }
+  }
+  // トリガー用：プルを先に確認し、クラウドが新しくない場合だけ従来どおりアップロードを試みる
+  async function csPullThenUpload() {
+    csPullGate = true;
+    let r = "error";
+    try { r = await csAutoPull(); } catch (e) {}
+    if (r === "busy") return; // 進行中のプル側に任せる（ゲート解除もそちらが行う）
+    csPullGate = false;
+    if (r === "applied" || r === "conflict") return;
+    try { const p = csUploadNow(false); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
   // フレンドコードの発行・登録（codes/{code} = {uid}）とプロフィール公開
   async function fbEnsureCodeAndPublish() {
     const acc = curAcc();
@@ -7931,6 +8075,7 @@ const EXTRA_QUESTIONS = {
     wrap.querySelectorAll("[data-acc-id]").forEach(b => {
       b.addEventListener("click", () => {
         appData.activeId = b.getAttribute("data-acc-id");
+        try { csPullThenUpload(); } catch (e) {} // アカウント切替直後：まず自動プルを確認し、クラウドが新しくない場合だけアップロード
         saveData();
         document.getElementById("accountModal").classList.remove("open");
         session = null;
@@ -7946,9 +8091,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.12";
+  const APP_VERSION = "2.3.13";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-23", version: "2.3.13", title: "クラウド同期がさらに便利になりました", body: "クラウド同期がさらに便利になりました。別の端末で遊んだつづきも、見つけやすくなりました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.12", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.11", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.10", title: "端末を変えても続きから遊べるようになりました", body: "進捗をクラウドに保存できるようになりました。端末を変えても、これまでのつづきから遊べます。くわしくは設定の「☁️ クラウド同期」を見てください。" },
@@ -8044,7 +8190,7 @@ const EXTRA_QUESTIONS = {
     }
   }
   function newAccountFields(id, name, avatar) {
-    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", themeCustom: { h: 221, s: 83, l: 54 }, xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, hideExpOnCorrect: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "", serverCode: "", serverFriends: [], friendPolicy: "manual", achv: {} };
+    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", themeCustom: { h: 221, s: 83, l: 54 }, xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, hideExpOnCorrect: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "", cloudSyncAt: 0, cloudSyncSig: "", serverCode: "", serverFriends: [], friendPolicy: "manual", achv: {} };
   }
   function closeAuthModals() {
     ["createAccountModal", "signinModal", "settingsModal", "adminPasswordModal"].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("open"); });
@@ -8143,9 +8289,9 @@ const EXTRA_QUESTIONS = {
     const hash = await hashPassword(pw, acc.pwSalt || "");
     if (hash !== acc.pwHash) return fail("パスワードがちがいます");
     appData.activeId = acc.id;
+    try { csPullThenUpload(); } catch (e) {} // ログイン直後：まず自動プルを確認し、クラウドが新しくない場合だけアップロード
     saveData();
     logEvent("login", "");
-    try { csUploadNow(false).catch(() => {}); } catch (e) {} // ログイン直後にクラウド同期へ1回アップロード
     document.getElementById("signinPassword").value = "";
     accountFlowMode = "profile";
     closeAuthModals();
@@ -8184,7 +8330,7 @@ const EXTRA_QUESTIONS = {
   document.getElementById("closeAdminPasswordModal").addEventListener("click", closeAdminPasswordModal);
   document.getElementById("adminPasswordModal").addEventListener("click", (e) => { if (e.target.id === "adminPasswordModal") closeAdminPasswordModal(); });
   document.getElementById("adminPasswordInput").addEventListener("keydown", (e) => { if (e.key === "Enter") submitAdminPassword(); });
-  const LOG_TYPE_LABELS = { login: "ログイン", signup: "新規作成", guest: "ゲスト開始", stage_start: "ステージ開始", stage_clear: "ステージクリア", purchase: "購入", friend_request: "フレンド申請", friend_approve: "フレンド承認", sync_upload: "同期アップロード", sync_restore: "同期復元" };
+  const LOG_TYPE_LABELS = { login: "ログイン", signup: "新規作成", guest: "ゲスト開始", stage_start: "ステージ開始", stage_clear: "ステージクリア", purchase: "購入", friend_request: "フレンド申請", friend_approve: "フレンド承認", sync_upload: "同期アップロード", sync_restore: "同期復元", sync_download: "同期ダウンロード" };
   let adminTapCount = 0;
   let adminTapLastAt = 0;
   let adminLogsCache = null;    // 取得済みログ配列（null = 未取得）
