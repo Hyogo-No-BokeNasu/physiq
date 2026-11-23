@@ -1103,7 +1103,7 @@
         <li>XP・ストリーク・進捗がアカウントごとに保存される</li>
         <li>ゲストの進捗と混ざらない</li>
         <li>複数アカウントを切り替えて使える</li>
-        <li>ユーザーIDとパスワードでサインインできる（他の端末へはバックアップコードで移行）</li>
+        <li>ユーザーIDとパスワードでサインインできる（クラウドに保存されるので、端末やURLが変わっても続きから遊べる）</li>
       </ul>
     </div>
       <button id="openCreateAccBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:8px;">✨ 新しいアカウントを作成</button>
@@ -1113,7 +1113,7 @@
     </div>
 
     <div style="margin-top:14px; font-size:11.5px; color:var(--text-light); line-height:1.5;">
-      ※進捗はこの端末に保存されます。ユーザーIDとパスワードは、この端末でのサインインと、設定画面の「データ移行（バックアップコード）」で他の端末へ進捗を移すときに使います。パスワードを忘れると復旧できません。
+      ※進捗はクラウドに自動で保存されます。ユーザーIDとパスワードで、どの端末・URLからでもサインインして続きから遊べます。パスワードを忘れると復旧できません。
     </div>
   </div>
 </div>
@@ -1125,7 +1125,7 @@
       <h2 style="margin:0; font-size:18px;">✨ 新しいアカウントを作成</h2>
       <button id="closeCreateModal" class="stat-btn">✕</button>
     </div>
-    <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">ユーザーIDとパスワードでアカウントを作ります。この端末でサインインできるほか、設定の「データ移行」で他の端末へ進捗を移せます。</div>
+    <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">ユーザーIDとパスワードでアカウントを作ります。進捗はクラウドに自動で保存され、他の端末やURLからサインインしても続きから遊べます。</div>
     <div class="auth-field"><label>ユーザーID（半角英数字・_・-、3〜20文字）</label><input id="createLoginId" class="text-input" type="text" maxlength="20" placeholder="例：physiq_123" autocomplete="username" /></div>
     <div class="auth-field"><label>パスワード（6文字以上）</label><input id="createPassword" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="new-password" /></div>
     <div class="auth-field"><label>パスワード（確認）</label><input id="createPassword2" class="text-input" type="password" maxlength="64" placeholder="もう一度入力" autocomplete="new-password" /></div>
@@ -1172,13 +1172,13 @@
       <h2 style="margin:0; font-size:18px;">🔑 サインイン</h2>
       <button id="closeSigninModal" class="stat-btn">✕</button>
     </div>
-    <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">作成したユーザーIDとパスワードでサインインします。</div>
+    <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">作成したユーザーIDとパスワードでサインインします。別の端末やURLで作ったアカウントも、クラウドから進捗を復元してサインインできます。</div>
     <div class="auth-field"><label>ユーザーID</label><input id="signinLoginId" class="text-input" type="text" maxlength="20" placeholder="ユーザーID" autocomplete="username" /></div>
     <div class="auth-field"><label>パスワード</label><input id="signinPassword" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="current-password" /></div>
     <div id="signinError" class="auth-error"></div>
     <button id="signinSubmitBtn" class="btn-3d btn-blue" style="width:100%;">サインインする</button>
     <button id="signinBackBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:8px;">← もどる</button>
-    <div style="margin-top:10px; font-size:11.5px; color:var(--text-light); line-height:1.5;">※他の端末で作ったアカウントは、この端末にまだありません。先に設定画面の「データ移行（バックアップコード）」で取り込んでください。パスワードを忘れた場合の復旧はできません。</div>
+    <div style="margin-top:10px; font-size:11.5px; color:var(--text-light); line-height:1.5;">※クラウドに保存されていないアカウント（ゲストや、ID・パスワードを設定する前に遊んでいたデータ）は、この画面からは復元できません。パスワードを忘れた場合の復旧はできません。</div>
   </div>
 </div>
 
@@ -6071,6 +6071,10 @@ const EXTRA_QUESTIONS = {
       if (!csCanSync(acc)) return "nocred";
       if (!manual && csPullGate) return "deferred"; // プル確認中は待つ（確認後に csPullThenUpload が改めてアップロードする）
       if (!fbDb || !fbUser) return "unavailable";
+      if (csPendingCloudCheckIds.has(String(acc.loginId || "").toLowerCase())) {
+        const guard = await csGuardFreshUpload(acc);
+        if (guard !== "ok") return guard;
+      }
       const dataStr = csBuildPayload(acc);
       if (!dataStr) return "error";
       if (!manual && csLastAccId === acc.id && dataStr === csLastPayloadSig) return "unchanged";
@@ -6236,6 +6240,79 @@ const EXTRA_QUESTIONS = {
     csPullGate = false;
     if (r === "applied" || r === "conflict") return;
     try { const p = csUploadNow(false); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+  }
+  // ===== クラウド・サインイン（2.3.17：アカウントを端末依存からクラウド依存へ） =====
+  // localStorage はオリジン（URL）ごとに分かれるため、公開URLが変わると端末内の
+  // アカウントが見えなくなる。サインインは端末内だけでなく sync コレクションも見る。
+  // 匿名認証が完了するまで待つ（Firestore ルールは request.auth != null を要求する）。
+  function fbWaitReady(timeoutMs) {
+    try { fbInit(); } catch (e) {}
+    if (fbFailed) return Promise.resolve(false);
+    if (fbReady && fbDb && fbUser) return Promise.resolve(true);
+    const deadline = Date.now() + (timeoutMs || 10000);
+    return new Promise((resolve) => {
+      const tick = () => {
+        if (fbReady && fbDb && fbUser) return resolve(true);
+        if (fbFailed || Date.now() >= deadline) return resolve(false);
+        setTimeout(tick, 200);
+      };
+      tick();
+    });
+  }
+  // sync/{loginId} を読む。戻り値: null（未接続・通信失敗）/ { exists:false } / { exists:true, data, pwHash, pwSalt, updatedAtMs }
+  async function csFetchCloudDoc(loginId) {
+    try {
+      if (!fbDb || !fbUser) return null;
+      const snap = await fbDb.collection("sync").doc(String(loginId)).get();
+      if (!snap.exists) return { exists: false };
+      const d = snap.data() || {};
+      const updatedAtMs = (d.updatedAt && typeof d.updatedAt.toMillis === "function") ? d.updatedAt.toMillis() : 0;
+      return { exists: true, data: String(d.data || ""), pwHash: String(d.pwHash || ""), pwSalt: String(d.pwSalt || ""), updatedAtMs };
+    } catch (e) { return null; }
+  }
+  // クラウドのペイロードを検証・取り込み、そのアカウントへ切り替える（新規サインイン用）。
+  // 戻り値: { ok:true, acc } / { ok:false, reason:"badpw"|"baddata" }
+  async function csImportCloudAccount(loginId, cloud, pw) {
+    try {
+      let parsed = null;
+      try { parsed = JSON.parse(decodeURIComponent(escape(atob(String(cloud.data || ""))))); } catch (e) {}
+      if (!parsed || typeof parsed !== "object" || !parsed.name || !parsed.stars || typeof parsed.stars !== "object") return { ok: false, reason: "baddata" };
+      const salt = cloud.pwSalt || parsed.pwSalt || "";
+      const hash = await hashPassword(pw, salt);
+      if (!cloud.pwHash || hash !== cloud.pwHash) return { ok: false, reason: "badpw" };
+      const existing = Object.values(appData.accounts).find(a => a.id !== "guest" && (a.loginId || "").toLowerCase() === String(loginId).toLowerCase());
+      let id;
+      if (existing) id = existing.id;
+      else if (parsed.id && parsed.id !== "guest" && !appData.accounts[parsed.id]) id = parsed.id;
+      else id = "acc_" + Date.now();
+      parsed.id = id;
+      if (!parsed.loginId) parsed.loginId = loginId;
+      const merged = Object.assign(newAccountFields(id, parsed.name, parsed.avatar || "🚀"), parsed, { id });
+      merged.cloudSyncAt = cloud.updatedAtMs || Date.now();
+      merged.cloudSyncSig = csSigOf(cloud.data);
+      appData.accounts[id] = merged;
+      csLastPayloadSig = cloud.data;
+      csLastAccId = id;
+      appData.activeId = id;
+      saveData();
+      try { logEvent("sync_restore", loginId); } catch (e) {}
+      return { ok: true, acc: merged };
+    } catch (e) { return { ok: false, reason: "baddata" }; }
+  }
+  // 新規作成時にクラウド側の重複確認ができなかった ID（オフライン作成）。この ID の
+  // 初回アップロード時は先にクラウドを確認し、既存データがあれば上書きしない。
+  const csPendingCloudCheckIds = new Set();
+  async function csGuardFreshUpload(acc) {
+    // 戻り値: "ok"（アップロードしてよい）/ "deferred"（確認できず中止・次回再試行）/ "cloud_exists"（クラウドに既存データあり・上書き禁止）
+    try {
+      const key = String(acc.loginId || "").toLowerCase();
+      if (!csPendingCloudCheckIds.has(key)) return "ok";
+      const cloud = await csFetchCloudDoc(acc.loginId);
+      if (!cloud) return "deferred"; // 確認できない間は上書きしない（次回 saveData で再試行）
+      csPendingCloudCheckIds.delete(key);
+      if (cloud.exists && cloud.data) return "cloud_exists"; // 他の端末・URLのデータがある：上書き禁止
+      return "ok";
+    } catch (e) { return "deferred"; }
   }
   // フレンドコードの発行・登録（codes/{code} = {uid}）とプロフィール公開
   async function fbEnsureCodeAndPublish() {
@@ -8118,11 +8195,14 @@ const EXTRA_QUESTIONS = {
   document.getElementById("accountModal").addEventListener("click", (e) => { if (e.target.id === "accountModal") e.target.classList.remove("open"); });
 
   // ===== アカウント・設定・アイコン・更新 =====
-  // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
-  // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.16";
+  // 進捗はクラウドに自動で保存されます（2.3.17〜）。ユーザーID＋パスワードは、
+  // どの端末・URLからでもサインインして続きから遊ぶためのものです。端末内の保存は
+  // オフライン時の予備で、localStorage は URL（オリジン）ごとに分かれるため、
+  // サインインは端末内だけでなくクラウド（sync コレクション）も確認します。
+  const APP_VERSION = "2.3.17";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-23", version: "2.3.17", title: "サインインがクラウド対応になりました", body: "サインインがクラウド対応になりました。別の端末やURLで作ったアカウントでも、IDとパスワードで続きから遊べます。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.16", title: "細かな改善を行いました", body: "より快適に遊べるよう、細かな改善を行いました。" },
     { date: "2026-11-23", version: "2.3.15", title: "見た目を整えました", body: "見た目を整えました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.14", title: "プロフィールと設定が新しくなりました", body: "プロフィールと設定が新しくなりました。いつもの場所が見つけやすくなっています。いつものように遊んでみてください。" },
@@ -8277,25 +8357,48 @@ const EXTRA_QUESTIONS = {
   });
   document.getElementById("createSubmitBtn").addEventListener("click", async () => {
     const errEl = document.getElementById("createError");
+    const btn = document.getElementById("createSubmitBtn");
     const loginId = document.getElementById("createLoginId").value.trim();
     const pw = document.getElementById("createPassword").value;
     const pw2 = document.getElementById("createPassword2").value;
     const nick = document.getElementById("createNick").value.trim() || "チャレンジャー";
-    const fail = (msg) => { errEl.textContent = msg; };
+    const fail = (msg) => { errEl.textContent = msg; if (btn) btn.disabled = false; };
     if (!/^[a-zA-Z0-9_-]{3,20}$/.test(loginId)) return fail("ユーザーIDは半角英数字・_・-で3〜20文字で入力してください");
     if (Object.values(appData.accounts).some(a => (a.loginId || "").toLowerCase() === loginId.toLowerCase())) return fail("そのユーザーIDはすでに使われています。別のIDにしてください");
     if (pw.length < 6) return fail("パスワードは6文字以上にしてください");
     if (pw !== pw2) return fail("パスワード（確認）が一致しません");
+    if (btn) btn.disabled = true;
+    // クラウド側の重複確認：別端末・別URLですでに使われているIDでは作らせない。
+    // 作れてしまうと、空の進捗でクラウドのデータを上書きしてしまうため。
+    errEl.textContent = "☁️ クラウドを確認中…";
+    let cloudChecked = false;
+    let cloudTaken = false;
+    const ready = await fbWaitReady(10000);
+    if (ready) {
+      const cloud = await csFetchCloudDoc(loginId);
+      if (cloud) { cloudChecked = true; cloudTaken = !!cloud.exists; }
+    }
+    if (cloudTaken) return fail("そのユーザーIDはすでにクラウドにあります。サインイン画面からサインインしてください");
     const salt = Math.random().toString(36).slice(2, 10);
     const hash = await hashPassword(pw, salt);
     const id = "acc_" + Date.now();
     const acc = newAccountFields(id, nick, pickedAvatar);
     acc.loginId = loginId; acc.pwHash = hash; acc.pwSalt = salt;
+    if (!cloudChecked) csPendingCloudCheckIds.add(loginId.toLowerCase()); // 確認できなかった分は初回アップロード時に改めて確認する
     appData.accounts[id] = acc;
     appData.activeId = id;
     saveData();
     logEvent("signup", loginId);
-    try { csUploadNow(false).catch(() => {}); } catch (e) {} // 作成直後にクラウド同期へ初回アップロード
+    errEl.textContent = "";
+    let up = "unavailable";
+    try { up = await csUploadNow(true); } catch (e) {} // 作成直後にクラウドへ初回アップロード（進捗をすぐクラウド依存にする）
+    if (up === "cloud_exists") {
+      // 確認が遅れて判明：空アカウントで上書きしないよう、作ったばかりの端末内アカウントを取り消す
+      delete appData.accounts[id];
+      appData.activeId = "guest";
+      saveData();
+      return fail("そのユーザーIDはすでにクラウドにあります。サインイン画面からサインインしてください");
+    }
     document.getElementById("createPassword").value = "";
     document.getElementById("createPassword2").value = "";
     document.getElementById("createLoginId").value = "";
@@ -8305,32 +8408,58 @@ const EXTRA_QUESTIONS = {
     updateHUD();
     session = null;
     if (appStarted) renderMain(); else renderTitleScreen();
+    if (btn) btn.disabled = false;
     showToast(`🎉 アカウント「${loginId}」を作成しました！`);
+    if (up !== "ok" && up !== "unchanged") showToast("⚠️ クラウドへの保存がまだできていません。通信が回復したら自動で保存されます");
   });
 
   // サインイン（ユーザーID＋パスワード）
+  // 端末内のアカウントをまず探し、無ければクラウド（sync コレクション）から復元して
+  // サインインする。URL が変わって端末内データが見えなくなっても、IDとパスワードで
+  // 続きから遊べる。端末内にあってもパスワードが合わない場合は、他端末で変更された
+  // 可能性を考えてクラウド側のパスワードでも試す。
   document.getElementById("signinSubmitBtn").addEventListener("click", async () => {
     const errEl = document.getElementById("signinError");
+    const btn = document.getElementById("signinSubmitBtn");
     const loginId = document.getElementById("signinLoginId").value.trim();
     const pw = document.getElementById("signinPassword").value;
-    const fail = (msg) => { errEl.textContent = msg; };
+    const fail = (msg) => { errEl.textContent = msg; if (btn) btn.disabled = false; };
     if (!loginId || !pw) return fail("ユーザーIDとパスワードを入力してください");
+    if (btn) btn.disabled = true;
+    const finishSignin = (acc, cloudRestored) => {
+      appData.activeId = acc.id;
+      try { csPullThenUpload(); } catch (e) {} // ログイン直後：まず自動プルを確認し、クラウドが新しくない場合だけアップロード
+      saveData();
+      logEvent("login", "");
+      document.getElementById("signinPassword").value = "";
+      accountFlowMode = "profile";
+      closeAuthModals();
+      updateHUD();
+      session = null;
+      if (appStarted) renderMain(); else renderTitleScreen();
+      if (btn) btn.disabled = false;
+      showToast(cloudRestored ? `☁️ クラウドから進捗を復元しました。おかえりなさい、${fbEsc(acc.name)}さん！` : `👋 おかえりなさい、${fbEsc(acc.name)}さん！`);
+    };
     const acc = Object.values(appData.accounts).find(a => (a.loginId || "").toLowerCase() === loginId.toLowerCase());
-    if (!acc) return fail("そのユーザーIDのアカウントがこの端末にありません。別の端末のアカウントは、設定の「データ移行」で先に移してください");
-    if (!acc.pwHash) return fail("このアカウントにはパスワードが設定されていません。プロフィールから切り替えて、設定画面でIDとパスワードを設定してください");
-    const hash = await hashPassword(pw, acc.pwSalt || "");
-    if (hash !== acc.pwHash) return fail("パスワードがちがいます");
-    appData.activeId = acc.id;
-    try { csPullThenUpload(); } catch (e) {} // ログイン直後：まず自動プルを確認し、クラウドが新しくない場合だけアップロード
-    saveData();
-    logEvent("login", "");
-    document.getElementById("signinPassword").value = "";
-    accountFlowMode = "profile";
-    closeAuthModals();
-    updateHUD();
-    session = null;
-    if (appStarted) renderMain(); else renderTitleScreen();
-    showToast(`👋 おかえりなさい、${fbEsc(acc.name)}さん！`);
+    if (acc && acc.pwHash) {
+      const hash = await hashPassword(pw, acc.pwSalt || "");
+      if (hash === acc.pwHash) return finishSignin(acc, false);
+      // 端末内のパスワードが合わない：他端末で変えた可能性があるのでクラウドでも試す
+    } else if (acc && !acc.pwHash) {
+      if (btn) btn.disabled = false;
+      return fail("このアカウントにはパスワードが設定されていません。プロフィールから切り替えて、設定画面でIDとパスワードを設定してください");
+    }
+    // 端末内に無い、またはパスワードが合わなかった → クラウドから復元を試す
+    errEl.textContent = "☁️ クラウドを確認中…";
+    const ready = await fbWaitReady(12000);
+    if (!ready) return fail("サーバーに接続できませんでした。通信環境を確認して、もう一度お試しください");
+    const cloud = await csFetchCloudDoc(loginId);
+    if (!cloud) return fail("サーバーに接続できませんでした。通信環境を確認して、もう一度お試しください");
+    if (!cloud.exists) return fail(acc ? "パスワードがちがいます" : "そのユーザーIDのクラウドデータが見つかりませんでした。IDの大文字・小文字を確認してください。クラウド同期をしていなかったデータは、元の端末・URLでしか復元できません");
+    const imported = await csImportCloudAccount(loginId, cloud, pw);
+    if (!imported.ok && imported.reason === "badpw") return fail("パスワードがちがいます");
+    if (!imported.ok) return fail("同期データが正しく読み込めませんでした");
+    return finishSignin(imported.acc, true);
   });
 
   // ===== 管理者画面（隠し画面：設定のバージョン表示を5回連続タップ→パスワード） =====
@@ -8616,7 +8745,7 @@ const EXTRA_QUESTIONS = {
           <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
             現在のアカウント：<strong>${acc.avatar} ${fbEsc(acc.name)}</strong><br>
             サインイン用ID：<strong>${acc.loginId ? fbEsc(acc.loginId) : "未設定"}</strong><br>
-            <span style="color:var(--text-muted);">進捗はこの端末に保存されます。他の端末で使うには、クラウド同期か下のバックアップコードで移行してください。</span>
+            <span style="color:var(--text-muted);">進捗はクラウドに自動で保存されます。別の端末やURLからでも、IDとパスワードでサインインすれば続きから遊べます。</span>
           </div>
           <div class="auth-field"><label>サインイン用ID（半角英数字・_・-、3〜20文字）</label><input id="setLoginId" class="text-input" type="text" maxlength="20" value="${escAttrS(acc.loginId || "")}" placeholder="例：physiq_123" /></div>
           <div class="auth-field"><label>パスワード（6文字以上・変更するときだけ入力）</label><input id="setPassword" class="text-input" type="password" maxlength="64" placeholder="新しいパスワード" autocomplete="new-password" /></div>
@@ -8628,7 +8757,7 @@ const EXTRA_QUESTIONS = {
           ${acc.id === "guest" ? `
           <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">ゲストの進捗はクラウド同期の対象外です。アカウントを作成すると、進捗をクラウドに自動で保存して、別の端末でも同じアカウントで続きから遊べるようになります。</div>
           ` : `
-          <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">進捗は自動でクラウドに保存されます。別の端末でも、ここで復元すれば続きから遊べます。</div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">進捗は自動でクラウドに保存されます。別の端末やURLでも、サインイン画面からIDとパスワードを入れるだけで続きから遊べます。</div>
           <div style="font-size:12.5px; line-height:1.7; margin-bottom:4px;">最終同期：<strong id="cloudSyncLastAt">${csFmtTime(acc.cloudSyncAt || 0)}</strong></div>
           ${(!acc.loginId || !acc.pwHash) ? `<div style="font-size:12px; color:var(--red); line-height:1.6; margin-bottom:6px;">同期するには、先に上の「🔑 サインイン用IDとパスワード」でIDとパスワードを設定してください。</div>` : ""}
           <div id="cloudSyncMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
@@ -8773,6 +8902,16 @@ const EXTRA_QUESTIONS = {
       const a = curAcc();
       if (!/^[a-zA-Z0-9_-]{3,20}$/.test(loginId)) { msg.textContent = "ユーザーIDは半角英数字・_・-で3〜20文字で入力してください"; msg.style.color = "var(--red)"; return; }
       if (Object.values(appData.accounts).some(x => x.id !== a.id && (x.loginId || "").toLowerCase() === loginId.toLowerCase())) { msg.textContent = "そのユーザーIDは他のアカウントで使われています"; msg.style.color = "var(--red)"; return; }
+      // クラウド側の重複確認：別端末・別URLで使われているIDへの変更は、同期時の上書きを防ぐため断る
+      if ((a.loginId || "").toLowerCase() !== loginId.toLowerCase()) {
+        const readyS = await fbWaitReady(8000);
+        if (readyS) {
+          const cloudS = await csFetchCloudDoc(loginId);
+          if (cloudS && cloudS.exists) { msg.textContent = "そのユーザーIDはすでにクラウドで使われています。別のIDにしてください"; msg.style.color = "var(--red)"; return; }
+        } else {
+          csPendingCloudCheckIds.add(loginId.toLowerCase());
+        }
+      }
       if (pw && pw.length < 6) { msg.textContent = "パスワードは6文字以上にしてください"; msg.style.color = "var(--red)"; return; }
       if (!a.pwHash && !pw) { msg.textContent = "パスワードも入力してください（初回設定時）"; msg.style.color = "var(--red)"; return; }
       a.loginId = loginId;
