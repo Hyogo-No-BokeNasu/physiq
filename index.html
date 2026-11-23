@@ -1214,6 +1214,20 @@
   </div>
 </div>
 
+<!-- Admin Password Modal -->
+<div id="adminPasswordModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:18px;">🔐 パスワード</h2>
+      <button id="closeAdminPasswordModal" class="stat-btn">✕</button>
+    </div>
+    <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">パスワードを入力してください。</div>
+    <div class="auth-field"><label>パスワード</label><input id="adminPasswordInput" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="off" /></div>
+    <button id="adminPasswordSubmitBtn" class="btn-3d btn-blue" style="width:100%;">開く</button>
+    <button id="adminPasswordCancelBtn" class="btn-3d btn-ghost" style="width:100%; margin-top:8px;">やめる</button>
+  </div>
+</div>
+
 <!-- Loading Overlay (演出としての読み込み中画面) -->
 <div id="loadingOverlay" class="loading-overlay" role="status" aria-label="読み込み中">
   <svg id="loadingSpinner" class="loading-spinner" viewBox="0 0 120 120" aria-hidden="true">
@@ -7953,7 +7967,7 @@ const EXTRA_QUESTIONS = {
     return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", themeCustom: { h: 221, s: 83, l: 54 }, xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, hideExpOnCorrect: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "", serverCode: "", serverFriends: [], friendPolicy: "manual", achv: {} };
   }
   function closeAuthModals() {
-    ["createAccountModal", "signinModal", "settingsModal"].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("open"); });
+    ["createAccountModal", "signinModal", "settingsModal", "adminPasswordModal"].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("open"); });
   }
   function openCreateModal() {
     document.getElementById("createError").textContent = "";
@@ -8060,7 +8074,34 @@ const EXTRA_QUESTIONS = {
   });
 
   // ===== 管理者画面（隠し画面：設定のバージョン表示を5回連続タップ→パスワード） =====
-  const ADMIN_PASSWORD = "admin-physiq";
+  // パスワードは平文で持たず、アカウント保存と同じ hashPassword（salt 付き SHA-256）で照合する
+  const ADMIN_PW_SALT = "physiq-admin";
+  const ADMIN_PW_HASH = "df77c461194c9ba2e72889971b1349596ad42934641095927a769d8665798489";
+  function openAdminPasswordModal() {
+    const input = document.getElementById("adminPasswordInput");
+    if (input) input.value = "";
+    document.getElementById("adminPasswordModal").classList.add("open");
+    if (input) setTimeout(() => { try { input.focus(); } catch (e) {} }, 50);
+  }
+  function closeAdminPasswordModal() {
+    const m = document.getElementById("adminPasswordModal");
+    if (m) m.classList.remove("open");
+    const input = document.getElementById("adminPasswordInput");
+    if (input) input.value = "";
+  }
+  async function submitAdminPassword() {
+    const input = document.getElementById("adminPasswordInput");
+    const pw = input ? input.value : "";
+    const hash = await hashPassword(pw, ADMIN_PW_SALT);
+    closeAdminPasswordModal();
+    // 一致したときだけ管理画面を開く。不一致時は何も起きない
+    if (hash === ADMIN_PW_HASH) { closeAuthModals(); renderAdminScreen(); }
+  }
+  document.getElementById("adminPasswordSubmitBtn").addEventListener("click", submitAdminPassword);
+  document.getElementById("adminPasswordCancelBtn").addEventListener("click", closeAdminPasswordModal);
+  document.getElementById("closeAdminPasswordModal").addEventListener("click", closeAdminPasswordModal);
+  document.getElementById("adminPasswordModal").addEventListener("click", (e) => { if (e.target.id === "adminPasswordModal") closeAdminPasswordModal(); });
+  document.getElementById("adminPasswordInput").addEventListener("keydown", (e) => { if (e.key === "Enter") submitAdminPassword(); });
   const LOG_TYPE_LABELS = { login: "ログイン", signup: "新規作成", guest: "ゲスト開始", stage_start: "ステージ開始", stage_clear: "ステージクリア", purchase: "購入", friend_request: "フレンド申請", friend_approve: "フレンド承認" };
   let adminTapCount = 0;
   let adminTapLastAt = 0;
@@ -8483,8 +8524,7 @@ const EXTRA_QUESTIONS = {
       adminTapCount++;
       if (adminTapCount >= 5) {
         adminTapCount = 0;
-        const pw = window.prompt("パスワードを入力してください");
-        if (pw === ADMIN_PASSWORD) { closeAuthModals(); renderAdminScreen(); }
+        openAdminPasswordModal();
       }
     });
     const updBtn = body.querySelector("#forceUpdateBtn");
