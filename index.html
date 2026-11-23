@@ -5395,6 +5395,8 @@ const EXTRA_QUESTIONS = {
     } catch (e) {}
     // Firebase 連携：XPやプロフィールの変化をサーバーへ間引き同期（未接続時は無音で何もしない）
     try { fbScheduleProfileSync(); } catch (e) {}
+    // クラウド同期：進捗が変わったら sync コレクションへも間引きアップロード（未接続時は無音で何もしない）
+    try { csScheduleUpload(); } catch (e) {}
   }
   function curAcc() {
     return appData.accounts[appData.activeId] || appData.accounts["guest"];
@@ -5925,6 +5927,7 @@ const EXTRA_QUESTIONS = {
         if (u) {
           fbReady = true;
           try { fbScheduleProfileSync(); } catch (e) {}
+          try { csScheduleUpload(); } catch (e) {}
           try { fbStartRequestsWatch(); } catch (e) {}
           try { fbProcessPendingFriend(); } catch (e) {}
           if (friendsScreenActive) { try { renderFriends(); } catch (e) {} }
@@ -5988,6 +5991,66 @@ const EXTRA_QUESTIONS = {
     if (now - fbLastSyncAt >= 4000) { fbPublishProfile(); return; }
     if (!fbSyncTimer) {
       fbSyncTimer = setTimeout(() => { fbSyncTimer = null; try { fbPublishProfile(); } catch (e) {} }, 4000 - (now - fbLastSyncAt));
+    }
+  }
+  // ===== クラウド同期（sync コレクション：端末をまたいで進捗を復元できるようにする） =====
+  // ドキュメントID = アカウントのログインID。data はバックアップコードと同じシリアライズ形式（base64文字列）。
+  // 書き込みはすべて fire-and-forget＋try/catch で包み、ルール未公開・オフラインでもアプリ本体を止めない。
+  let csSyncTimer = null;
+  let csLastUploadAt = 0;
+  let csLastPayloadSig = "";
+  let csLastAccId = null;
+  function csFmtTime(ts) {
+    if (!ts) return "まだ同期していません";
+    const d = new Date(ts);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+  function csCanSync(acc) {
+    return !!(acc && acc.id !== "guest" && acc.loginId && acc.pwHash);
+  }
+  function csBuildPayload(acc) {
+    // バックアップコード書き出しと同じシリアライズ。cloudSyncAt（最終同期時刻）だけは同期対象から外し、
+    // 同期するたびに中身が変わって無限に再アップロードされるのを防ぐ
+    const copy = Object.assign({}, acc);
+    delete copy.cloudSyncAt;
+    try { return btoa(unescape(encodeURIComponent(JSON.stringify(copy)))); } catch (e) { return ""; }
+  }
+  // アップロード本体。戻り値: "ok" | "unchanged" | "nocred" | "unavailable" | "error"
+  async function csUploadNow(manual) {
+    try {
+      const acc = curAcc();
+      if (!csCanSync(acc)) return "nocred";
+      if (!fbDb || !fbUser) return "unavailable";
+      const dataStr = csBuildPayload(acc);
+      if (!dataStr) return "error";
+      if (!manual && csLastAccId === acc.id && dataStr === csLastPayloadSig) return "unchanged";
+      await fbDb.collection("sync").doc(acc.loginId).set({
+        pwHash: acc.pwHash,
+        pwSalt: acc.pwSalt || "",
+        data: dataStr,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      csLastPayloadSig = dataStr;
+      csLastAccId = acc.id;
+      csLastUploadAt = Date.now();
+      acc.cloudSyncAt = Date.now();
+      try { saveData(); } catch (e) {}
+      try { logEvent("sync_upload", acc.loginId); } catch (e) {}
+      return "ok";
+    } catch (e) {
+      return "error";
+    }
+  }
+  // saveData から呼ばれる間引きアップロード（プロフィール同期と同じ4秒スロットル＋変更時のみ）
+  function csScheduleUpload() {
+    const acc = curAcc();
+    if (!csCanSync(acc)) return;
+    if (!fbDb || !fbUser) return;
+    const now = Date.now();
+    if (now - csLastUploadAt >= 4000) { csUploadNow(false).catch(() => {}); return; }
+    if (!csSyncTimer) {
+      csSyncTimer = setTimeout(() => { csSyncTimer = null; try { csUploadNow(false).catch(() => {}); } catch (e) {} }, 4000 - (now - csLastUploadAt));
     }
   }
   // フレンドコードの発行・登録（codes/{code} = {uid}）とプロフィール公開
@@ -7870,9 +7933,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.9";
+  const APP_VERSION = "2.3.10";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-23", version: "2.3.10", title: "端末を変えても続きから遊べるようになりました", body: "進捗をクラウドに保存できるようになりました。端末を変えても、これまでのつづきから遊べます。くわしくは設定の「☁️ クラウド同期」を見てください。" },
     { date: "2026-11-23", version: "2.3.9", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.8", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-22", version: "2.3.7", title: "読みものがもっと増えました", body: "待ち時間の読みものがさらに増えました。お楽しみに。" },
@@ -8038,6 +8102,7 @@ const EXTRA_QUESTIONS = {
     appData.activeId = id;
     saveData();
     logEvent("signup", loginId);
+    try { csUploadNow(false).catch(() => {}); } catch (e) {} // 作成直後にクラウド同期へ初回アップロード
     document.getElementById("createPassword").value = "";
     document.getElementById("createPassword2").value = "";
     document.getElementById("createLoginId").value = "";
@@ -8065,6 +8130,7 @@ const EXTRA_QUESTIONS = {
     appData.activeId = acc.id;
     saveData();
     logEvent("login", "");
+    try { csUploadNow(false).catch(() => {}); } catch (e) {} // ログイン直後にクラウド同期へ1回アップロード
     document.getElementById("signinPassword").value = "";
     accountFlowMode = "profile";
     closeAuthModals();
@@ -8103,7 +8169,7 @@ const EXTRA_QUESTIONS = {
   document.getElementById("closeAdminPasswordModal").addEventListener("click", closeAdminPasswordModal);
   document.getElementById("adminPasswordModal").addEventListener("click", (e) => { if (e.target.id === "adminPasswordModal") closeAdminPasswordModal(); });
   document.getElementById("adminPasswordInput").addEventListener("keydown", (e) => { if (e.key === "Enter") submitAdminPassword(); });
-  const LOG_TYPE_LABELS = { login: "ログイン", signup: "新規作成", guest: "ゲスト開始", stage_start: "ステージ開始", stage_clear: "ステージクリア", purchase: "購入", friend_request: "フレンド申請", friend_approve: "フレンド承認" };
+  const LOG_TYPE_LABELS = { login: "ログイン", signup: "新規作成", guest: "ゲスト開始", stage_start: "ステージ開始", stage_clear: "ステージクリア", purchase: "購入", friend_request: "フレンド申請", friend_approve: "フレンド承認", sync_upload: "同期アップロード", sync_restore: "同期復元" };
   let adminTapCount = 0;
   let adminTapLastAt = 0;
   let adminLogsCache = null;    // 取得済みログ配列（null = 未取得）
@@ -8412,6 +8478,25 @@ const EXTRA_QUESTIONS = {
       </div>
 
       <div class="settings-section">
+      <div class="settings-head-sm">☁️ クラウド同期</div>
+      ${acc.id === "guest" ? `
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">ゲストの進捗はクラウド同期の対象外です。アカウントを作成すると、進捗をクラウドに自動で保存して、別の端末でも同じアカウントで続きから遊べるようになります。</div>
+      ` : `
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">進捗は自動でクラウドに保存されます。別の端末でも、ここで復元すれば続きから遊べます。</div>
+      <div style="font-size:12.5px; line-height:1.7; margin-bottom:4px;">最終同期：<strong id="cloudSyncLastAt">${csFmtTime(acc.cloudSyncAt || 0)}</strong></div>
+      ${(!acc.loginId || !acc.pwHash) ? `<div style="font-size:12px; color:var(--red); line-height:1.6; margin-bottom:6px;">同期するには、先に上の「🔑 アカウントと同期」でIDとパスワードを設定してください。</div>` : ""}
+      <div id="cloudSyncMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
+      <button id="cloudSyncNowBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">☁️ 今すぐ同期</button>
+      <div class="settings-head-sm">📥 別の端末から復元</div>
+      <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">他の端末で使っていたアカウントのIDとパスワードを入力すると、その進捗をこの端末に取り込んで、そのアカウントで遊べるようになります。</div>
+      <div class="auth-field"><label>アカウントID</label><input id="cloudRestoreId" class="text-input" type="text" maxlength="20" placeholder="例：physiq_123" autocomplete="username" /></div>
+      <div class="auth-field"><label>パスワード</label><input id="cloudRestorePw" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="current-password" /></div>
+      <div id="cloudRestoreMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
+      <button id="cloudRestoreBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">復元して切り替える</button>
+      `}
+      </div>
+
+      <div class="settings-section">
       <div class="settings-head">🔄 アップデート</div>
       <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
         現在のバージョン：<strong id="versionTapTarget" style="cursor:pointer;">${APP_VERSION}</strong><br>
@@ -8585,6 +8670,70 @@ const EXTRA_QUESTIONS = {
       } catch (e) {
         msg.textContent = "⚠️ コードが正しくありません。コピーし直してください";
         msg.style.color = "var(--red)";
+      }
+    });
+    // クラウド同期：今すぐ同期（手動アップロード）
+    const cloudSyncNowBtn = body.querySelector("#cloudSyncNowBtn");
+    if (cloudSyncNowBtn) cloudSyncNowBtn.addEventListener("click", async () => {
+      const msg = body.querySelector("#cloudSyncMsg");
+      const a = curAcc();
+      if (!a.loginId || !a.pwHash) { msg.textContent = "同期するには、先に上の「IDとパスワード」を設定してください"; msg.style.color = "var(--red)"; return; }
+      msg.textContent = "同期中…";
+      msg.style.color = "var(--text-muted)";
+      const r = await csUploadNow(true);
+      if (r === "ok") {
+        msg.textContent = "✅ 同期しました";
+        msg.style.color = "var(--green-dark)";
+        const el = body.querySelector("#cloudSyncLastAt");
+        if (el) el.textContent = csFmtTime(a.cloudSyncAt || 0);
+        showToast("☁️ クラウドに同期しました");
+      } else if (r === "unavailable") {
+        msg.textContent = "サーバーに接続中です。少し待ってもう一度お試しください";
+        msg.style.color = "var(--red)";
+      } else {
+        msg.textContent = "同期できませんでした。通信環境を確認してもう一度お試しください";
+        msg.style.color = "var(--red)";
+      }
+    });
+    // クラウド同期：別の端末から復元（ID＋パスワードで照合して取り込み、そのアカウントに切り替える）
+    const cloudRestoreBtn = body.querySelector("#cloudRestoreBtn");
+    if (cloudRestoreBtn) cloudRestoreBtn.addEventListener("click", async () => {
+      const msg = body.querySelector("#cloudRestoreMsg");
+      const rid = body.querySelector("#cloudRestoreId").value.trim();
+      const rpw = body.querySelector("#cloudRestorePw").value;
+      const fail = (t) => { msg.textContent = t; msg.style.color = "var(--red)"; };
+      if (!rid || !rpw) return fail("アカウントIDとパスワードを入力してください");
+      if (!fbDb) return fail("サーバーに接続できませんでした。通信環境を確認してもう一度お試しください");
+      msg.textContent = "確認中…";
+      msg.style.color = "var(--text-muted)";
+      try {
+        const snap = await fbDb.collection("sync").doc(rid).get();
+        if (!snap.exists) return fail("そのIDの同期データは見つかりませんでした");
+        const d = snap.data() || {};
+        let parsed = null;
+        try { parsed = JSON.parse(decodeURIComponent(escape(atob(String(d.data || ""))))); } catch (e) {}
+        if (!parsed || typeof parsed !== "object" || !parsed.name || !Array.isArray(parsed.stars)) return fail("同期データが正しく読み込めませんでした");
+        const salt = d.pwSalt || parsed.pwSalt || "";
+        const hash = await hashPassword(rpw, salt);
+        if (!d.pwHash || hash !== d.pwHash) return fail("パスワードがちがいます");
+        // 取り込み：同じログインIDのアカウントがこの端末にあれば上書き、なければ追加する
+        const existing = Object.values(appData.accounts).find(a => a.id !== "guest" && (a.loginId || "").toLowerCase() === rid.toLowerCase());
+        let id;
+        if (existing) id = existing.id;
+        else if (parsed.id && parsed.id !== "guest" && !appData.accounts[parsed.id]) id = parsed.id;
+        else id = "acc_" + Date.now();
+        parsed.id = id;
+        if (!parsed.loginId) parsed.loginId = rid;
+        appData.accounts[id] = Object.assign(newAccountFields(id, parsed.name, parsed.avatar || "🚀"), parsed, { id });
+        appData.activeId = id;
+        saveData();
+        logEvent("sync_restore", rid);
+        session = null;
+        updateHUD();
+        renderSettings();
+        showToast(`☁️ アカウント「${fbEsc(appData.accounts[id].name)}」を復元しました！`);
+      } catch (e) {
+        fail("復元できませんでした。通信環境を確認してもう一度お試しください");
       }
     });
     // 管理者画面（隠し画面）：バージョン表示を5回連続タップ→パスワード一致でのみ開く。不一致時は何もしない
