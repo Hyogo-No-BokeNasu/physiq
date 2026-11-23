@@ -7870,9 +7870,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.8";
+  const APP_VERSION = "2.3.9";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-23", version: "2.3.9", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.8", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-22", version: "2.3.7", title: "読みものがもっと増えました", body: "待ち時間の読みものがさらに増えました。お楽しみに。" },
     { date: "2026-11-22", version: "2.3.6", title: "読みものが増えました", body: "待ち時間の読みものが増えました。ステージを始めるときのおともにお楽しみください。" },
@@ -8107,6 +8108,14 @@ const EXTRA_QUESTIONS = {
   let adminTapLastAt = 0;
   let adminLogsCache = null;    // 取得済みログ配列（null = 未取得）
   let adminLogsFailed = false;  // 取得に失敗したか（ルール未公開など）
+  let adminSelectedAccount = null; // ユーザー別サマリーで選択中のアカウント（null = 全員表示）
+  let adminUserOrder = [];         // サマリー表示順のアカウント名（タップ判定用）
+
+  function adminFmtTime(dt) {
+    if (!dt) return "―";
+    const p = (n) => String(n).padStart(2, "0");
+    return `${dt.getMonth() + 1}/${dt.getDate()} ${p(dt.getHours())}:${p(dt.getMinutes())}`;
+  }
 
   function renderAdminScreen() {
     setChromeVisible(true);
@@ -8119,19 +8128,18 @@ const EXTRA_QUESTIONS = {
           <h2>🛠️ 管理画面</h2>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-          <input id="adminSearchInput" class="text-input" type="text" placeholder="アカウント名で検索" style="flex:1; min-width:140px;" />
           <select id="adminTypeSelect" class="text-input" style="flex:0 0 auto;">
             <option value="">すべての種別</option>
             ${Object.keys(LOG_TYPE_LABELS).map(k => `<option value="${k}">${LOG_TYPE_LABELS[k]}</option>`).join("")}
           </select>
           <button id="adminRefreshBtn" class="btn-3d btn-blue" style="flex:0 0 auto;">🔄 更新</button>
         </div>
+        <div id="adminUsersBody" style="font-size:13px; margin-bottom:14px;"></div>
         <div id="adminLogsBody" style="font-size:13px;">読み込み中…</div>
       </div>
     `;
     document.getElementById("adminBackBtn").addEventListener("click", () => { renderMain(); openSettingsModal(); });
     document.getElementById("adminRefreshBtn").addEventListener("click", () => fetchAdminLogs());
-    document.getElementById("adminSearchInput").addEventListener("input", () => renderAdminLogsList());
     document.getElementById("adminTypeSelect").addEventListener("change", () => renderAdminLogsList());
     fetchAdminLogs();
   }
@@ -8139,6 +8147,8 @@ const EXTRA_QUESTIONS = {
   async function fetchAdminLogs() {
     const bodyEl = document.getElementById("adminLogsBody");
     if (bodyEl) bodyEl.textContent = "読み込み中…";
+    const usersEl = document.getElementById("adminUsersBody");
+    if (usersEl) usersEl.innerHTML = "";
     adminLogsCache = null;
     adminLogsFailed = false;
     try {
@@ -8153,7 +8163,72 @@ const EXTRA_QUESTIONS = {
     } catch (e) {
       adminLogsFailed = true;
     }
+    // 再取得後に選択中ユーザーがいなくなっていたら選択を解除する
+    if (adminSelectedAccount !== null && (!adminLogsCache || !adminLogsCache.some(l => l.account === adminSelectedAccount))) {
+      adminSelectedAccount = null;
+    }
+    renderAdminUsers();
     renderAdminLogsList();
+  }
+
+  // ユーザー別サマリー：取得済みログをアカウントごとに集計し、管理画面上部に一覧表示する
+  function renderAdminUsers() {
+    const el = document.getElementById("adminUsersBody");
+    if (!el) return;
+    if (adminLogsFailed || !adminLogsCache || !adminLogsCache.length) { el.innerHTML = ""; return; }
+    // キャッシュは新しい順なので、各アカウントで最初に現れたログが直近の行動
+    const byAccount = new Map();
+    adminLogsCache.forEach(l => {
+      const key = l.account || "";
+      let u = byAccount.get(key);
+      if (!u) {
+        u = { account: key, count: 0, lastAt: l.at, lastType: l.type, lastDetail: l.detail, typeCounts: {} };
+        byAccount.set(key, u);
+      }
+      u.count += 1;
+      u.typeCounts[l.type] = (u.typeCounts[l.type] || 0) + 1;
+    });
+    const users = Array.from(byAccount.values()).sort((a, b) => {
+      const ta = a.lastAt ? a.lastAt.getTime() : 0;
+      const tb = b.lastAt ? b.lastAt.getTime() : 0;
+      return tb - ta;
+    });
+    adminUserOrder = users.map(u => u.account);
+    el.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+        <div style="font-weight:800;">👥 ユーザー別（${users.length}人）</div>
+        ${adminSelectedAccount !== null ? `<button id="adminShowAllBtn" class="stat-btn" style="font-size:12px;">👥 全員表示</button>` : ""}
+      </div>
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">ユーザーをタップすると、その人の行動だけを表示します（もう一度タップで解除）。</div>
+      ${users.map((u, i) => {
+        const selected = adminSelectedAccount === u.account;
+        const typeKeys = Object.keys(LOG_TYPE_LABELS).filter(k => u.typeCounts[k])
+          .concat(Object.keys(u.typeCounts).filter(k => !LOG_TYPE_LABELS[k]));
+        const countsText = typeKeys.map(k => `${LOG_TYPE_LABELS[k] || k} ${u.typeCounts[k]}`).join(" ・ ");
+        return `
+        <div data-admin-user="${i}" style="cursor:pointer; padding:9px 10px; background:${selected ? "var(--blue-soft)" : "var(--bg-card)"}; border:${selected ? "2px solid var(--blue)" : "1px solid var(--border)"}; border-radius:10px; margin-bottom:6px;">
+          <div style="display:flex; gap:8px; align-items:baseline; flex-wrap:wrap;">
+            <span style="font-weight:800;">${fbEsc(u.account) || "（名前なし）"}</span>
+            <span style="color:var(--text-muted); font-size:12px;">最終 ${adminFmtTime(u.lastAt)}</span>
+            <span style="color:var(--text-muted); font-size:12px;">全${u.count}件</span>
+            ${selected ? `<span style="font-size:12px; font-weight:800;">表示中</span>` : ""}
+          </div>
+          <div style="margin-top:3px; color:var(--text-muted); font-size:12.5px; word-break:break-all;">直近：${fbEsc(LOG_TYPE_LABELS[u.lastType] || u.lastType)}${u.lastDetail ? ` ${fbEsc(u.lastDetail)}` : ""}</div>
+          ${countsText ? `<div style="margin-top:2px; color:var(--text-muted); font-size:12px;">${fbEsc(countsText)}</div>` : ""}
+        </div>`;
+      }).join("")}
+    `;
+    el.querySelectorAll("[data-admin-user]").forEach(row => {
+      row.addEventListener("click", () => {
+        const acc = adminUserOrder[Number(row.getAttribute("data-admin-user"))];
+        if (acc === undefined) return;
+        adminSelectedAccount = (adminSelectedAccount === acc) ? null : acc;
+        renderAdminUsers();
+        renderAdminLogsList();
+      });
+    });
+    const allBtn = document.getElementById("adminShowAllBtn");
+    if (allBtn) allBtn.addEventListener("click", () => { adminSelectedAccount = null; renderAdminUsers(); renderAdminLogsList(); });
   }
 
   function renderAdminLogsList() {
@@ -8164,28 +8239,25 @@ const EXTRA_QUESTIONS = {
       return;
     }
     if (!adminLogsCache) { bodyEl.textContent = "読み込み中…"; return; }
-    const searchEl = document.getElementById("adminSearchInput");
+    if (!adminLogsCache.length) {
+      bodyEl.innerHTML = `<div style="color:var(--text-muted);">まだログがありません。</div>`;
+      return;
+    }
     const typeEl = document.getElementById("adminTypeSelect");
-    const q = searchEl ? searchEl.value.trim().toLowerCase() : "";
     const typeFilter = typeEl ? typeEl.value : "";
     const rows = adminLogsCache.filter(l =>
       (!typeFilter || l.type === typeFilter) &&
-      (!q || String(l.account).toLowerCase().includes(q))
+      (adminSelectedAccount === null || l.account === adminSelectedAccount)
     );
     if (!rows.length) {
       bodyEl.innerHTML = `<div style="color:var(--text-muted);">表示できるログがありません。</div>`;
       return;
     }
-    const fmt = (dt) => {
-      if (!dt) return "―";
-      const p = (n) => String(n).padStart(2, "0");
-      return `${dt.getMonth() + 1}/${dt.getDate()} ${p(dt.getHours())}:${p(dt.getMinutes())}`;
-    };
     bodyEl.innerHTML = `
-      <div style="color:var(--text-muted); font-size:12px; margin-bottom:8px;">${rows.length} 件表示（最新200件まで取得）</div>
+      <div style="color:var(--text-muted); font-size:12px; margin-bottom:8px;">${adminSelectedAccount !== null ? `${fbEsc(adminSelectedAccount)} さんの行動　` : ""}${rows.length} 件表示（最新200件まで取得）</div>
       ${rows.map(l => `
         <div style="display:flex; gap:8px; align-items:baseline; padding:8px 10px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; margin-bottom:6px;">
-          <span style="flex:0 0 auto; color:var(--text-muted); font-size:12px;">${fmt(l.at)}</span>
+          <span style="flex:0 0 auto; color:var(--text-muted); font-size:12px;">${adminFmtTime(l.at)}</span>
           <span style="flex:0 0 auto; font-weight:800;">${fbEsc(l.account)}</span>
           <span style="flex:0 0 auto; font-size:12px; background:var(--blue-soft); color:var(--blue-dark); border-radius:999px; padding:1px 8px;">${fbEsc(LOG_TYPE_LABELS[l.type] || l.type)}</span>
           <span style="flex:1; color:var(--text-muted); word-break:break-all;">${fbEsc(l.detail)}</span>
