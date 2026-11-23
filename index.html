@@ -179,7 +179,8 @@
     .stage-node:hover:not(.locked) { transform: translateY(-2px); border-color: var(--blue); }
     .stage-node.unlocked { border-color: var(--accent-light); box-shadow: 0 5px 0 var(--accent-ring); }
     .stage-node.cleared { border-color: #22c55e; box-shadow: 0 5px 0 #bbf7d0; }
-    .stage-node.locked { opacity: 0.58; cursor: not-allowed; background: var(--bg-subtle); }
+    /* ロック中は opacity で薄くせず、不透明な背景で背後のパスラインを隠し、彩度だけ落として「くすんだ」見た目にする（2.3.15） */
+    .stage-node.locked { cursor: not-allowed; background: var(--bg-subtle); filter: saturate(0.45); }
 
     .stage-circle {
       width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
@@ -766,6 +767,21 @@
     .daily-log-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--bg-card); }
     .daily-log-table th, .daily-log-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: right; }
     .daily-log-table th:first-child, .daily-log-table td:first-child { text-align: left; }
+    .daily-log-table tr.today td { background: var(--bg-subtle); font-weight: 800; }
+    /* Data tab: last-7-days strip (2.3.15) */
+    .week-strip { display: flex; gap: 6px; }
+    .week-cell {
+      flex: 1; text-align: center; background: var(--bg-subtle); border: 1.5px solid var(--border);
+      border-radius: var(--radius-s); padding: 8px 2px 6px; min-width: 0;
+    }
+    .week-cell .wc-icon { font-size: 16px; line-height: 1.3; }
+    .week-cell .wc-label { font-size: 11px; font-weight: 800; color: var(--text-muted); margin-top: 2px; }
+    .week-cell .wc-date { font-size: 10px; font-weight: 700; color: var(--text-light); }
+    .week-cell.on { background: var(--green-soft); border-color: #22c55e; }
+    .week-cell.on .wc-label { color: var(--green-dark); }
+    .week-cell.today { box-shadow: 0 0 0 2px var(--accent-light); }
+    .xp-bar { width: 64px; height: 6px; border-radius: 99px; background: var(--border); overflow: hidden; margin: 4px 0 0 auto; }
+    .xp-bar > span { display: block; height: 100%; background: var(--accent-light); border-radius: 99px; }
     .feedback-box {
       border: 1.5px solid var(--border); border-radius: var(--radius-m); padding: 14px; margin-top: 18px; background: var(--accent-bg);
     }
@@ -1216,8 +1232,8 @@
 <!-- Quiz Quit Confirm Modal -->
 <div id="quitConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal-card">
-    <div style="font-size:17px; font-weight:800; line-height:1.55; margin-bottom:10px;">本当にやめますか？</div>
-    <div style="font-size:13.5px; color:var(--text-muted); line-height:1.8; margin-bottom:16px;">
+    <div style="font-size:17px; font-weight:800; line-height:1.55; margin-bottom:10px; text-align:center;">本当にやめますか？</div>
+    <div style="font-size:13.5px; color:var(--text-muted); line-height:1.8; margin-bottom:16px; text-align:center;">
       いま解いているステージの途中経過は消えてしまいます。<br>ホームに戻ると、このステージは最初からやり直しになります。
     </div>
     <button id="quitConfirmContinueBtn" class="btn-3d btn-green" style="width:100%;">▶ 続ける</button>
@@ -1242,8 +1258,8 @@
 <!-- Sync Conflict Modal -->
 <div id="syncConflictModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal-card">
-    <div style="font-size:17px; font-weight:800; line-height:1.55; margin-bottom:10px;">☁️ 同期の確認</div>
-    <div style="font-size:13.5px; color:var(--text-muted); line-height:1.8; margin-bottom:16px;">
+    <div style="font-size:17px; font-weight:800; line-height:1.55; margin-bottom:10px; text-align:center;">☁️ 同期の確認</div>
+    <div style="font-size:13.5px; color:var(--text-muted); line-height:1.8; margin-bottom:16px; text-align:center;">
       クラウドとこの端末の両方に新しい進捗があります。どちらを使いますか？<br>選ばなかった方の進捗は上書きされます。
     </div>
     <button id="syncConflictCloudBtn" class="btn-3d btn-blue" style="width:100%;">クラウドのデータを使う</button>
@@ -5744,7 +5760,7 @@ const EXTRA_QUESTIONS = {
           <button id="shopBackBtn" class="stat-btn">← もどる</button>
           <h2>🛒 XPショップ</h2>
         </div>
-        <div class="daily-card" style="margin-bottom:16px;">
+        <div class="daily-card" style="margin-bottom:16px; text-align:center;">
           <div style="font-size:13px; opacity:0.9;">使えるXP（残高）</div>
           <div style="font-size:26px; font-weight:800;">⚡ ${acc.xpBalance} XP</div>
           <div style="font-size:12.5px; opacity:0.9; margin-top:2px;">累計XPは ${acc.xp} XP（称号はこの累計で決まります。使っても称号は下がりません）</div>
@@ -6852,11 +6868,13 @@ const EXTRA_QUESTIONS = {
           <h2>👥 フレンド${incomingList.length ? ` <span style="background:#ef4444; color:#fff; border-radius:99px; padding:1px 9px; font-size:12.5px; vertical-align:middle;">📩 ${incomingList.length}</span>` : ""}</h2>
         </div>
         <div class="daily-card" style="margin-bottom:16px;">
-          <div style="font-size:13px; opacity:0.9;">あなたのフレンドコード（友だちに教えてね）</div>
-          <div class="friend-code">${acc.serverCode ? fbEsc(acc.serverCode) : "（サーバー接続後に表示されます）"}</div>
-          <div id="myFriendQr" style="margin-top:10px;"></div>
-          <div style="font-size:12.5px; opacity:0.9; margin-top:8px;">累計 ${acc.xp} XP ／ 今週 ${myWeekly} XP ／ 使えるXP ⚡${acc.xpBalance} XP</div>
-          <div style="font-size:11.5px; opacity:0.9; margin-top:4px;">${fbStatusText()}</div>
+          <div style="text-align:center;">
+            <div style="font-size:13px; opacity:0.9;">あなたのフレンドコード（友だちに教えてね）</div>
+            <div class="friend-code">${acc.serverCode ? fbEsc(acc.serverCode) : "（サーバー接続後に表示されます）"}</div>
+            <div id="myFriendQr" style="margin-top:10px;"></div>
+            <div style="font-size:12.5px; opacity:0.9; margin-top:8px;">累計 ${acc.xp} XP ／ 今週 ${myWeekly} XP ／ 使えるXP ⚡${acc.xpBalance} XP</div>
+            <div style="font-size:11.5px; opacity:0.9; margin-top:4px;">${fbStatusText()}</div>
+          </div>
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px;">
             <span style="font-size:12.5px; font-weight:800;">申請の承認方法：</span>
             <button class="btn-3d ${myPolicy === "manual" ? "btn-blue" : "btn-ghost"}" data-policy="manual" style="min-height:34px; padding:4px 12px; font-size:12.5px;">📩 手動承認</button>
@@ -7313,9 +7331,9 @@ const EXTRA_QUESTIONS = {
     const body = document.getElementById("stageConfirmBody");
     if (body) {
       body.innerHTML = `
-        <div style="font-size:12px; font-weight:800; color:${st.color}; margin-bottom:4px;">STAGE ${st.num}${st.challenge ? "　🔥 難問チャレンジ" : ""}</div>
-        <div style="font-size:17px; font-weight:800; line-height:1.55; margin-bottom:10px;">ステージ${st.num}『${st.title}』を選択しますか？</div>
-        <div style="font-size:13.5px; color:var(--text-muted); line-height:1.8; margin-bottom:16px;">
+        <div style="font-size:12px; font-weight:800; color:${st.color}; margin-bottom:4px; text-align:center;">STAGE ${st.num}${st.challenge ? "　🔥 難問チャレンジ" : ""}</div>
+        <div style="font-size:17px; font-weight:800; line-height:1.55; margin-bottom:10px; text-align:center;">ステージ${st.num}『${st.title}』を選択しますか？</div>
+        <div style="font-size:13.5px; color:var(--text-muted); line-height:1.8; margin-bottom:16px; text-align:center;">
           ${st.icon} ${st.sub}<br>
           📝 全${st.questions.length}問
           ${stars > 0 ? `<br><span class="stage-stars" style="font-size:15px;">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</span> クリア済み` : ""}
@@ -8102,9 +8120,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.14";
+  const APP_VERSION = "2.3.15";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-23", version: "2.3.15", title: "見た目を整えました", body: "見た目を整えました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.14", title: "プロフィールと設定が新しくなりました", body: "プロフィールと設定が新しくなりました。いつもの場所が見つけやすくなっています。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.13", title: "クラウド同期がさらに便利になりました", body: "クラウド同期がさらに便利になりました。別の端末で遊んだつづきも、見つけやすくなりました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.12", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
@@ -9103,6 +9122,10 @@ const EXTRA_QUESTIONS = {
       const lg = (acc.dailyLog || {})[ds];
       logRows.push({ ds, has: !!lg, xp: lg ? lg.xp : 0, correct: lg ? lg.correct : 0, answered: lg ? lg.answered : 0 });
     }
+    // 表示専用の派生値（集計ロジック自体は変更しない）：今日の日付と、XPバーの週内最大比
+    const todayDs = jstDateStr(0);
+    const maxLogXp = Math.max(1, ...logRows.map(r => r.xp));
+    logRows.forEach(r => { r.barPct = r.has && r.xp > 0 ? Math.max(6, Math.round(r.xp / maxLogXp * 100)) : 0; });
     const main = document.getElementById("appMain");
     main.innerHTML = `
       <div style="padding-top:2px;">
@@ -9142,26 +9165,38 @@ const EXTRA_QUESTIONS = {
 
         <button id="dataFriendsBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:14px;">👥 フレンド・XPランキングを見る（今週 ${weeklyXp(acc)} XP）${fbPendingReqCount() ? ` <span style="background:#ef4444; color:#fff; border-radius:99px; padding:1px 9px; font-size:12px;">📩 申請 ${fbPendingReqCount()} 件</span>` : ""}</button>
 
-        <div class="data-section-title">📅 直近7日の学習</div>
-        <div class="week-dots" style="margin-bottom:4px;">
-          ${days.map(dy => `
-            <div class="week-dot-wrap">
-              <div class="week-dot ${dy.active ? "on" : ""} ${dy.isToday ? "today" : ""}">${dy.active ? "✓" : ""}</div>
-              <div class="week-label">${dy.label}</div>
-            </div>`).join("")}
-        </div>
+        <section class="settings-section">
+          <div class="settings-head-sm">📅 直近7日の学習</div>
+          <div class="week-strip" style="margin-bottom:16px;">
+            ${days.map(dy => `
+              <div class="week-cell ${dy.active ? "on" : ""} ${dy.isToday ? "today" : ""}">
+                <div class="wc-icon">${dy.active ? "✓" : "・"}</div>
+                <div class="wc-label">${dy.label}${dy.isToday ? "（今日）" : ""}</div>
+                <div class="wc-date">${dy.date.slice(5).replace("-", "/")}</div>
+              </div>`).join("")}
+          </div>
+          <div class="settings-head-sm" style="font-size:13.5px;">🗓️ 日別サマリ</div>
+          <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">記録はこのバージョンから始まります（過去分は「―」表示）。</div>
+          <table class="daily-log-table">
+            <tr><th>日付</th><th>獲得XP</th><th>回答数</th><th>正解数</th></tr>
+            ${logRows.map(r => `<tr class="${r.ds === todayDs ? "today" : ""}"><td>${r.ds.slice(5).replace("-", "/")}${r.ds === todayDs ? "（今日）" : ""}</td><td>${r.has ? `${r.xp} XP${r.barPct ? `<div class="xp-bar"><span style="width:${r.barPct}%;"></span></div>` : ""}` : "―"}</td><td>${r.has ? r.answered : "―"}</td><td>${r.has ? r.correct : "―"}</td></tr>`).join("")}
+          </table>
+        </section>
 
-        <div class="data-section-title">🗓️ 日別サマリ（直近7日）</div>
-        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">記録はこのバージョンから始まります（過去分は「―」表示）。</div>
-        <table class="daily-log-table">
-          <tr><th>日付</th><th>獲得XP</th><th>回答数</th><th>正解数</th></tr>
-          ${logRows.map(r => `<tr><td>${r.ds.slice(5).replace("-", "/")}</td><td>${r.has ? r.xp + " XP" : "―"}</td><td>${r.has ? r.answered : "―"}</td><td>${r.has ? r.correct : "―"}</td></tr>`).join("")}
-        </table>
-
-        <div class="data-section-title">🎁 週間デイリーボーナス</div>
-        <div style="font-size:13px; line-height:1.7;">
-          今週は「${wk.set.name}」： ${wb.progress} / 7 マス${wb.completed ? "（🎉 コンプリート達成済み）" : ` ／ 7マスコンプリート報酬：${rewardLabel(wk.set.complete)}`}
-        </div>
+        <section class="settings-section">
+          <div class="settings-head-sm">🎁 週間デイリーボーナス</div>
+          <div style="font-size:13px; line-height:1.7;">
+            今週は「${wk.set.name}」： ${wb.progress} / 7 マス${wb.completed ? "" : ` ／ 7マスコンプリート報酬：${rewardLabel(wk.set.complete)}`}
+          </div>
+          <div class="bonus-cells">
+            ${[0, 1, 2, 3, 4, 5, 6].map(i => `
+              <div class="bonus-cell ${i < wb.progress ? "done" : ""} ${!wb.completed && i === wb.progress ? "next" : ""}">
+                <div class="bc-icon">${i < wb.progress ? "✓" : i + 1}</div>
+                <div class="bc-label">${i < wb.progress ? "達成" : (!wb.completed && i === wb.progress) ? "つぎ" : "マス"}</div>
+              </div>`).join("")}
+          </div>
+          ${wb.completed ? `<div class="bonus-complete got">🎉 今週のコンプリート達成済み！報酬：${rewardLabel(wk.set.complete)}</div>` : ""}
+        </section>
 
         ${feedbackFormHtml()}
       </div>
@@ -9221,10 +9256,12 @@ const EXTRA_QUESTIONS = {
           ${acc.id === "guest" ? `
           <div style="font-size:12.5px; color:var(--text-muted); line-height:1.7;">🔒 フレンド機能はアカウントでログインすると使えます。アカウントを作ると、フレンドコードやQRコードで友だちを追加して、XPランキングやXPレースで競えるようになります。</div>
           ` : `
-          <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:4px;">あなたのフレンドコード（友だちに教えてね）</div>
-          <div class="friend-code">${acc.serverCode ? fbEsc(acc.serverCode) : "（サーバー接続後に表示されます）"}</div>
-          <div id="myFriendQr" style="margin-top:10px;"></div>
-          <div style="font-size:12.5px; color:var(--text-muted); margin:10px 0 12px;">🔑 サインイン用ID：${acc.loginId ? `<strong style="color:var(--text-main);">${fbEsc(acc.loginId)}</strong>` : "未設定（設定の「アカウントと同期」で設定できます）"}</div>
+          <div style="text-align:center;">
+            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:4px;">あなたのフレンドコード（友だちに教えてね）</div>
+            <div class="friend-code">${acc.serverCode ? fbEsc(acc.serverCode) : "（サーバー接続後に表示されます）"}</div>
+            <div id="myFriendQr" style="margin-top:10px;"></div>
+            <div style="font-size:12.5px; color:var(--text-muted); margin:10px 0 12px;">🔑 サインイン用ID：${acc.loginId ? `<strong style="color:var(--text-main);">${fbEsc(acc.loginId)}</strong>` : "未設定（設定の「アカウントと同期」で設定できます）"}</div>
+          </div>
           <button id="profFriendsBtn" class="btn-3d btn-blue" style="width:100%;">👥 フレンド画面を開く（ランキング・申請）${fbPendingReqCount() ? ` <span style="background:#ef4444; color:#fff; border-radius:99px; padding:1px 9px; font-size:12px;">📩 申請 ${fbPendingReqCount()} 件</span>` : ""}</button>
           `}
         </section>
