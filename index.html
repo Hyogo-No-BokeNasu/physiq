@@ -696,7 +696,7 @@
     .tab-indicator {
       position: absolute; z-index: 0; pointer-events: none;
       top: 6px; bottom: calc(6px + env(safe-area-inset-bottom));
-      left: 8px; width: calc((100% - 16px) / 3);
+      left: 8px; width: calc((100% - 16px) / 4);
       background: var(--blue-soft); border-radius: var(--radius-s);
       transition: transform 0.32s cubic-bezier(0.25, 0.9, 0.3, 1.05);
       will-change: transform;
@@ -823,6 +823,16 @@
     .ios-row .ios-row-sub { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
     .ios-row.nav::after { content: "›"; font-size: 22px; font-weight: 600; color: var(--text-light); line-height: 1; flex: none; }
     .ios-row:active { background: var(--bg-subtle); }
+    /* Settings: iOS-style grouped list */
+    .set-group { margin-bottom: 20px; }
+    .set-group:last-child { margin-bottom: 0; }
+    .set-group-label { font-size: 12.5px; font-weight: 800; color: var(--text-muted); letter-spacing: 0.05em; margin: 0 6px 7px; }
+    .set-card { padding: 4px 16px; margin-bottom: 0; }
+    .set-icon { width: 30px; height: 30px; flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; background: var(--bg-subtle); border-radius: 9px; }
+    .set-row { cursor: default; }
+    .set-value { font-size: 14px; font-weight: 800; color: var(--text-light); flex: none; }
+    .set-block { border-top: 1px solid var(--border); padding: 14px 0 12px; }
+    .set-block-head { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; margin: 0 0 8px; }
 
     /* Profile hero */
     .profile-hero { display: flex; align-items: center; gap: 14px; background: var(--bg-subtle); border: none; border-radius: var(--radius-l); padding: 16px; margin-bottom: 12px; }
@@ -1043,6 +1053,7 @@
     <button class="tab-btn active" data-tab="home"><span class="tab-icon">🏠</span><span>ホーム</span></button>
     <button class="tab-btn" data-tab="study"><span class="tab-icon">📚</span><span>学習</span></button>
     <button class="tab-btn" data-tab="data"><span class="tab-icon">📊</span><span>データ</span></button>
+    <button class="tab-btn" data-tab="profile"><span class="tab-icon">👤</span><span>プロフィール</span></button>
   </nav>
 </div>
 
@@ -1503,7 +1514,7 @@
         { q: raw`閉管の基本振動では、管の長さ $L$ と波長 $\lambda$ の関係はどうなるか。`, opts: ["L = λ", "L = λ/2", "L = λ/4", "L = 2λ"], ans: 2, exp: raw`節から腹までは波長の $\frac{1}{4}$ なので、閉管の基本振動では $L = \frac{\lambda}{4}$、つまり $\lambda = 4L$ になります。` },
         { q: raw`弦を伝わる波の速さを2倍にするには、弦を引く力（張力）を何倍にすればよいか。`, opts: ["2倍", "4倍", "1/2倍", "√2倍"], ans: 1, exp: raw`弦を伝わる波の速さは張力の平方根に比例する（$v = \sqrt{\frac{F}{ρ}}$）ので、速さを2倍にするには張力を4倍にします。` },
         { q: raw`ギターの弦について、細い弦ほど基本振動数が高い（音が高い）のはなぜか。`, opts: ["弦を伝わる波が速くなるから", "弦が短いから", "張力が強いから", "振幅が大きいから"], ans: 0, exp: raw`細い弦は単位長さあたりの質量（線密度）が小さいため、波の速さ $v = \sqrt{F/ρ}$ が大きくなり、同じ長さでも振動数が高くなります。` },
-        { q: raw`開管の第2倍音の振動数は、基本振動数の何倍か。`, opts: ["2倍", "3倍", "4倍", "1/2倍"], ans: 0, exp: raw`開管ではすべての整数倍の倍音ができるので、第2倍音は基本振動数の2倍です。閉管では次の共鳴が3倍になる点が違います。` },
+        { q: raw`開管の第2倍音の振動数は、基本振動数の何倍か。`, opts: ["2倍", "3倍", "4倍", "1/2倍"], ans: 1, exp: raw`開管では基本振動数のすべての整数倍の振動ができます。倍音は基本振動の次から数えるので、第1倍音が基本振動数の2倍、第2倍音は3倍です。` },
         { q: raw`ギターでフレットを押さえて弦の振動する部分を短くすると、音はどうなるか。`, opts: ["低くなる", "高くなる", "変わらない", "大きくなる"], ans: 1, exp: raw`振動する長さが短くなるほど振動数が高くなるので、音は高くなります。長さが半分になると振動数は2倍（1オクターブ上）です。` },
         { q: raw`おんさを鳴らして開管の口に近づけたとき、管の長さがちょうどよいと大きな音が鳴る。この現象を何というか。`, opts: ["うなり", "共鳴", "回折", "ドップラー効果"], ans: 1, exp: raw`気柱の固有振動数とおんさの振動数が一致すると、気柱が大きく振動する「共鳴」が起こります。` },
         { q: raw`定常波について正しいものはどれか。`, opts: ["波形がその場にとどまって振動する", "波形が速く進んでいく", "振幅はどこでも同じ", "節の位置も移動する"], ans: 0, exp: raw`定常波は、同じ波が逆向きに進んで重なったもので、節と腹の位置は動かず、波形がその場で振動します。` }
@@ -1875,7 +1886,7 @@
         { q: raw`磁束密度 $0.20\,\mathrm{T}$ の磁場に、速さ $5.0 \times 10^5\,\mathrm{m/s}$ の電子が垂直に入射した。電子が受けるローレンツ力の大きさはおよそ何 $\mathrm{N}$ か。電気素量を $1.6 \times 10^{-19}\,\mathrm{C}$ とする。`, opts: ["$1.6 \times 10^{-14}$ N", "$1.6 \times 10^{-19}$ N", "$3.2 \times 10^{-14}$ N", "$8.0 \times 10^{-15}$ N"], ans: 0, exp: raw`$f = qvB = 1.6 \times 10^{-19} \times 5.0 \times 10^5 \times 0.20 = 1.6 \times 10^{-14}\,\mathrm{N}$ です。力は速度と磁場の両方に垂直な向きにはたらきます。` },
         { q: raw`波長 $500\,\mathrm{nm}$ の光を回折格子（格子定数 $2.0\,\mathrm{μ m}$）に当てた。1次の明線ができる角度 $\theta$ について、$sin\theta$ の値はいくらか。`, opts: ["0.25", "0.50", "0.75", "1.0"], ans: 0, exp: raw`$d sin\theta = m\lambda$ より $sin\theta = \frac{500 \times 10^{-9}}{2.0 \times 10^{-6}} = 0.25$ です。` },
         { q: raw`コンデンサー（$20\,\mathrm{μ F}$）と抵抗（$10\,\Omega$）と電池（$10\,\mathrm{V}$）の回路で、充電が完了したときにコンデンサーに蓄えられる電荷は何 $\mathrm{C}$ か。`, opts: ["$2.0 \times 10^{-4}$ C", "$2.0 \times 10^{-3}$ C", "200 C", "$5.0 \times 10^{-5}$ C"], ans: 0, exp: raw`充電完了後はコンデンサーの電圧が電池と等しくなるので、$Q = CV = 20 \times 10^{-6} \times 10 = 2.0 \times 10^{-4}\,\mathrm{C}$ です。` },
-        { q: raw`弦の長さ $0.60\,\mathrm{m}$、弦を伝わる波の速さ $120\,\mathrm{m/s}$ のとき、基本振動数と第3倍音の振動数はどれか。`, opts: ["基本 100 Hz ・ 第3倍音 300 Hz", "基本 200 Hz ・ 第3倍音 600 Hz", "基本 100 Hz ・ 第3倍音 200 Hz", "基本 50 Hz ・ 第3倍音 150 Hz"], ans: 0, exp: raw`基本振動では $\lambda = 2L = 1.2\,\mathrm{m}$ なので $f = 120 / 1.2 = 100\,\mathrm{Hz}$。弦では全ての整数倍の倍音が出るので、第3倍音は $300\,\mathrm{Hz}$ です。` },
+        { q: raw`弦の長さ $0.60\,\mathrm{m}$、弦を伝わる波の速さ $120\,\mathrm{m/s}$ のとき、基本振動数と第3倍音の振動数はどれか。`, opts: ["基本 100 Hz ・ 第3倍音 400 Hz", "基本 200 Hz ・ 第3倍音 600 Hz", "基本 100 Hz ・ 第3倍音 200 Hz", "基本 50 Hz ・ 第3倍音 150 Hz"], ans: 0, exp: raw`基本振動では $\lambda = 2L = 1.2\,\mathrm{m}$ なので $f = 120 / 1.2 = 100\,\mathrm{Hz}$。弦では全ての整数倍の振動が出ます。倍音は基本振動の次から数えるので、第3倍音は基本振動数の4倍の $400\,\mathrm{Hz}$ です。` },
         { q: raw`一次コイルに実効値 $100\,\mathrm{V}$、巻数 $200$、二次コイルの巻数 $50$ の変圧器がある。二次コイルに $4\,\Omega$ の抵抗をつないだとき流れる電流は何 $\mathrm{A}$ か。`, opts: ["6.25 A", "25 A", "1.56 A", "100 A"], ans: 0, exp: raw`二次電圧は巻数比で $100 \times \frac{50}{200} = 25\,\mathrm{V}$。電流は $25 / 4 = 6.25\,\mathrm{A}$ です。` },
         { q: raw`光ファイバーで信号を送るとき、電気信号より光を使う利点として正しいものはどれか。`, opts: ["損失が少なく、大量の情報を高速に送れる", "曲げても折れない", "電気より速く進む", "熱を出さない"], ans: 0, exp: raw`光は全反射でほぼ損失なく伝わり、周波数が高いため大量の情報を載せられます。伝わる速さ自体は真空中の光速が上限です。` },
         { q: raw`2つのスリットからの光がスクリーン上で作る干渉縞について、スリットの間隔を広げると縞の間隔はどうなるか。`, opts: ["広くなる", "狭くなる", "変わらない", "縞が消える"], ans: 1, exp: raw`$\Delta x = \frac{\lambda L}{d}$ より、間隔はスリット間隔 $d$ に反比例します。$d$ を広げると縞は細かくなります。` },
@@ -2058,11 +2069,11 @@
       questions: [
         { q: raw`$5x + 1 = 46$ を解きなさい。`, opts: ["x = 10", "x = 8", "x = 9", "x = 11"], ans: 2, exp: raw`$5x = 46 - 1 = 45$ より、$x = 9$ です。` },
         { q: raw`$3(x + 3) = 24$ を解きなさい。`, opts: ["x = 8", "x = 5", "x = 4", "x = 6"], ans: 1, exp: raw`カッコをはずすと $3x + 9 = 24$ となり、$x = 5$ です。` },
-        { q: "定価 5000円の商品を 4割引きで買った。代金はいくらか。", opts: ["3100円", "2000円", "2900円", "3000円"], ans: 3, exp: raw`4割引きは 40%引きなので、$5000 \times 0 = 3000$ 円です。` },
+        { q: "定価 5000円の商品を 4割引きで買った。代金はいくらか。", opts: ["3100円", "2000円", "2900円", "3000円"], ans: 3, exp: raw`4割引きは 40%引きなので、$5000 \times 0.6 = 3000$ 円です。` },
         { q: raw`$5x + 3 = 18$ を解きなさい。`, opts: ["x = 4", "x = 2", "x = 5", "x = 3"], ans: 3, exp: raw`$5x = 18 - 3 = 15$ より、$x = 3$ です。` },
         { q: raw`$3(x + 4) = 21$ を解きなさい。`, opts: ["x = 4", "x = 6", "x = 2", "x = 3"], ans: 3, exp: raw`カッコをはずすと $3x + 12 = 21$ となり、$x = 3$ です。` },
         { q: raw`$\frac{x}{2} + 2 = 5$ を解きなさい。`, opts: ["x = 12", "x = 4", "x = 6", "x = 8"], ans: 2, exp: raw`$\frac{x}{2} = 5 - 2 = 3$ より、$x = 6$ です。` },
-        { q: "定価 2000円の商品を 3割引きで買った。代金はいくらか。", opts: ["1300円", "1500円", "1400円", "600円"], ans: 2, exp: raw`3割引きは 30%引きなので、$2000 \times 0 = 1400$ 円です。` },
+        { q: "定価 2000円の商品を 3割引きで買った。代金はいくらか。", opts: ["1300円", "1500円", "1400円", "600円"], ans: 2, exp: raw`3割引きは 30%引きなので、$2000 \times 0.7 = 1400$ 円です。` },
         { q: raw`$4x + 4 = 40$ を解きなさい。`, opts: ["x = 8", "x = 10", "x = 11", "x = 9"], ans: 3, exp: raw`$4x = 40 - 4 = 36$ より、$x = 9$ です。` },
         { q: raw`$4(x + 2) = 32$ を解きなさい。`, opts: ["x = 5", "x = 10", "x = 7", "x = 6"], ans: 3, exp: raw`カッコをはずすと $4x + 8 = 32$ となり、$x = 6$ です。` },
         { q: raw`$\frac{x}{4} + 4 = 6$ を解きなさい。`, opts: ["x = 8", "x = 16", "x = 4", "x = 12"], ans: 0, exp: raw`$\frac{x}{4} = 6 - 4 = 2$ より、$x = 8$ です。` }
@@ -2436,7 +2447,7 @@
         { q: raw`$x^2 - 13x + 42$ を因数分解しなさい。`, opts: ["(x - 6)(x - 7)", "(x + 6)(x + 7)", "(x + 6)(x - 7)", "(x - 6)(x + 7)"], ans: 0, exp: raw`かけると 42、たすと -13 になる2数は $-6$ と $-7$ なので、(x - 6)(x - 7) です。` },
         { q: "直角三角形で、斜辺が 6、1つの鋭角が 30° のとき、その角の対辺の長さはいくつか。", opts: ["3", "6", "4", "7"], ans: 0, exp: "sin30° = 1/2 なので、対辺 = 6 × (1/2) = 3 です。" },
         { q: raw`$(x^{3})'$ を求めなさい。`, opts: ["3x³", "3x²", "x²", "4x³"], ans: 1, exp: raw`$(x^n)' = nx^{n-1}$ より、$(x^{3})' = 3x^{2}$ です。` },
-        { q: "定価 2000円の商品を 3割引きで買った。代金はいくらか。", opts: ["1300円", "600円", "1400円", "1500円"], ans: 2, exp: raw`3割引きは 30%引きなので、$2000 \times 0 = 1400$ 円です。` },
+        { q: "定価 2000円の商品を 3割引きで買った。代金はいくらか。", opts: ["1300円", "600円", "1400円", "1500円"], ans: 2, exp: raw`3割引きは 30%引きなので、$2000 \times 0.7 = 1400$ 円です。` },
         { q: raw`等差数列 $3$、$5$、$7$、… の第 6 項はいくつか。`, opts: ["11", "14", "15", "13"], ans: 3, exp: "初項 3、公差 2 の等差数列なので、第 6 項は 13 です。" },
         { type: "multi", q: "確率について正しいものをすべて選べ。", opts: ["さいころを1回投げて1が出る確率は 1/6", "確率の最大値は 1 である", "コインを2枚投げて両方とも表が出る確率は 1/2", "必ず起こる事象の確率は 1 である"], ans: [0, 1, 3], exp: "コイン2枚で両方表になるのは4通り中の1通りなので、確率は 1/4 です。確率は0から1の間の値をとります。" },
         { type: "text", q: "さいころを1回投げるとき、偶数の目が出る確率を答えよ。", answers: ["1/2", "0.5", "3/6"], exp: "偶数の目は 2, 4, 6 の3つなので、確率は 3/6 = 1/2 です。" }
@@ -2506,7 +2517,7 @@
         { q: raw`$(x + 2)(x + 8)$ を展開しなさい。`, opts: ["x² + 10x + 17", "x² + 11x + 16", "x² + 10x + 16", "x² + 16x + 10"], ans: 2, exp: raw`$(x + 2)(x + 8) = x^2 + (2 + 8)x + 2 \times 8 = x² + 10x + 16$ です。` },
         { q: raw`$2^{10}$ の値はいくつか。`, opts: ["1025", "1024", "1023", "2048"], ans: 1, exp: raw`$2^{10} = 1024$ です。` },
         { q: "曲線 y = x と x 軸、直線 x = 2 で囲まれた部分の面積はいくつか。", opts: ["1/2", "2", "4", "1"], ans: 1, exp: "面積 = ∫₀2 x dx = 2 です。" },
-        { q: "定価 3000円の商品を 4割引きで買った。代金はいくらか。", opts: ["1200円", "1800円", "1900円", "1700円"], ans: 1, exp: raw`4割引きは 40%引きなので、$3000 \times 0 = 1800$ 円です。` },
+        { q: "定価 3000円の商品を 4割引きで買った。代金はいくらか。", opts: ["1200円", "1800円", "1900円", "1700円"], ans: 1, exp: raw`4割引きは 40%引きなので、$3000 \times 0.6 = 1800$ 円です。` },
         { q: raw`$(1x + 5) + (3x + 2)$ を計算しなさい。`, opts: ["4x + 3", "5x + 7", "3x + 7", "4x + 7"], ans: 3, exp: raw`同じ文字の項どうしをまとめると、$(1 + 3)x + (5 + 2) = 4x + 7$ です。` },
         { q: raw`$(x^{4})'$ を求めなさい。`, opts: ["4x³", "x³", "4x⁴", "5x⁴"], ans: 0, exp: raw`$(x^n)' = nx^{n-1}$ より、$(x^{4})' = 4x^{3}$ です。` },
         { q: raw`$(x^{3})'$ を求めなさい。`, opts: ["4x³", "x²", "3x²", "3x³"], ans: 2, exp: raw`$(x^n)' = nx^{n-1}$ より、$(x^{3})' = 3x^{2}$ です。` },
@@ -2545,7 +2556,7 @@
         { q: raw`$_6\mathrm{P}_3$ の値はいくつか。`, opts: ["240", "120", "115", "130"], ans: 1, exp: raw`$_6\mathrm{P}_3 = 6 \times 5 \times 4$ です。` },
         { q: raw`$x^2 + 3x + 2$ を因数分解しなさい。`, opts: ["(x - 2)(x - 1)", "(x + 2)(x + 1)", "(x + 3)(x + 1)", "(x + 2)(x - 1)"], ans: 1, exp: "かけると 2、たすと 3 になる2数は 2 と 1 なので、(x + 2)(x + 1) です。" },
         { q: raw`$4x + 2 = 14$ を解きなさい。`, opts: ["x = 5", "x = 3", "x = 4", "x = 2"], ans: 1, exp: raw`$4x = 14 - 2 = 12$ より、$x = 3$ です。` },
-        { q: "定価 1000円の商品を 5割引きで買った。代金はいくらか。", opts: ["501円", "500円", "400円", "600円"], ans: 1, exp: raw`5割引きは 50%引きなので、$1000 \times 0 = 500$ 円です。` },
+        { q: "定価 1000円の商品を 5割引きで買った。代金はいくらか。", opts: ["501円", "500円", "400円", "600円"], ans: 1, exp: raw`5割引きは 50%引きなので、$1000 \times 0.5 = 500$ 円です。` },
         { type: "multi", q: "三角比について正しいものをすべて選べ。", opts: ["sin30° = 1/2", "cos60° = 1/2", "tan45° = 1", "sin90° = 0"], ans: [0, 1, 2], exp: "sin90° = 1 です。30°・45°・60° の三角比は代表値として覚えておきましょう。" },
         { type: "text", q: "sinθ = 3/5 のとき、cos²θ の値を答えよ。", answers: ["16/25", "0.64"], exp: "sin²θ + cos²θ = 1 より、cos²θ = 1 − (3/5)² = 1 − 9/25 = 16/25 です。" }
       ]
@@ -2573,7 +2584,7 @@
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: raw`等差数列 $3$、$6$、$9$、… の第 3 項はいくつか。`, opts: ["9", "12", "10", "6"], ans: 0, exp: "初項 3、公差 3 の等差数列なので、第 3 項は 9 です。" },
-        { q: "定価 3000円の商品を 5割引きで買った。代金はいくらか。", opts: ["1500円", "1400円", "1501円", "1600円"], ans: 0, exp: raw`5割引きは 50%引きなので、$3000 \times 0 = 1500$ 円です。` },
+        { q: "定価 3000円の商品を 5割引きで買った。代金はいくらか。", opts: ["1500円", "1400円", "1501円", "1600円"], ans: 0, exp: raw`5割引きは 50%引きなので、$3000 \times 0.5 = 1500$ 円です。` },
         { q: raw`$(x^{2})'$ を求めなさい。`, opts: ["2x¹", "3x²", "2x²", "x¹"], ans: 0, exp: raw`$(x^n)' = nx^{n-1}$ より、$(x^{2})' = 2x^{1}$ です。` },
         { q: "log₄16 の値はいくつか。", opts: ["3", "4", "2", "1"], ans: 2, exp: "4^2 = 16 なので、log₄16 = 2 です。" },
         { q: raw`等比数列 $3$、$6$、$12$、… の第 4 項はいくつか。`, opts: ["24", "48", "12", "26"], ans: 0, exp: "初項 3、公比 2 の等比数列なので、第 4 項は 24 です。" },
@@ -2753,7 +2764,7 @@
         { q: "組成式で表される物質はどれか。", opts: ["二酸化炭素 CO₂", "塩化ナトリウム NaCl", "アンモニア NH₃", "水 H₂O"], ans: 1, exp: "イオン結晶の塩化ナトリウムは、組成式 NaCl で表します。" },
         { q: "原子量の基準として正しいのはどれか。", opts: ["H=2、C=6、N=7、O=8", "H=12、C=1、N=14、O=16", "H=1、C=6、N=7、O=8", "H=1、C=12、N=14、O=16"], ans: 3, exp: "原子量は、H=1、C=12、N=14、O=16 などと決められています。" },
         { q: "硫酸 H₂SO₄ の分子量はいくつか。", opts: ["196", "98", "99", "97"], ans: 1, exp: "硫酸 H₂SO₄ の分子量は 98 です。原子量（H=1、C=12、N=14、O=16、Na=23、Cl=35.5、S=32、Ca=40）の合計で求めます。" },
-        { q: "炭酸カルシウム CaCO₃ の分子量はいくつか。", opts: ["200", "101", "100", "99"], ans: 2, exp: "炭酸カルシウム CaCO₃ の分子量は 100 です。原子量（H=1、C=12、N=14、O=16、Na=23、Cl=35.5、S=32、Ca=40）の合計で求めます。" },
+        { q: "炭酸カルシウム CaCO₃ の式量はいくつか。", opts: ["200", "101", "100", "99"], ans: 2, exp: "炭酸カルシウム CaCO₃ の式量は 100 です。原子量（H=1、C=12、N=14、O=16、Na=23、Cl=35.5、S=32、Ca=40）の合計で求めます。" },
         { q: "アンモニア NH₃ の分子量はいくつか。", opts: ["34", "16", "17", "18"], ans: 2, exp: "アンモニア NH₃ の分子量は 17 です。原子量（H=1、C=12、N=14、O=16、Na=23、Cl=35.5、S=32、Ca=40）の合計で求めます。" },
         { q: "塩化水素 HCl の分子量はいくつか。", opts: ["37.5", "35.5", "36.5", "73"], ans: 2, exp: "塩化水素 HCl の分子量は 36.5 です。原子量（H=1、C=12、N=14、O=16、Na=23、Cl=35.5、S=32、Ca=40）の合計で求めます。" }
       ]
@@ -3738,12 +3749,12 @@
         { q: "次の図書館の案内を読んで、質問に答えなさい。\n\n\"City Library Hours:\nMonday – Friday: 9:00 a.m. – 8:00 p.m.\nSaturday & Sunday: 10:00 a.m. – 6:00 p.m.\nClosed on national holidays.\"\n\n質問：土曜日の開館時間は何時から何時までですか。", opts: ["午前9時〜午後8時", "休館日", "午前10時〜午後6時", "午前9時〜午後6時"], ans: 2, exp: "Saturday & Sunday: 10:00 a.m. – 6:00 p.m. と記載されています。" },
         { q: "次のイベントポスターを読んで、質問に答えなさい。\n\n\"International Food Festival!\nDate: Sunday, October 15 (11:00 a.m. – 4:00 p.m.)\nPlace: Central Park\nEnjoy delicious food from 15 different countries! If it rains heavily, the event will be held in the City Hall.\"\n\n質問：もし当日激しい雨が降った場合、イベントはどうなりますか。", opts: ["開始時間が午後1時に変更される", "翌週の日曜日に延期される", "中止になる", "市役所（City Hall）で開催される"], ans: 3, exp: "If it rains heavily, the event will be held in the City Hall.（激しい雨が降った場合、市役所で開催されます）とあります。" },
         { q: "次の空港のアナウンスを読んで、質問に答えなさい。\n\n\"Attention passengers on Flight 204 to London. Your flight has been delayed by 30 minutes due to bad weather. The new departure time is 3:45 p.m. We apologize for the inconvenience.\"\n\n質問：ロンドン行き204便の新しい出発時刻は何時ですか。", opts: ["午後3時45分", "午後4時15分", "午後3時15分", "午後3時30分"], ans: 0, exp: "The new departure time is 3:45 p.m.（新しい出発時刻は午後3時45分です）とアナウンスされています。" },
-        { q: "次の店舗の広告を読んで、質問に答えなさい。\n\n\"Sunshine Bookstore Sale!\nAll books are 20% off this weekend! Plus, if you spend $30 or more, you will receive a free tote bag. Don't miss this great chance!\"\n\n質問：無料のトートバッグをもらうための条件は何ですか。", opts: ["会員登録をする", "週末に来店するだけでもらえる", "20冊以上の本を買う", "30ドル以上買い物をする"], ans: 3, exp: "if you spend $30 or more, you will receive a free tote bag.（30ドル以上使うと無料のトートバッグがもらえます）と書かれています。" },
+        { q: "次の店舗の広告を読んで、質問に答えなさい。\n\n\"Sunshine Bookstore Sale!\nAll books are 20% off this weekend! Plus, if you spend 30 dollars or more, you will receive a free tote bag. Don't miss this great chance!\"\n\n質問：無料のトートバッグをもらうための条件は何ですか。", opts: ["会員登録をする", "週末に来店するだけでもらえる", "20冊以上の本を買う", "30ドル以上買い物をする"], ans: 3, exp: "if you spend 30 dollars or more, you will receive a free tote bag.（30ドル以上使うと無料のトートバッグがもらえます）と書かれています。" },
         { q: "次の学校の掲示板を読んで、質問に答えなさい。\n\n\"English Speech Contest:\nDo you want to practice speaking English? Join our annual speech contest on November 20! If you are interested, please sign up at the teachers' room by November 5.\"\n\n質問：スピーチコンテストに参加したい生徒は、いつまでに申し込む必要がありますか。", opts: ["11月15日まで", "11月5日まで", "当日会場で申し込む", "11月20日まで"], ans: 1, exp: "please sign up at the teachers' room by November 5.（11月5日までに職員室で申し込んでください）と書かれています。" },
         { q: "次の注意書きを読んで、質問に答えなさい。\n\n\"Museum Rules:\n1. Please turn off your cell phones.\n2. Taking photos is allowed, but do not use a flash.\n3. Food and drinks are not permitted inside the exhibition rooms.\"\n\n質問：この美術館の中で許可されていることはどれですか。", opts: ["フラッシュなしで写真を撮ること", "フラッシュを使って写真を撮ること", "携帯電話で通話すること", "展示室内で飲み物を飲むこと"], ans: 0, exp: "Taking photos is allowed, but do not use a flash.（写真撮影は許可されていますが、フラッシュは使わないでください）とあります。" },
         { q: "次の天気予報を読んで、質問に答えなさい。\n\n\"Tomorrow morning will be cloudy and cool, with a temperature around 12°C. In the afternoon, the sun will come out and it will become warm, reaching 20°C. However, it may rain late at night.\"\n\n質問：明日の午後の天気はどうなると予報されていますか。", opts: ["太陽が出て暖かくなる", "強い風が吹く", "雨が降る", "曇りで肌寒い"], ans: 0, exp: "In the afternoon, the sun will come out and it will become warm（午後には太陽が出て暖かくなるでしょう）と書かれています。" },
         { q: "次のボランティア募集の案内を読んで、質問に答えなさい。\n\n\"Beach Clean-up Volunteer:\nHelp us keep our beach clean! We meet at South Beach Station at 8:30 a.m. this Sunday. Gloves and trash bags will be provided. Please wear comfortable shoes and bring a bottle of water.\"\n\n質問：参加者が自分で持参しなければならないものは何ですか。", opts: ["掃除用のほうき", "手袋（gloves）", "ゴミ袋（trash bags）", "水筒・飲み水（a bottle of water）"], ans: 3, exp: "手袋とゴミ袋は支給され（will be provided）、参加者は bring a bottle of water（飲み水を持ってくる）必要があります。" },
-        { q: "次のレストランの案内を読んで、質問に答えなさい。\n\n\"Mario's Italian Restaurant:\nLunch Set ($12): Choice of pasta or pizza, plus a salad and a drink.\nServed from 11:30 a.m. to 2:30 p.m., Tuesday through Sunday. (Closed on Mondays)\"\n\n質問：ランチセットに含まれていないものはどれですか。", opts: ["飲み物", "デザート", "パスタまたはピザ", "サラダ"], ans: 1, exp: "パスタかピザの選択に、サラダとドリンクが付くと書かれており、デザートは含まれていません。" },
+        { q: "次のレストランの案内を読んで、質問に答えなさい。\n\n\"Mario's Italian Restaurant:\nLunch Set (12 dollars): Choice of pasta or pizza, plus a salad and a drink.\nServed from 11:30 a.m. to 2:30 p.m., Tuesday through Sunday. (Closed on Mondays)\"\n\n質問：ランチセットに含まれていないものはどれですか。", opts: ["飲み物", "デザート", "パスタまたはピザ", "サラダ"], ans: 1, exp: "パスタかピザの選択に、サラダとドリンクが付くと書かれており、デザートは含まれていません。" },
         { q: "次のバスツアーの案内を読んで、質問に答えなさい。\n\n\"Kyoto One-Day Bus Tour:\nThe bus leaves Tokyo Station at 7:00 a.m. Please arrive at least 15 minutes before departure. Lunch is included in the tour price, but entrance fees to temples are not included.\"\n\n質問：参加者は遅くとも何時までに集合場所に着く必要がありますか。", opts: ["午前7時15分", "午前6時30分", "午前7時00分", "午前6時45分"], ans: 3, exp: "7:00 a.m. 出発の at least 15 minutes before（少なくとも15分前）に到着する必要があるので、午前6時45分です。" }
       ]
     },
@@ -5534,7 +5545,7 @@ const EXTRA_QUESTIONS = {
     { id: "first_clear", icon: "🎉", name: "初クリア", desc: "ステージを1つクリアする", test: a => Object.keys(a.stars).length >= 1 },
     { id: "streak7", icon: "🔥", name: "7日ストリーク", desc: "7日連続で学習する", test: a => a.streak >= 7 },
     { id: "streak30", icon: "🌋", name: "30日ストリーク", desc: "30日連続で学習する", test: a => a.streak >= 30 },
-    { id: "all_clear", icon: "👑", name: "全ステージ制覇", desc: "全ステージをクリアする", test: a => Object.keys(a.stars).length >= STAGES.length },
+    { id: "all_clear", icon: "👑", name: "全ステージ制覇", desc: "全ステージをクリアする", test: a => Object.keys(a.stars).length >= Object.values(SUBJECTS).reduce((n, s) => n + (s.stages ? s.stages.length : 0), 0) },
     { id: "star3x5", icon: "⭐", name: "★3コレクター", desc: "★3を5ステージで取る", test: a => Object.values(a.stars).filter(s => s >= 3).length >= 5 },
     { id: "correct100", icon: "💯", name: "100問正解", desc: "累計100問正解する", test: a => a.totalCorrect >= 100 },
     { id: "correct500", icon: "🏅", name: "500問正解", desc: "累計500問正解する", test: a => a.totalCorrect >= 500 },
@@ -8091,9 +8102,10 @@ const EXTRA_QUESTIONS = {
   // ===== アカウント・設定・アイコン・更新 =====
   // 進捗はこの端末に保存されます。ユーザーID＋パスワードはこの端末でのサインイン用で、
   // 他の端末へは設定画面の「データ移行（バックアップコード）」で進捗を移します。
-  const APP_VERSION = "2.3.13";
+  const APP_VERSION = "2.3.14";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-23", version: "2.3.14", title: "プロフィールと設定が新しくなりました", body: "プロフィールと設定が新しくなりました。いつもの場所が見つけやすくなっています。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.13", title: "クラウド同期がさらに便利になりました", body: "クラウド同期がさらに便利になりました。別の端末で遊んだつづきも、見つけやすくなりました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.12", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.11", title: "細かな改善を行いました", body: "細かな改善を行いました。いつものように遊んでみてください。" },
@@ -8504,221 +8516,159 @@ const EXTRA_QUESTIONS = {
     const acc = curAcc();
     const body = document.getElementById("settingsBody");
     const isCustomIcon = appData.appIcon === "custom";
-    const exportCode = (() => {
-      try { return btoa(unescape(encodeURIComponent(JSON.stringify(acc)))); } catch (e) { return ""; }
-    })();
-    const pti = titleInfo(acc);
+    const exportCode = csBuildPayload(acc); // クラウド同期と同じシリアライズ（cloudSyncAt / cloudSyncSig を含めない）
     const escAttrS = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-    const availAvatarsS = BASE_AVATARS.concat(acc.unlockedAvatars.filter(a => !BASE_AVATARS.includes(a)));
     const tcS = acc.themeCustom && typeof acc.themeCustom === "object" ? acc.themeCustom : { h: 221, s: 83, l: 54 };
     const tcColorS = `hsl(${tcS.h}, ${tcS.s}%, ${tcS.l}%)`;
     body.innerHTML = `
-      <div class="settings-section">
-      <div class="settings-head">👤 プロフィール</div>
-      <div class="profile-hero">
-        <div class="ph-avatar">${acc.avatar}</div>
-        <div>
-          <div class="ph-name">${fbEsc(acc.name)}</div>
-          <div class="ph-title">${pti.cur.icon} ${pti.cur.name}</div>
-          <div class="ph-title">${pti.next ? `つぎの称号「${pti.next.icon} ${pti.next.name}」まで あと ${pti.next.xp - acc.xp} XP` : "最高ランク到達！🎉"}</div>
-        </div>
-      </div>
-      <div class="profile-stats">
-        <div class="profile-stat"><div class="ps-value">⚡ ${acc.xp}</div><div class="ps-label">累計XP</div></div>
-        <div class="profile-stat"><div class="ps-value">🔥 ${acc.id === "guest" ? "―" : acc.streak + "日"}</div><div class="ps-label">ストリーク</div></div>
-        <div class="profile-stat"><div class="ps-value">✅ ${acc.totalCorrect}問</div><div class="ps-label">累計正解</div></div>
-      </div>
-      <div style="font-size:12.5px; margin-bottom:10px;">🛒 使えるXP：<strong>⚡ ${acc.xpBalance} XP</strong>　｜　💡 ヒント ${acc.hintTickets} 枚　｜　🧊 フリーズ ${acc.streakFreezes} 個　｜　⚡ ブースト ${acc.xpBoost} 個</div>
-      ${acc.rareTitles.length ? `<div style="font-size:12.5px; margin-bottom:10px;">🎖️ レア称号：<strong>${acc.rareTitles.join(" ／ ")}</strong></div>` : ""}
-      <div class="settings-head-sm">✏️ 名前とアバター</div>
-      <div style="display:flex; gap:8px; margin-bottom:14px;">
-        <input id="settingsNameInput" class="text-input" type="text" maxlength="16" value="${escAttrS(acc.name)}" style="flex:1;" />
-        <button id="settingsNameSaveBtn" class="btn-3d btn-blue" style="min-height:44px; padding:8px 16px; flex:none;">保存</button>
-      </div>
-      <div class="avatar-grid" style="margin:0 0 14px;">
-        ${availAvatarsS.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-set-change-av="${a}">${a}</button>`).join("")}
-      </div>
-      <div class="settings-head-sm">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
-      <div class="badge-grid" style="margin-bottom:14px;">
-        ${badgeGridHtml(acc)}
-      </div>
-      <button id="settingsOpenAccountBtn" class="ios-row nav"><span class="ios-row-label">👤 アカウントの切り替え・作成・サインイン</span></button>
-      <button id="settingsGuideBtn" class="ios-row nav"><span class="ios-row-label">📖 使い方ガイド</span></button>
-      </div>
-
-      <div class="settings-section">
-      <div class="settings-head">🖥️ 表示</div>
-      <div style="margin-bottom:16px;">
-        <div class="toggle-row">
-          <div><div style="font-weight:800; font-size:13.5px;">🌙 ダークモード</div><div style="font-size:11.5px; color:var(--text-muted);">画面全体を暗い配色に切り替えます（このアカウントに保存）</div></div>
+      <div class="set-group">
+      <div class="set-group-label">表示</div>
+      <div class="settings-section set-card">
+        <div class="ios-row set-row">
+          <span class="set-icon">🌙</span>
+          <span class="ios-row-label">ダークモード<span class="ios-row-sub">画面全体を暗い配色に切り替えます（このアカウントに保存）</span></span>
           <button id="setDarkToggle" class="toggle-switch ${acc.darkMode ? "on" : ""}" aria-label="ダークモード切替"></button>
         </div>
-        <div class="toggle-row">
-          <div><div style="font-weight:800; font-size:13.5px;">🔊 効果音</div><div style="font-size:11.5px; color:var(--text-muted);">正解・不正解・クリア時の効果音</div></div>
+        <div class="ios-row set-row">
+          <span class="set-icon">🔊</span>
+          <span class="ios-row-label">効果音<span class="ios-row-sub">正解・不正解・クリア時の効果音</span></span>
           <button id="setSoundToggle" class="toggle-switch ${appData.sound ? "on" : ""}" aria-label="効果音切替"></button>
+        </div>
+        <div class="set-block">
+          <div class="set-block-head"><span class="set-icon">🎨</span>テーマカラー</div>
+          <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6;">アプリのアクセントカラーを選べます。ぜんぶ無料で、いつでも変更できます（このアカウントに保存）。科目ごとの色は変わりません。</div>
+          <div class="theme-row" style="margin-bottom:14px;">
+            ${THEMES.map(t => {
+              const selected = acc.themeColor === t.id;
+              return `<div class="theme-cell">
+                <button class="theme-dot ${selected ? "selected" : ""}" data-set-theme="${t.id}" style="background:${t.vars["--blue"]};" title="${t.name}"></button>
+                <span data-theme-name="${t.name}">${t.name}${selected ? "（使用中）" : ""}</span>
+              </div>`;
+            }).join("")}
+            <div class="theme-cell">
+              <button class="theme-dot custom-dot ${acc.themeColor === "custom" ? "selected" : ""}" data-set-theme="custom" title="カスタム"></button>
+              <span data-theme-name="カスタム">カスタム${acc.themeColor === "custom" ? "（使用中）" : ""}</span>
+            </div>
+          </div>
+          <div class="theme-custom-box">
+            <div class="settings-head-sm">🎚️ カスタムカラー（スライダーで自由に設定）</div>
+            <div class="theme-preview">
+              <div class="theme-preview-chip" id="themePreviewChip" style="background:${tcColorS};"></div>
+              <div style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">いまの色：<strong id="themePreviewText" style="color:var(--text-main);">HSL(${tcS.h}, ${tcS.s}%, ${tcS.l}%)</strong><br>スライダーを動かすと、その場で全体に反映されます。</div>
+            </div>
+            <div class="theme-slider-row"><label>色合い</label><input type="range" class="theme-range" id="themeHue" min="0" max="360" step="1" value="${tcS.h}" style="background:linear-gradient(90deg,#f43f5e,#f59e0b,#84cc16,#06b6d4,#3b82f6,#a855f7,#f43f5e);" /><output id="themeHueVal">${tcS.h}°</output></div>
+            <div class="theme-slider-row"><label>鮮やかさ</label><input type="range" class="theme-range" id="themeSat" min="0" max="100" step="1" value="${tcS.s}" /><output id="themeSatVal">${tcS.s}%</output></div>
+            <div class="theme-slider-row"><label>明るさ</label><input type="range" class="theme-range" id="themeLight" min="30" max="65" step="1" value="${tcS.l}" /><output id="themeLightVal">${tcS.l}%</output></div>
+          </div>
+        </div>
+        <div class="set-block">
+          <div class="set-block-head"><span class="set-icon">📱</span>アプリアイコン</div>
+          <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6;">ホーム画面のアイコンを選びます。選んだあと、Safariの「ホーム画面に追加」をし直すと反映されます（すでに追加済みのアイコンは変わりません）。</div>
+          <div class="icon-pick-grid">
+            ${APP_ICONS.map(ic => `<button class="icon-pick ${!isCustomIcon && (appData.appIcon || "default") === ic.id ? "selected" : ""}" data-app-icon="${ic.id}" title="${ic.name}"><img src="${ic.file180}" alt="${ic.name}" /></button>`).join("")}
+            ${appData.customIconDataUrl ? `<button class="icon-pick ${isCustomIcon ? "selected" : ""}" data-app-icon="custom" title="自分の写真"><img src="${appData.customIconDataUrl}" alt="自分の写真アイコン" /></button>` : ""}
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <label for="customIconInput" class="btn-3d btn-ghost" style="cursor:pointer; min-height:40px;">📷 自分の写真からアイコンを作る</label>
+            <input id="customIconInput" type="file" accept="image/*" style="display:none;" />
+            <a id="downloadIconBtn" class="btn-3d btn-ghost" style="min-height:40px; text-decoration:none;" href="${appIconSrc(512)}" download="physiq-icon.png">⬇️ 今のアイコンを保存</a>
+          </div>
         </div>
       </div>
       </div>
 
-      <div class="settings-section">
-      <div class="settings-head">✏️ クイズ</div>
-      <div style="margin-bottom:16px;">
-        <div class="toggle-row">
-          <div><div style="font-weight:800; font-size:13.5px;">✅ 正解したときは解説を表示しない</div><div style="font-size:11.5px; color:var(--text-muted);">正解した問題では解説を省略します（不正解のときは今までどおり表示。このアカウントに保存）</div></div>
+      <div class="set-group">
+      <div class="set-group-label">学習</div>
+      <div class="settings-section set-card">
+        <div class="ios-row set-row">
+          <span class="set-icon">✅</span>
+          <span class="ios-row-label">正解したときは解説を表示しない<span class="ios-row-sub">正解した問題では解説を省略します（不正解のときは今までどおり表示。このアカウントに保存）</span></span>
           <button id="setHideExpToggle" class="toggle-switch ${acc.hideExpOnCorrect ? "on" : ""}" aria-label="正解したときは解説を表示しない切替"></button>
         </div>
       </div>
       </div>
 
-      <div class="settings-section">
-      <div class="settings-head">🎨 テーマ</div>
-      <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6;">アプリのアクセントカラーを選べます。ぜんぶ無料で、いつでも変更できます（このアカウントに保存）。科目ごとの色は変わりません。</div>
-      <div class="theme-row" style="margin-bottom:14px;">
-        ${THEMES.map(t => {
-          const selected = acc.themeColor === t.id;
-          return `<div class="theme-cell">
-            <button class="theme-dot ${selected ? "selected" : ""}" data-set-theme="${t.id}" style="background:${t.vars["--blue"]};" title="${t.name}"></button>
-            <span data-theme-name="${t.name}">${t.name}${selected ? "（使用中）" : ""}</span>
-          </div>`;
-        }).join("")}
-        <div class="theme-cell">
-          <button class="theme-dot custom-dot ${acc.themeColor === "custom" ? "selected" : ""}" data-set-theme="custom" title="カスタム"></button>
-          <span data-theme-name="カスタム">カスタム${acc.themeColor === "custom" ? "（使用中）" : ""}</span>
+      <div class="set-group">
+      <div class="set-group-label">アカウントと同期</div>
+      <div class="settings-section set-card">
+        <div class="set-block" style="border-top:none; padding-top:10px;">
+          <div class="set-block-head"><span class="set-icon">🔑</span>サインイン用IDとパスワード</div>
+          <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
+            現在のアカウント：<strong>${acc.avatar} ${fbEsc(acc.name)}</strong><br>
+            サインイン用ID：<strong>${acc.loginId ? fbEsc(acc.loginId) : "未設定"}</strong><br>
+            <span style="color:var(--text-muted);">進捗はこの端末に保存されます。他の端末で使うには、クラウド同期か下のバックアップコードで移行してください。</span>
+          </div>
+          <div class="auth-field"><label>サインイン用ID（半角英数字・_・-、3〜20文字）</label><input id="setLoginId" class="text-input" type="text" maxlength="20" value="${escAttrS(acc.loginId || "")}" placeholder="例：physiq_123" /></div>
+          <div class="auth-field"><label>パスワード（6文字以上・変更するときだけ入力）</label><input id="setPassword" class="text-input" type="password" maxlength="64" placeholder="新しいパスワード" autocomplete="new-password" /></div>
+          <div id="setCredMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin-bottom:4px;"></div>
+          <button id="setCredBtn" class="btn-3d btn-blue" style="width:100%;">IDとパスワードを設定・変更する</button>
+        </div>
+        <div class="set-block">
+          <div class="set-block-head"><span class="set-icon">☁️</span>クラウド同期</div>
+          ${acc.id === "guest" ? `
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">ゲストの進捗はクラウド同期の対象外です。アカウントを作成すると、進捗をクラウドに自動で保存して、別の端末でも同じアカウントで続きから遊べるようになります。</div>
+          ` : `
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">進捗は自動でクラウドに保存されます。別の端末でも、ここで復元すれば続きから遊べます。</div>
+          <div style="font-size:12.5px; line-height:1.7; margin-bottom:4px;">最終同期：<strong id="cloudSyncLastAt">${csFmtTime(acc.cloudSyncAt || 0)}</strong></div>
+          ${(!acc.loginId || !acc.pwHash) ? `<div style="font-size:12px; color:var(--red); line-height:1.6; margin-bottom:6px;">同期するには、先に上の「🔑 サインイン用IDとパスワード」でIDとパスワードを設定してください。</div>` : ""}
+          <div id="cloudSyncMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
+          <button id="cloudSyncNowBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">☁️ 今すぐ同期</button>
+          <div class="settings-head-sm">📥 別の端末から復元</div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">他の端末で使っていたアカウントのIDとパスワードを入力すると、その進捗をこの端末に取り込んで、そのアカウントで遊べるようになります。</div>
+          <div class="auth-field"><label>アカウントID</label><input id="cloudRestoreId" class="text-input" type="text" maxlength="20" placeholder="例：physiq_123" autocomplete="username" /></div>
+          <div class="auth-field"><label>パスワード</label><input id="cloudRestorePw" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="current-password" /></div>
+          <div id="cloudRestoreMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
+          <button id="cloudRestoreBtn" class="btn-3d btn-blue" style="width:100%;">復元して切り替える</button>
+          `}
+        </div>
+        <div class="set-block">
+          <div class="set-block-head"><span class="set-icon">📤</span>データ移行（バックアップコード）</div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">このコードを他の端末の「📥 取り込み」に貼ると、アカウントごと進捗が移ります。移行先でも同じユーザーIDとパスワードでサインインできます。</div>
+          <textarea id="exportCode" class="text-input" rows="3" readonly style="font-size:11px; word-break:break-all;">${exportCode}</textarea>
+          <div style="display:flex; gap:8px; margin:8px 0 12px;">
+            <button id="copyExportBtn" class="btn-3d btn-ghost" style="flex:1;">📋 コードをコピー</button>
+          </div>
+          <div class="settings-head-sm">📥 バックアップコード取り込み</div>
+          <textarea id="importCode" class="text-input" rows="3" placeholder="他の端末でコピーしたバックアップコードを貼り付け" style="font-size:11px; word-break:break-all;"></textarea>
+          <div id="importMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
+          <button id="importBtn" class="btn-3d btn-blue" style="width:100%;">取り込んでアカウントを追加する</button>
         </div>
       </div>
-      <div class="theme-custom-box">
-        <div class="settings-head-sm">🎚️ カスタムカラー（スライダーで自由に設定）</div>
-        <div class="theme-preview">
-          <div class="theme-preview-chip" id="themePreviewChip" style="background:${tcColorS};"></div>
-          <div style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">いまの色：<strong id="themePreviewText" style="color:var(--text-main);">HSL(${tcS.h}, ${tcS.s}%, ${tcS.l}%)</strong><br>スライダーを動かすと、その場で全体に反映されます。</div>
+      </div>
+
+      <div class="set-group">
+      <div class="set-group-label">アプリ情報</div>
+      <div class="settings-section set-card">
+        <div class="ios-row set-row">
+          <span class="set-icon">🔄</span>
+          <span class="ios-row-label">バージョン<span class="ios-row-sub">アプリが古いままのときは、下のボタンで最新の状態に更新できます。進捗やストリークは消えません</span></span>
+          <span class="set-value" id="versionTapTarget" style="cursor:pointer; padding:6px 2px;">${APP_VERSION}</span>
         </div>
-        <div class="theme-slider-row"><label>色合い</label><input type="range" class="theme-range" id="themeHue" min="0" max="360" step="1" value="${tcS.h}" style="background:linear-gradient(90deg,#f43f5e,#f59e0b,#84cc16,#06b6d4,#3b82f6,#a855f7,#f43f5e);" /><output id="themeHueVal">${tcS.h}°</output></div>
-        <div class="theme-slider-row"><label>鮮やかさ</label><input type="range" class="theme-range" id="themeSat" min="0" max="100" step="1" value="${tcS.s}" /><output id="themeSatVal">${tcS.s}%</output></div>
-        <div class="theme-slider-row"><label>明るさ</label><input type="range" class="theme-range" id="themeLight" min="30" max="65" step="1" value="${tcS.l}" /><output id="themeLightVal">${tcS.l}%</output></div>
-      </div>
-      </div>
-
-      <div class="settings-section">
-      <div class="settings-head">📱 アプリアイコン</div>
-      <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6;">ホーム画面のアイコンを選びます。選んだあと、Safariの「ホーム画面に追加」をし直すと反映されます（すでに追加済みのアイコンは変わりません）。</div>
-      <div class="icon-pick-grid">
-        ${APP_ICONS.map(ic => `<button class="icon-pick ${!isCustomIcon && (appData.appIcon || "default") === ic.id ? "selected" : ""}" data-app-icon="${ic.id}" title="${ic.name}"><img src="${ic.file180}" alt="${ic.name}" /></button>`).join("")}
-        ${appData.customIconDataUrl ? `<button class="icon-pick ${isCustomIcon ? "selected" : ""}" data-app-icon="custom" title="自分の写真"><img src="${appData.customIconDataUrl}" alt="自分の写真アイコン" /></button>` : ""}
-      </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
-        <label for="customIconInput" class="btn-3d btn-ghost" style="cursor:pointer; min-height:40px;">📷 自分の写真からアイコンを作る</label>
-        <input id="customIconInput" type="file" accept="image/*" style="display:none;" />
-        <a id="downloadIconBtn" class="btn-3d btn-ghost" style="min-height:40px; text-decoration:none;" href="${appIconSrc(512)}" download="physiq-icon.png">⬇️ 今のアイコンを保存</a>
-      </div>
-      </div>
-
-      <div class="settings-section">
-      <div class="settings-head">🔑 アカウントと同期</div>
-      <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
-        現在のアカウント：<strong>${acc.avatar} ${fbEsc(acc.name)}</strong><br>
-        サインイン用ID：<strong>${acc.loginId ? fbEsc(acc.loginId) : "未設定"}</strong><br>
-        <span style="color:var(--text-muted);">進捗はこの端末に保存されます。他の端末で使うには、下のバックアップコードで移行してください。</span>
-      </div>
-      <div class="auth-field"><label>サインイン用ID（半角英数字・_・-、3〜20文字）</label><input id="setLoginId" class="text-input" type="text" maxlength="20" value="${escAttrS(acc.loginId || "")}" placeholder="例：physiq_123" /></div>
-      <div class="auth-field"><label>パスワード（6文字以上・変更するときだけ入力）</label><input id="setPassword" class="text-input" type="password" maxlength="64" placeholder="新しいパスワード" autocomplete="new-password" /></div>
-      <div id="setCredMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin-bottom:4px;"></div>
-      <button id="setCredBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">IDとパスワードを設定・変更する</button>
-      </div>
-
-      <div class="settings-section">
-      <div class="settings-head-sm">📤 データ移行（バックアップコード）</div>
-      <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">このコードを他の端末の「📥 取り込み」に貼ると、アカウントごと進捗が移ります。移行先でも同じユーザーIDとパスワードでサインインできます。</div>
-      <textarea id="exportCode" class="text-input" rows="3" readonly style="font-size:11px; word-break:break-all;">${exportCode}</textarea>
-      <div style="display:flex; gap:8px; margin:8px 0 12px;">
-        <button id="copyExportBtn" class="btn-3d btn-ghost" style="flex:1;">📋 コードをコピー</button>
-      </div>
-      <div class="settings-head-sm">📥 バックアップコード取り込み</div>
-      <textarea id="importCode" class="text-input" rows="3" placeholder="他の端末でコピーしたバックアップコードを貼り付け" style="font-size:11px; word-break:break-all;"></textarea>
-      <div id="importMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
-      <button id="importBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">取り込んでアカウントを追加する</button>
-      </div>
-
-      <div class="settings-section">
-      <div class="settings-head-sm">☁️ クラウド同期</div>
-      ${acc.id === "guest" ? `
-      <div style="font-size:12px; color:var(--text-muted); line-height:1.6;">ゲストの進捗はクラウド同期の対象外です。アカウントを作成すると、進捗をクラウドに自動で保存して、別の端末でも同じアカウントで続きから遊べるようになります。</div>
-      ` : `
-      <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">進捗は自動でクラウドに保存されます。別の端末でも、ここで復元すれば続きから遊べます。</div>
-      <div style="font-size:12.5px; line-height:1.7; margin-bottom:4px;">最終同期：<strong id="cloudSyncLastAt">${csFmtTime(acc.cloudSyncAt || 0)}</strong></div>
-      ${(!acc.loginId || !acc.pwHash) ? `<div style="font-size:12px; color:var(--red); line-height:1.6; margin-bottom:6px;">同期するには、先に上の「🔑 アカウントと同期」でIDとパスワードを設定してください。</div>` : ""}
-      <div id="cloudSyncMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
-      <button id="cloudSyncNowBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">☁️ 今すぐ同期</button>
-      <div class="settings-head-sm">📥 別の端末から復元</div>
-      <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:6px;">他の端末で使っていたアカウントのIDとパスワードを入力すると、その進捗をこの端末に取り込んで、そのアカウントで遊べるようになります。</div>
-      <div class="auth-field"><label>アカウントID</label><input id="cloudRestoreId" class="text-input" type="text" maxlength="20" placeholder="例：physiq_123" autocomplete="username" /></div>
-      <div class="auth-field"><label>パスワード</label><input id="cloudRestorePw" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="current-password" /></div>
-      <div id="cloudRestoreMsg" style="font-size:12.5px; font-weight:700; min-height:18px; margin:6px 0;"></div>
-      <button id="cloudRestoreBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:16px;">復元して切り替える</button>
-      `}
-      </div>
-
-      <div class="settings-section">
-      <div class="settings-head">🔄 アップデート</div>
-      <div style="font-size:12.5px; line-height:1.7; margin-bottom:8px;">
-        現在のバージョン：<strong id="versionTapTarget" style="cursor:pointer;">${APP_VERSION}</strong><br>
-        <span style="color:var(--text-muted);">アプリが古いままのときは、下のボタンで最新の状態に更新できます。進捗やストリークは消えません。</span>
-      </div>
-      <button id="forceUpdateBtn" class="btn-3d btn-amber" style="width:100%; margin-bottom:16px;">🔄 最新版を読み込む</button>
-      </div>
-
-      <div class="settings-section">
-      <div class="settings-head">📋 アップデート履歴</div>
-      <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:8px;">これまでの更新内容です。新しいものが上に表示されます。</div>
-      ${UPDATE_HISTORY.map(h => `
-        <div class="update-item">
-          <div class="n-date">${h.date} ・ バージョン ${h.version}</div>
-          <div class="n-title">${h.title}</div>
-          <div class="n-body">${h.body}</div>
-        </div>`).join("")}
-      </div>
-
-      <div class="settings-section">
-      <div class="settings-head">🚪 アカウント操作</div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button id="signOutBtn" class="btn-3d btn-ghost" style="flex:1;">ゲストに切り替える</button>
-        ${acc.id !== "guest" ? `<button id="deleteAccBtn" class="btn-3d btn-ghost" style="flex:1; color:var(--red); border-color:#fda4af;">このアカウントを削除</button>` : ""}
-      </div>
-      ${acc.id !== "guest" ? `
-      <div id="deleteConfirmRow" style="display:none; margin-top:10px; background:var(--red-soft); border-radius:12px; padding:10px 12px;">
-        <div style="font-size:13px; font-weight:800; color:var(--red); margin-bottom:8px;">アカウント「${fbEsc(acc.name)}」を削除しますか？進捗もすべて消えます。</div>
-        <div style="display:flex; gap:8px;">
-          <button id="deleteAccYes" class="btn-3d" style="flex:1; background:var(--red); color:#fff; border-color:#be123c;">削除する</button>
-          <button id="deleteAccNo" class="btn-3d btn-ghost" style="flex:1;">やめる</button>
+        <div style="padding:2px 0 12px;">
+          <button id="forceUpdateBtn" class="btn-3d btn-amber" style="width:100%;">🔄 最新版を読み込む</button>
         </div>
-      </div>` : ""}
+        <button id="settingsGuideBtn" class="ios-row nav"><span class="set-icon">📖</span><span class="ios-row-label">使い方ガイド</span></button>
+        <div class="set-block">
+          <div class="set-block-head"><span class="set-icon">📋</span>アップデート履歴</div>
+          <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:8px;">これまでの更新内容です。新しいものが上に表示されます。</div>
+          ${UPDATE_HISTORY.map(h => `
+            <div class="update-item">
+              <div class="n-date">${h.date} ・ バージョン ${h.version}</div>
+              <div class="n-title">${h.title}</div>
+              <div class="n-body">${h.body}</div>
+            </div>`).join("")}
+        </div>
+      </div>
       </div>
     `;
-    const setNameSaveBtn = body.querySelector("#settingsNameSaveBtn");
-    if (setNameSaveBtn) setNameSaveBtn.addEventListener("click", () => {
-      const v = body.querySelector("#settingsNameInput").value.trim();
-      if (!v) { showToast("名前を入力してください"); return; }
-      curAcc().name = v;
-      saveData();
-      updateHUD();
-      renderSettings();
-      showToast("✏️ ユーザー名を変更しました");
-    });
-    body.querySelectorAll("[data-set-change-av]").forEach(b => b.addEventListener("click", () => {
-      curAcc().avatar = b.getAttribute("data-set-change-av");
-      saveData();
-      updateHUD();
-      renderSettings();
-    }));
-    const setOpenAccBtn = body.querySelector("#settingsOpenAccountBtn");
-    if (setOpenAccBtn) setOpenAccBtn.addEventListener("click", () => { closeAuthModals(); openAccountModal(); });
-    const setGuideBtn = body.querySelector("#settingsGuideBtn");
-    if (setGuideBtn) setGuideBtn.addEventListener("click", () => { closeAuthModals(); renderGuide("settings"); });
     const dmT = body.querySelector("#setDarkToggle");
-    if (dmT) dmT.addEventListener("click", () => { const a = curAcc(); a.darkMode = !a.darkMode; if (!a.achv || typeof a.achv !== "object") a.achv = {}; if (a.darkMode) a.achv.dark = true; saveData(); applyAppearance(); dmT.classList.toggle("on", a.darkMode); if (a.darkMode) { checkBadges(); const bgEl = body.querySelector(".badge-grid"); if (bgEl) { bgEl.innerHTML = badgeGridHtml(a); const bhEl = bgEl.previousElementSibling; if (bhEl) bhEl.textContent = `🏆 実績バッジ（${BADGES.filter(b => a.badges[b.id]).length} / ${BADGES.length}）`; } } });
+    if (dmT) dmT.addEventListener("click", () => { const a = curAcc(); a.darkMode = !a.darkMode; if (!a.achv || typeof a.achv !== "object") a.achv = {}; if (a.darkMode) a.achv.dark = true; saveData(); applyAppearance(); dmT.classList.toggle("on", a.darkMode); if (a.darkMode) checkBadges(); });
     const sndT = body.querySelector("#setSoundToggle");
     if (sndT) sndT.addEventListener("click", () => { appData.sound = !appData.sound; saveData(); updateHUD(); sndT.classList.toggle("on", appData.sound); });
     const heT = body.querySelector("#setHideExpToggle");
     if (heT) heT.addEventListener("click", () => { const a = curAcc(); a.hideExpOnCorrect = !a.hideExpOnCorrect; saveData(); heT.classList.toggle("on", a.hideExpOnCorrect); });
+    const setGuideBtn = body.querySelector("#settingsGuideBtn");
+    if (setGuideBtn) setGuideBtn.addEventListener("click", () => { closeAuthModals(); renderGuide("settings"); });
     // テーマ選択：設定画面を再描画せず、その場で「使用中」表示だけを切り替える（操作感を途切れさせない）
     const markThemeSelection = () => {
       const a = curAcc();
@@ -8886,6 +8836,11 @@ const EXTRA_QUESTIONS = {
         parsed.id = id;
         if (!parsed.loginId) parsed.loginId = rid;
         appData.accounts[id] = Object.assign(newAccountFields(id, parsed.name, parsed.avatar || "🚀"), parsed, { id });
+        // 復元したデータの同期マーカーをクラウド側に合わせ、直後の自動プルで不要な競合モーダルが出ないようにする（csApplyCloudData と同じ処理）
+        appData.accounts[id].cloudSyncAt = (d.updatedAt && typeof d.updatedAt.toMillis === "function") ? d.updatedAt.toMillis() : Date.now();
+        appData.accounts[id].cloudSyncSig = csSigOf(String(d.data || ""));
+        csLastPayloadSig = String(d.data || "");
+        csLastAccId = id;
         appData.activeId = id;
         saveData();
         logEvent("sync_restore", rid);
@@ -8915,31 +8870,6 @@ const EXTRA_QUESTIONS = {
       try { if ("caches" in window) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } } catch (e) {}
       location.reload();
     });
-    const signOutBtn = body.querySelector("#signOutBtn");
-    if (signOutBtn) signOutBtn.addEventListener("click", () => {
-      appData.activeId = "guest"; saveData(); closeAuthModals(); updateHUD(); session = null;
-      if (appStarted) renderMain(); else renderTitleScreen();
-      showToast("ゲストに切り替えました");
-    });
-    const delBtn = body.querySelector("#deleteAccBtn");
-    if (delBtn) delBtn.addEventListener("click", () => {
-      const row = body.querySelector("#deleteConfirmRow");
-      if (row) { row.style.display = "block"; delBtn.style.display = "none"; }
-    });
-    const delNo = body.querySelector("#deleteAccNo");
-    if (delNo) delNo.addEventListener("click", () => {
-      const row = body.querySelector("#deleteConfirmRow");
-      if (row) row.style.display = "none";
-      if (delBtn) delBtn.style.display = "";
-    });
-    const delYes = body.querySelector("#deleteAccYes");
-    if (delYes) delYes.addEventListener("click", () => {
-      const a = curAcc();
-      delete appData.accounts[a.id];
-      appData.activeId = "guest"; saveData(); closeAuthModals(); updateHUD(); session = null;
-      if (appStarted) renderMain(); else renderTitleScreen();
-      showToast("アカウントを削除しました");
-    });
   }
 
 
@@ -8949,9 +8879,9 @@ const EXTRA_QUESTIONS = {
     updateHUD();
   });
 
-  // ===== 画面タブ（ホーム／学習／データ）とフィードバック =====
+  // ===== 画面タブ（ホーム／学習／データ／プロフィール）とフィードバック =====
   let currentTab = "home";
-  const TAB_ORDER = ["home", "study", "data"];
+  const TAB_ORDER = ["home", "study", "data", "profile"];
 
   // クローム（上部HUD／下部タブバー）の表示切替。クイズ中とタイトル/科目選択フローでは隠す
   function setChromeVisible(v) {
@@ -9077,6 +9007,7 @@ const EXTRA_QUESTIONS = {
     }
     if (currentTab === "study") renderStudy();
     else if (currentTab === "data") renderData();
+    else if (currentTab === "profile") renderProfile();
     else renderHome();
   }
 
@@ -9241,6 +9172,159 @@ const EXTRA_QUESTIONS = {
     renderMath(main);
   }
 
+  // プロフィールタブ：アバター・名前・フレンド・実績・アカウント操作をここに集約
+  function renderProfile() {
+    updateHUD();
+    const acc = curAcc();
+    const ti = titleInfo(acc);
+    const escAttrP = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const availAvatarsP = BASE_AVATARS.concat(acc.unlockedAvatars.filter(a => !BASE_AVATARS.includes(a)));
+    const accList = Object.values(appData.accounts);
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div style="padding-top:2px;">
+        <h2 style="margin:0 0 12px; font-size:19px;">👤 プロフィール</h2>
+
+        <section class="settings-section">
+          <div class="profile-hero">
+            <div class="ph-avatar">${acc.avatar}</div>
+            <div>
+              <div class="ph-name">${fbEsc(acc.name)}</div>
+              <div class="ph-title">${ti.cur.icon} ${ti.cur.name}</div>
+              <div class="ph-title">${ti.next ? `つぎの称号「${ti.next.icon} ${ti.next.name}」まで あと ${ti.next.xp - acc.xp} XP` : "最高ランク到達！🎉"}</div>
+            </div>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat"><div class="ps-value">⚡ ${acc.xp}</div><div class="ps-label">累計XP</div></div>
+            <div class="profile-stat"><div class="ps-value">🔥 ${acc.id === "guest" ? "―" : acc.streak + "日"}</div><div class="ps-label">ストリーク</div></div>
+            <div class="profile-stat"><div class="ps-value">✅ ${acc.totalCorrect}問</div><div class="ps-label">累計正解</div></div>
+          </div>
+          <div style="font-size:12.5px;">🛒 使えるXP：<strong>⚡ ${acc.xpBalance} XP</strong>　｜　💡 ヒント ${acc.hintTickets} 枚　｜　🧊 フリーズ ${acc.streakFreezes} 個　｜　⚡ ブースト ${acc.xpBoost} 個
+            <button id="profShopBtn" class="glossary-link" style="padding:0; margin-left:6px;">XPショップへ →</button>
+          </div>
+          ${acc.rareTitles.length ? `<div style="font-size:12.5px; margin-top:10px;">🎖️ レア称号：<strong>${acc.rareTitles.join(" ／ ")}</strong></div>` : ""}
+        </section>
+
+        <section class="settings-section">
+          <div class="settings-head-sm">✏️ 名前とアバター</div>
+          <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <input id="profNameInput" class="text-input" type="text" maxlength="16" value="${escAttrP(acc.name)}" style="flex:1;" />
+            <button id="profNameSaveBtn" class="btn-3d btn-blue" style="min-height:44px; padding:8px 16px; flex:none;">保存</button>
+          </div>
+          <div class="avatar-grid" style="margin:0;">
+            ${availAvatarsP.map(a => `<button type="button" class="avatar-opt ${a === acc.avatar ? "selected" : ""}" data-prof-av="${a}">${a}</button>`).join("")}
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <div class="settings-head-sm">👥 フレンド</div>
+          ${acc.id === "guest" ? `
+          <div style="font-size:12.5px; color:var(--text-muted); line-height:1.7;">🔒 フレンド機能はアカウントでログインすると使えます。アカウントを作ると、フレンドコードやQRコードで友だちを追加して、XPランキングやXPレースで競えるようになります。</div>
+          ` : `
+          <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:4px;">あなたのフレンドコード（友だちに教えてね）</div>
+          <div class="friend-code">${acc.serverCode ? fbEsc(acc.serverCode) : "（サーバー接続後に表示されます）"}</div>
+          <div id="myFriendQr" style="margin-top:10px;"></div>
+          <div style="font-size:12.5px; color:var(--text-muted); margin:10px 0 12px;">🔑 サインイン用ID：${acc.loginId ? `<strong style="color:var(--text-main);">${fbEsc(acc.loginId)}</strong>` : "未設定（設定の「アカウントと同期」で設定できます）"}</div>
+          <button id="profFriendsBtn" class="btn-3d btn-blue" style="width:100%;">👥 フレンド画面を開く（ランキング・申請）${fbPendingReqCount() ? ` <span style="background:#ef4444; color:#fff; border-radius:99px; padding:1px 9px; font-size:12px;">📩 申請 ${fbPendingReqCount()} 件</span>` : ""}</button>
+          `}
+        </section>
+
+        <section class="settings-section">
+          <div class="settings-head-sm">🏆 実績バッジ（${BADGES.filter(b => acc.badges[b.id]).length} / ${BADGES.length}）</div>
+          <div class="badge-grid">
+            ${badgeGridHtml(acc)}
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <div class="settings-head-sm">🔑 アカウント</div>
+          <div style="font-weight:800; font-size:13.5px; margin-bottom:8px;">登録済みアカウント（タップで切替）</div>
+          <div style="margin-bottom:12px;">
+            ${accList.map(a => `
+              <button class="stat-btn" data-prof-acc="${a.id}" style="width:100%; justify-content:space-between; padding:10px 14px; margin-bottom:6px; border-radius:12px; ${a.id === appData.activeId ? "border-color:var(--blue); background:var(--blue-soft);" : ""}">
+                <span>${a.avatar} ${fbEsc(a.name)}</span>
+                <span style="font-size:12px; color:var(--text-muted);">🔥${a.streak}日 / ⚡${a.xp}XP</span>
+              </button>
+            `).join("")}
+          </div>
+          <button id="profCreateBtn" class="btn-3d btn-blue" style="width:100%; margin-bottom:8px;">✨ 新しいアカウントを作成</button>
+          <button id="profSigninBtn" class="btn-3d btn-ghost" style="width:100%; margin-bottom:14px;">🔑 サインイン（ユーザーIDとパスワード）</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="profSignOutBtn" class="btn-3d btn-ghost" style="flex:1;">ゲストに切り替える</button>
+            ${acc.id !== "guest" ? `<button id="profDeleteBtn" class="btn-3d btn-ghost" style="flex:1; color:var(--red); border-color:#fda4af;">このアカウントを削除</button>` : ""}
+          </div>
+          ${acc.id !== "guest" ? `
+          <div id="profDeleteConfirmRow" style="display:none; margin-top:10px; background:var(--red-soft); border-radius:12px; padding:10px 12px;">
+            <div style="font-size:13px; font-weight:800; color:var(--red); margin-bottom:8px;">アカウント「${fbEsc(acc.name)}」を削除しますか？進捗もすべて消えます。</div>
+            <div style="display:flex; gap:8px;">
+              <button id="profDeleteYes" class="btn-3d" style="flex:1; background:var(--red); color:#fff; border-color:#be123c;">削除する</button>
+              <button id="profDeleteNo" class="btn-3d btn-ghost" style="flex:1;">やめる</button>
+            </div>
+          </div>` : ""}
+        </section>
+      </div>
+    `;
+    const profNameSaveBtn = document.getElementById("profNameSaveBtn");
+    if (profNameSaveBtn) profNameSaveBtn.addEventListener("click", () => {
+      const v = document.getElementById("profNameInput").value.trim();
+      if (!v) { showToast("名前を入力してください"); return; }
+      curAcc().name = v;
+      saveData();
+      updateHUD();
+      renderProfile();
+      showToast("✏️ ユーザー名を変更しました");
+    });
+    main.querySelectorAll("[data-prof-av]").forEach(b => b.addEventListener("click", () => {
+      curAcc().avatar = b.getAttribute("data-prof-av");
+      saveData();
+      updateHUD();
+      renderProfile();
+    }));
+    const profShopBtn = document.getElementById("profShopBtn");
+    if (profShopBtn) profShopBtn.addEventListener("click", () => { session = null; renderShop(); });
+    const profFriendsBtn = document.getElementById("profFriendsBtn");
+    if (profFriendsBtn) profFriendsBtn.addEventListener("click", () => renderFriends());
+    try { fbRenderMyQr(); } catch (e) {}
+    main.querySelectorAll("[data-prof-acc]").forEach(b => {
+      b.addEventListener("click", () => {
+        appData.activeId = b.getAttribute("data-prof-acc");
+        try { csPullThenUpload(); } catch (e) {} // アカウント切替直後：まず自動プルを確認し、クラウドが新しくない場合だけアップロード
+        saveData();
+        session = null;
+        if (appStarted) renderMain(); else renderTitleScreen();
+      });
+    });
+    const profCreateBtn = document.getElementById("profCreateBtn");
+    if (profCreateBtn) profCreateBtn.addEventListener("click", () => openCreateModal());
+    const profSigninBtn = document.getElementById("profSigninBtn");
+    if (profSigninBtn) profSigninBtn.addEventListener("click", () => openSigninModal());
+    const profSignOutBtn = document.getElementById("profSignOutBtn");
+    if (profSignOutBtn) profSignOutBtn.addEventListener("click", () => {
+      appData.activeId = "guest"; saveData(); updateHUD(); session = null;
+      if (appStarted) renderMain(); else renderTitleScreen();
+      showToast("ゲストに切り替えました");
+    });
+    const profDelBtn = document.getElementById("profDeleteBtn");
+    if (profDelBtn) profDelBtn.addEventListener("click", () => {
+      const row = document.getElementById("profDeleteConfirmRow");
+      if (row) { row.style.display = "block"; profDelBtn.style.display = "none"; }
+    });
+    const profDelNo = document.getElementById("profDeleteNo");
+    if (profDelNo) profDelNo.addEventListener("click", () => {
+      const row = document.getElementById("profDeleteConfirmRow");
+      if (row) row.style.display = "none";
+      if (profDelBtn) profDelBtn.style.display = "";
+    });
+    const profDelYes = document.getElementById("profDeleteYes");
+    if (profDelYes) profDelYes.addEventListener("click", () => {
+      const a = curAcc();
+      delete appData.accounts[a.id];
+      appData.activeId = "guest"; saveData(); updateHUD(); session = null;
+      if (appStarted) renderMain(); else renderTitleScreen();
+      showToast("アカウントを削除しました");
+    });
+    renderMath(main);
+  }
   // 改善リクエストの送信フォーム
   function feedbackFormHtml() {
     return `
