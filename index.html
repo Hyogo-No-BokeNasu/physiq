@@ -8288,9 +8288,10 @@ const EXTRA_QUESTIONS = {
   // どの端末・URLからでもサインインして続きから遊ぶためのものです。端末内の保存は
   // オフライン時の予備で、localStorage は URL（オリジン）ごとに分かれるため、
   // サインインは端末内だけでなくクラウド（sync コレクション）も確認します。
-  const APP_VERSION = "2.3.19";
+  const APP_VERSION = "2.3.20";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-24", version: "2.3.20", title: "タップできない不具合を直しました", body: "モーダルを開いたあとタップが効かなくなることがあったのを直しました。いつものように遊んでみてください。" },
     { date: "2026-11-24", version: "2.3.19", title: "細かな改善を行いました", body: "より快適に遊べるよう、細かな改善を行いました。" },
     { date: "2026-11-24", version: "2.3.18", title: "動きをなめらかにしました", body: "画面の動きをなめらかにしました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.17", title: "サインインがクラウド対応になりました", body: "サインインがクラウド対応になりました。別の端末やURLで作ったアカウントでも、IDとパスワードで続きから遊べます。いつものように遊んでみてください。" },
@@ -10771,6 +10772,10 @@ const EXTRA_QUESTIONS = {
   // 閉じる時だけ .closing を付けてフェードアウト（約0.18s）させてから実際に隠す。
   // 背景クリック・×ボタン・各ボタンのハンドラなど、すべての閉じ処理に一括で効く。
   // 閉じる途中で再度開かれた場合は .closing を外し、タイマーを止めて壊れないようにする。
+  // 【2.3.20】開く側の分岐では .closing が付いていない時の classList.remove() を呼ばないこと。
+  // 存在しないトークンの remove() でも class 属性への書き込みとして MutationObserver が
+  // 再発火し、コールバックが自分自身を無限に呼び続けてメインスレッドを塞ぎ、
+  // モーダルを開いた瞬間から全てのタップが効かなくなる（スクロールだけ生き残る）。
   (function setupModalCloseAnimation() {
     const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const CLOSE_MS = reduceMotion ? 0 : 180;
@@ -10782,7 +10787,9 @@ const EXTRA_QUESTIONS = {
           const wasOpen = (r.oldValue || "").split(/\s+/).indexOf("open") >= 0;
           if (el.classList.contains("open")) {
             if (timer) { clearTimeout(timer); timer = null; }
-            el.classList.remove("closing");
+            // 実際に .closing が付いている時だけ外す。付いていない時の remove() は
+            // 見た目が変わらなくても mutation として再発火し、無限ループになる。
+            if (el.classList.contains("closing")) el.classList.remove("closing");
           } else if (wasOpen && !el.classList.contains("closing")) {
             // 実際に開いていたモーダルが閉じられた時だけフェードアウトする
             el.classList.add("closing");
