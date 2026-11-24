@@ -7794,7 +7794,7 @@ const EXTRA_QUESTIONS = {
     const acc = curAcc();
     const total = session.questions.length;
     const pct = Math.round(((session.qIdx + (session.answered ? 1 : 0)) / total) * 100);
-    const title = session.mode === "daily" ? "⚡ 今日の1問チャレンジ" : session.mode === "review" ? "🔁 復習モード（間違えた問題）" : `STAGE ${STAGES[session.stageIdx].num}：${STAGES[session.stageIdx].title}`;
+    const title = session.inRedo ? `🔁 解き直し：STAGE ${STAGES[session.stageIdx].num}（間違えた問題）` : session.mode === "daily" ? "⚡ 今日の1問チャレンジ" : session.mode === "review" ? "🔁 復習モード（間違えた問題）" : `STAGE ${STAGES[session.stageIdx].num}：${STAGES[session.stageIdx].title}`;
 
     const main = document.getElementById("appMain");
     main.innerHTML = `
@@ -7965,12 +7965,16 @@ const EXTRA_QUESTIONS = {
       session.lastCorrect = !!correct;
       session.lastAnswerSec = Math.max(0, Math.round((Date.now() - (session.questionStartedAt || session.startedAt || Date.now())) / 1000));
       const ref = session.refs[session.qIdx];
+      if (!Array.isArray(session.wrongIdxs)) session.wrongIdxs = [];
       if (correct) {
         session.correctCount++;
+        if (session.inRedo) session.redoCorrect = (session.redoCorrect || 0) + 1;
+        else session.firstCorrect = (session.firstCorrect || 0) + 1;
         session.combo++;
         playTone("ok");
         if (ref) trackAnswer(ref.stageId, ref.qIndex, true);
       } else {
+        if (!session.inRedo && !session.wrongIdxs.includes(session.qIdx)) session.wrongIdxs.push(session.qIdx);
         session.combo = 0;
         playTone("ng");
         if (ref) trackAnswer(ref.stageId, ref.qIndex, false);
@@ -8077,7 +8081,8 @@ const EXTRA_QUESTIONS = {
           session.hintUsed = false;
           renderQuiz();
         } else {
-          finishQuiz();
+          if (session.inRedo) finishQuiz();
+          else maybeOfferRedo();
         }
       };
       const nextBarBtn = document.getElementById("nextQBtnBar");
@@ -8092,11 +8097,63 @@ const EXTRA_QUESTIONS = {
     renderMath(main);
   }
 
+  // ステージ終了直前：間違えた問題があれば、結果を見る前に「解き直し」を提案する（2.3.21）
+  function maybeOfferRedo() {
+    if (session && session.mode === "stage" && !session.inRedo && Array.isArray(session.wrongIdxs) && session.wrongIdxs.length > 0) {
+      renderRedoConfirm();
+    } else {
+      finishQuiz();
+    }
+  }
+
+  function renderRedoConfirm() {
+    setChromeVisible(true);
+    window.scrollTo(0, 0);
+    const n = session.wrongIdxs.length;
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="quiz-screen" style="text-align:center; padding:32px 20px;">
+        <div style="font-size:48px; margin-bottom:8px;">🔁</div>
+        <h2 style="margin:0 0 8px; font-size:22px;">もう一度確かめよう</h2>
+        <p style="font-size:14.5px; color:var(--text-main); margin:0 0 6px;">間違えた問題が <b>${n}問</b> あります。</p>
+        <p style="font-size:13px; color:var(--text-muted); margin:0 0 20px;">結果を見る前に、間違えた問題だけをもう一度解けます。<br>解き直しで正解すると正解数にカウントされます。<br>（最初から全問正解のボーナスは付きません）</p>
+        <button id="redoStartBtn" class="btn-3d btn-green" style="width:100%; margin-bottom:10px;">🔁 解き直す（${n}問）</button>
+        <button id="redoSkipBtn" class="btn-3d btn-ghost" style="width:100%;">このまま結果を見る →</button>
+      </div>
+    `;
+    document.getElementById("redoStartBtn").addEventListener("click", startRedo);
+    document.getElementById("redoSkipBtn").addEventListener("click", () => finishQuiz());
+  }
+
+  function startRedo() {
+    const idxs = [...session.wrongIdxs];
+    session.origTotal = session.questions.length;
+    session.origQuestions = session.questions;
+    session.origRefs = session.refs;
+    session.questions = idxs.map(i => session.origQuestions[i]);
+    session.refs = idxs.map(i => session.origRefs[i]);
+    session.redoTotal = idxs.length;
+    session.redoCorrect = 0;
+    session.redoAttempted = true;
+    session.inRedo = true;
+    session.qIdx = 0;
+    session.answered = false;
+    session.chosenIdx = -1;
+    session.selectedIdxs = [];
+    session.textAnswer = "";
+    session.lastCorrect = false;
+    session.eliminated = [];
+    session.hintUsed = false;
+    session.questionStartedAt = Date.now();
+    renderQuiz();
+  }
+
   function finishQuiz() {
     setChromeVisible(true); // 結果画面ではクロームを再表示
     const acc = curAcc();
-    const total = session.questions.length;
-    let earnedXp = session.correctCount * 10 + (session.correctCount === total ? 15 : 0);
+    const total = session.origTotal || session.questions.length;
+    const firstTryCorrect = (typeof session.firstCorrect === "number") ? session.firstCorrect : session.correctCount;
+    let earnedXp = session.correctCount * 10 + (firstTryCorrect === total ? 15 : 0);
     if (session.mode === "review") earnedXp = Math.floor(earnedXp / 2); // 復習モードはXP半分
     // XPブースト所持中は、このクイズ1回分だけ獲得XP×1.5（端数は切り上げ）。獲得XPが0のときは消費しない
     const baseXp = earnedXp;
@@ -8113,7 +8170,7 @@ const EXTRA_QUESTIONS = {
     let unlockedMsg = "";
     if (session.mode === "stage") {
       const st = STAGES[session.stageIdx];
-      const totalQ = session.questions.length;
+      const totalQ = total;
       const stars = session.correctCount >= Math.ceil(totalQ * 0.9) ? 3 : session.correctCount >= Math.ceil(totalQ * 0.7) ? 2 : session.correctCount >= Math.ceil(totalQ * 0.4) ? 1 : 0;
       if (stars > 0) {
         acc.stars[st.id] = Math.max(acc.stars[st.id] || 0, stars);
@@ -8132,8 +8189,8 @@ const EXTRA_QUESTIONS = {
     // 実績イベントの記録（.17）：完走時の出来事とプレイ時刻帯をアカウントに残す
     if (!acc.achv || typeof acc.achv !== "object") acc.achv = {};
     if (session.mode === "stage" && total > 0) {
-      if (session.correctCount === total) acc.achv.perfect = (acc.achv.perfect || 0) + 1;
-      if (session.correctCount === 0) acc.achv.zero = (acc.achv.zero || 0) + 1;
+      if (firstTryCorrect === total) acc.achv.perfect = (acc.achv.perfect || 0) + 1;
+      if (firstTryCorrect === 0) acc.achv.zero = (acc.achv.zero || 0) + 1;
     }
     if (session.mode === "review" && total > 0 && session.correctCount === total) acc.achv.reviewPerfect = (acc.achv.reviewPerfect || 0) + 1;
     if (session.mode === "daily" && session.correctCount === total) acc.achv.dailyClears = (acc.achv.dailyClears || 0) + 1;
@@ -8159,6 +8216,7 @@ const EXTRA_QUESTIONS = {
           <div class="result-stat"><div class="rs-icon">⚡</div><div class="rs-value">+<span data-countup="${earnedXp}">0</span> XP</div><div class="rs-label">獲得XP</div></div>
         </div>
         <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px;">${rank.icon} ${rank.name}ペース ― ${rank.text}</div>
+        ${session.redoAttempted ? `<div style="background:var(--green-soft); color:var(--green-dark); border-radius:12px; padding:10px 14px; font-weight:800; font-size:14px; margin-bottom:14px;">🔁 解き直し結果：${session.redoTotal}問中 ${session.redoCorrect || 0}問 正解</div>` : ""}
         <div class="result-note result-note-warn">
           ${acc.id === "guest" ? "🔒 ストリークはアカウント作成で使えるようになります" : `🔥 ストリーク：${acc.streak} 日連続達成！（全教科共通）`}
         </div>
@@ -8288,9 +8346,10 @@ const EXTRA_QUESTIONS = {
   // どの端末・URLからでもサインインして続きから遊ぶためのものです。端末内の保存は
   // オフライン時の予備で、localStorage は URL（オリジン）ごとに分かれるため、
   // サインインは端末内だけでなくクラウド（sync コレクション）も確認します。
-  const APP_VERSION = "2.3.20";
+  const APP_VERSION = "2.3.21";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-24", version: "2.3.21", title: "あたらしい機能を追加しました", body: "ステージの終わりに、ちょっとした復習ができるようになりました。いつものように遊んでみてください。" },
     { date: "2026-11-24", version: "2.3.20", title: "タップできない不具合を直しました", body: "モーダルを開いたあとタップが効かなくなることがあったのを直しました。いつものように遊んでみてください。" },
     { date: "2026-11-24", version: "2.3.19", title: "細かな改善を行いました", body: "より快適に遊べるよう、細かな改善を行いました。" },
     { date: "2026-11-24", version: "2.3.18", title: "動きをなめらかにしました", body: "画面の動きをなめらかにしました。いつものように遊んでみてください。" },
