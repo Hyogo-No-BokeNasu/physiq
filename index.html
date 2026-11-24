@@ -716,14 +716,16 @@
       65% { transform: translateY(0) scale(0.93); }
       100% { transform: translateY(-1px) scale(1.12); }
     }
-    /* Sliding pill indicator behind the active tab */
+    /* Sliding pill indicator behind the active tab (2.3.19: positioned from the
+       active button's measured box, not from calc()/translateX steps, so no
+       sub-pixel sliver of the dark bar background shows at its right/bottom edge) */
     .tab-indicator {
       position: absolute; z-index: 0; pointer-events: none;
       top: 6px; bottom: calc(6px + env(safe-area-inset-bottom));
       left: 8px; width: calc((100% - 16px) / 4);
       background: var(--blue-soft); border-radius: var(--radius-s);
-      transition: transform 0.32s cubic-bezier(0.25, 0.9, 0.3, 1.05);
-      will-change: transform;
+      transition: left 0.32s cubic-bezier(0.25, 0.9, 0.3, 1.05), width 0.32s cubic-bezier(0.25, 0.9, 0.3, 1.05), top 0.2s ease, height 0.2s ease;
+      will-change: left, width;
     }
     /* Screen transition when switching tabs (transform/opacity only, light on iOS) */
     #appMain.tab-anim-right { animation: tabFromRight 0.26s ease-out both; }
@@ -6200,6 +6202,8 @@ const EXTRA_QUESTIONS = {
   }
   document.addEventListener("visibilitychange", () => { if (document.hidden) csFlushUpload(); });
   window.addEventListener("pagehide", () => { csFlushUpload(); });
+  // 2.3.19: 画面幅が変わるとボタンの実測位置も変わるので、ピルを追従させる
+  window.addEventListener("resize", () => { try { if (appStarted) positionTabIndicator(); } catch (e) {} });
   // ===== クラウド同期：自動プル（双方向同期の下り） =====
   // チェックは接続完了時とログイン/アカウント切替直後だけ。クラウドの方が新しく、ローカルに未アップロードの
   // 変更がなければ自動で取り込む。両方に変更がある場合はモーダルで選んでもらう（自動では上書きしない）。
@@ -8284,9 +8288,10 @@ const EXTRA_QUESTIONS = {
   // どの端末・URLからでもサインインして続きから遊ぶためのものです。端末内の保存は
   // オフライン時の予備で、localStorage は URL（オリジン）ごとに分かれるため、
   // サインインは端末内だけでなくクラウド（sync コレクション）も確認します。
-  const APP_VERSION = "2.3.18";
+  const APP_VERSION = "2.3.19";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-24", version: "2.3.19", title: "細かな改善を行いました", body: "より快適に遊べるよう、細かな改善を行いました。" },
     { date: "2026-11-24", version: "2.3.18", title: "動きをなめらかにしました", body: "画面の動きをなめらかにしました。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.17", title: "サインインがクラウド対応になりました", body: "サインインがクラウド対応になりました。別の端末やURLで作ったアカウントでも、IDとパスワードで続きから遊べます。いつものように遊んでみてください。" },
     { date: "2026-11-23", version: "2.3.16", title: "細かな改善を行いました", body: "より快適に遊べるよう、細かな改善を行いました。" },
@@ -9238,6 +9243,21 @@ const EXTRA_QUESTIONS = {
     window.scrollTo(0, 0);
   }
 
+  // 2.3.19: タブの青いピルは、選択中ボタンの実測ボックスにぴったり合わせる。
+  // 旧方式（幅 calc((100%-16px)/4) ＋ translateX(i*100%)）は端数ピクセルで
+  // 1px ずれることがあり、ダーク背景が右・下の縁に黒い線として見えていた。
+  // 幅・高さに +1px のにじみを足して丸め誤差の隙間を塞ぐ。
+  function positionTabIndicator() {
+    const ind = document.getElementById("tabIndicator");
+    const btn = document.querySelector('.tab-btn.active') || document.querySelector('.tab-btn[data-tab="' + currentTab + '"]');
+    if (!ind || !btn || !btn.offsetWidth) return; // タブバー非表示中（クイズ中）は測れないので何もしない
+    ind.style.transform = "none";
+    ind.style.bottom = "auto";
+    ind.style.left = btn.offsetLeft + "px";
+    ind.style.top = btn.offsetTop + "px";
+    ind.style.width = (btn.offsetWidth + 1) + "px";
+    ind.style.height = (btn.offsetHeight + 1) + "px";
+  }
   function renderMain() {
     fbLeaveFriendsScreen(); // フレンド画面から離れたらサーバー購読を解除
     checkBadges(); // 実績の取りこぼし防止（ショップ購入・フレンド同期など、クイズ外の達成もここで拾う）
@@ -9245,11 +9265,7 @@ const EXTRA_QUESTIONS = {
     document.querySelectorAll(".tab-btn").forEach(b => {
       b.classList.toggle("active", b.getAttribute("data-tab") === currentTab);
     });
-    const ind = document.getElementById("tabIndicator");
-    if (ind) {
-      const i = Math.max(0, TAB_ORDER.indexOf(currentTab));
-      ind.style.transform = `translateX(${i * 100}%)`;
-    }
+    try { positionTabIndicator(); } catch (e) {}
     if (currentTab === "study") renderStudy();
     else if (currentTab === "data") renderData();
     else if (currentTab === "profile") renderProfile();
