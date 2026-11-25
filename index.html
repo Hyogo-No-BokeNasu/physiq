@@ -181,6 +181,9 @@
     .stage-node.cleared { border-color: #22c55e; box-shadow: 0 5px 0 #bbf7d0; }
     /* ロック中は opacity で薄くせず、不透明な背景で背後のパスラインを隠し、彩度だけ落として「くすんだ」見た目にする（2.3.15） */
     .stage-node.locked { cursor: not-allowed; background: var(--bg-subtle); filter: saturate(0.45); }
+    .unit-tab { flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:88px; padding:10px 10px 8px; border-radius:14px; border:2px solid var(--border); background:var(--bg-card); font-weight:800; font-size:14px; color:var(--text-main); cursor:pointer; }
+    .unit-tab.active { border-color:var(--blue); background:var(--blue-soft); box-shadow:0 3px 0 var(--accent-ring); }
+    .unit-tab:disabled { opacity:0.55; cursor:not-allowed; }
 
     .stage-circle {
       width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
@@ -1160,6 +1163,25 @@
       <button id="closeCreateModal" class="stat-btn">✕</button>
     </div>
     <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:14px;">ユーザーIDとパスワードでアカウントを作ります。進捗はクラウドに自動で保存され、他の端末やURLからサインインしても続きから遊べます。</div>
+    <div class="auth-field"><label>学年</label>
+      <div class="chip-row" id="createGradePicker" style="margin-top:6px;">
+        <button type="button" class="chip" data-grade="中1">中1</button>
+        <button type="button" class="chip" data-grade="中2">中2</button>
+        <button type="button" class="chip" data-grade="中3">中3</button>
+        <button type="button" class="chip" data-grade="高1">高1</button>
+        <button type="button" class="chip" data-grade="高2">高2</button>
+        <button type="button" class="chip" data-grade="高3">高3</button>
+        <button type="button" class="chip" data-grade="大学・その他">大学・その他</button>
+      </div>
+    </div>
+    <div class="auth-field"><label>難易度（最初に開いているステージの量）</label>
+      <div class="chip-row" id="createDiffPicker" style="margin-top:6px;">
+        <button type="button" class="chip" data-diff="basic">🌱 基礎から</button>
+        <button type="button" class="chip" data-diff="standard">📘 標準</button>
+        <button type="button" class="chip" data-diff="advanced">🚀 発展</button>
+      </div>
+      <div id="createDiffDesc" style="font-size:12px; color:var(--text-muted); margin-top:6px; line-height:1.6;">基礎はできるから標準的な問題を解きます。各単元の前半まで開きます。</div>
+    </div>
     <div class="auth-field"><label>ユーザーID（半角英数字・_・-、3〜20文字）</label><input id="createLoginId" class="text-input" type="text" maxlength="20" placeholder="例：physiq_123" autocomplete="username" /></div>
     <div class="auth-field"><label>パスワード（6文字以上）</label><input id="createPassword" class="text-input" type="password" maxlength="64" placeholder="パスワード" autocomplete="new-password" /></div>
     <div class="auth-field"><label>パスワード（確認）</label><input id="createPassword2" class="text-input" type="password" maxlength="64" placeholder="もう一度入力" autocomplete="new-password" /></div>
@@ -1328,7 +1350,7 @@
 
   const PHYSICS_STAGES = [
     {
-      id: "jr1", num: 1, title: "中学理科の復習：速さと運動", sub: "速さの計算・単位換算・音の速さ", icon: "🚴", color: "#65a30d",
+      id: "jr1", num: 1, unit: "mech", title: "中学理科の復習：速さと運動", sub: "速さの計算・単位換算・音の速さ", icon: "🚴", color: "#65a30d",
       questions: [
         { q: raw`自動車が2時間で $120\,\mathrm{km}$ 進んだ。平均の速さは時速何 $\mathrm{km}$ か。`, opts: ["40 km/h", "60 km/h", "120 km/h", "240 km/h"], ans: 1, exp: raw`速さ $=$ 距離 $\div$ 時間 $= 120 \div 2 = 60\,\mathrm{km/h}$ です。` },
         { q: raw`速さ $10\,\mathrm{m/s}$ で走る自転車が、30秒間に進む距離は何 $\mathrm{m}$ か。`, opts: ["3.0 m", "30 m", "300 m", "40 m"], ans: 2, exp: raw`距離 $=$ 速さ $\times$ 時間 $= 10 \times 30 = 300\,\mathrm{m}$ です。` },
@@ -1343,7 +1365,7 @@
       ]
     },
     {
-      id: "jr2", num: 2, title: "中学理科の復習：力のきほん", sub: "つり合い・ばね・圧力・密度", icon: "💪", color: "#f59e0b",
+      id: "jr2", num: 2, unit: "mech", title: "中学理科の復習：力のきほん", sub: "つり合い・ばね・圧力・密度", icon: "💪", color: "#f59e0b",
       questions: [
         { q: raw`机の上に置いた本が静止している。このとき、本にはたらく力について正しいのはどれか。`, opts: ["重力だけがはたらいている", "重力と垂直抗力がつり合っている", "力はまったくはたらいていない", "摩擦力だけがはたらいている"], ans: 1, exp: raw`静止している物体では、はたらく力の合力が0になっています。本には重力と、机からの垂直抗力がつり合ってはたらいています。` },
         { q: raw`あるばねに $2.0\,\mathrm{N}$ の力を加えると $4.0\,\mathrm{cm}$ 伸びた。$6.0\,\mathrm{N}$ の力を加えると何 $\mathrm{cm}$ 伸びるか。`, opts: ["6.0 cm", "8.0 cm", "12 cm", "24 cm"], ans: 2, exp: raw`フックの法則により、ばねの伸びは力に比例します。力が3倍になるので、伸びも $4.0 \times 3 = 12\,\mathrm{cm}$ になります。` },
@@ -1358,7 +1380,7 @@
       ]
     },
     {
-      id: "jr2b", num: 3, title: "圧力と浮力", sub: "中学復習・水圧・アルキメデスの原理", icon: "🎈", color: "#0ea5e9",
+      id: "jr2b", num: 3, unit: "mech", title: "圧力と浮力", sub: "中学復習・水圧・アルキメデスの原理", icon: "🎈", color: "#0ea5e9",
       questions: [
         { q: raw`$200\,\mathrm{N}$ の力が $0.50\,\mathrm{m^2}$ の面に垂直にはたらいている。圧力は何 $\mathrm{Pa}$ か。`, opts: ["100 Pa", "200 Pa", "400 Pa", "1000 Pa"], ans: 2, exp: raw`圧力 $=$ 力 $\div$ 面積 $= 200 \div 0.50 = 400\,\mathrm{Pa}$ です。` },
         { q: raw`水圧の大きさは、水深が深くなるほどどうなるか。`, opts: ["小さくなる", "大きくなる", "変わらない", "水深には関係しない"], ans: 1, exp: raw`水圧は上にある水の重さで決まるため、深くなるほど大きくなります。ダムの壁が下の方ほど厚いのはこのためです。` },
@@ -1373,7 +1395,7 @@
       ]
     },
     {
-      id: "jr3", num: 3, title: "中学理科の復習：電流と回路", sub: "オームの法則・磁界・光の反射と屈折", icon: "🔌", color: "#8b5cf6",
+      id: "jr3", num: 3, unit: "elec", title: "中学理科の復習：電流と回路", sub: "オームの法則・磁界・光の反射と屈折", icon: "🔌", color: "#8b5cf6",
       questions: [
         { q: raw`$5\,\Omega$ の抵抗に $10\,\mathrm{V}$ の電圧を加えた。流れる電流は何 $\mathrm{A}$ か。`, opts: ["0.5 A", "2.0 A", "15 A", "50 A"], ans: 1, exp: raw`オームの法則 $I = \frac{V}{R} = \frac{10}{5} = 2.0\,\mathrm{A}$ です。` },
         { q: raw`まっすぐな導線に電流を流すと、導線のまわりには何ができるか。`, opts: ["電圧", "磁界", "静電気", "真空"], ans: 1, exp: raw`電流のまわりには磁界ができます。近くに置いた方位磁針が振れるのはそのためです。` },
@@ -1388,7 +1410,7 @@
       ]
     },
     {
-      id: "jr3b", num: 4, title: "電流と磁界", sub: "中学復習・電磁石・モーターの原理", icon: "🧭", color: "#f59e0b",
+      id: "jr3b", num: 4, unit: "mag", title: "電流と磁界", sub: "中学復習・電磁石・モーターの原理", icon: "🧭", color: "#f59e0b",
       questions: [
         { q: raw`棒磁石のまわりの磁力線の向きは、どうなっているか。`, opts: ["S極から出てN極に入る", "N極から出てS極に入る", "両方の極から出て消える", "磁石と平行に進む"], ans: 1, exp: raw`磁力線はN極から出てS極に入る向きに描きます。方位磁針のN極が指す向きが、その場所の磁界の向きです。` },
         { q: raw`コイルに電流を流したときにできる磁石を何というか。`, opts: ["永久磁石", "電磁石", "静電気", "発電機"], ans: 1, exp: raw`電流を流したときだけ磁石になるものを電磁石といいます。電流を止めれば磁力は消えます。` },
@@ -1403,7 +1425,7 @@
       ]
     },
     {
-      id: "basic", num: 4, title: "物理の基礎中の基礎", sub: "単位・有効数字・変位と速度・グラフ", icon: "🌱", color: "#059669",
+      id: "basic", num: 4, unit: "mech", title: "物理の基礎中の基礎", sub: "単位・有効数字・変位と速度・グラフ", icon: "🌱", color: "#059669",
       questions: [
         { q: raw`加速度の単位として正しいのはどれか。`, opts: ["m/s", "m/s²", "N", "J"], ans: 1, exp: raw`加速度は「1秒あたりの速さの変化」なので、単位は $\mathrm{m/s^2}$（メートル毎秒毎秒）です。` },
         { q: raw`測定値 $3.50\,\mathrm{m}$ の有効数字は何桁か。`, opts: ["1桁", "2桁", "3桁", "4桁"], ans: 2, exp: raw`$3.50$ は「3」「5」「0」の3桁です。最後の0は「そこまで測れた」という意味があるので有効数字に含めます。` },
@@ -1418,7 +1440,7 @@
       ]
     },
     {
-      id: "st1", num: 5, title: "運動のきほん", sub: "速さ・加速度・落下", icon: "🏃", color: "#2563eb",
+      id: "st1", num: 5, unit: "mech", title: "運動のきほん", sub: "速さ・加速度・落下", icon: "🏃", color: "#2563eb",
       questions: [
         { q: raw`速さ $15\,\mathrm{m/s}$ で走る電車が、10秒間に進む距離は何 $\mathrm{m}$ か。`, opts: ["1.5 m", "25 m", "150 m", "300 m"], ans: 2, exp: raw`距離 $=$ 速さ $\times$ 時間 $= 15 \times 10 = 150\,\mathrm{m}$ です。` },
         { q: raw`静止していた物体が一定の加速度 $2.0\,\mathrm{m/s^2}$ で動き出した。4.0秒後の速さは何 $\mathrm{m/s}$ か。`, opts: ["2.0 m/s", "4.0 m/s", "8.0 m/s", "16 m/s"], ans: 2, exp: raw`$v = v_0 + at = 0 + 2.0 \times 4.0 = 8.0\,\mathrm{m/s}$ です。` },
@@ -1426,7 +1448,7 @@
       ]
     },
     {
-      id: "st1b", num: 5, title: "放物運動", sub: "水平投射・斜方投射・相対速度", icon: "🎯", color: "#3b82f6",
+      id: "st1b", num: 5, unit: "mech", title: "放物運動", sub: "水平投射・斜方投射・相対速度", icon: "🎯", color: "#3b82f6",
       questions: [
         { q: raw`水平投射された物体の運動について正しいものはどれか。`, opts: ["水平方向は等速、鉛直方向は自由落下と同じ運動", "水平方向も鉛直方向も等速", "水平方向は減速し、鉛直方向は等速", "両方向とも自由落下と同じ運動"], ans: 0, exp: raw`水平方向には力がはたらかないので等速運動、鉛直方向には重力だけがはたらくので自由落下と同じ等加速度運動になります。` },
         { q: raw`高さ $19.6\,\mathrm{m}$ の崖の上から小石を水平に投げた。地面に落ちるまでの時間は何秒か。重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["1.0秒", "1.4秒", "2.0秒", "4.0秒"], ans: 2, exp: raw`鉛直方向は自由落下なので $19.6 = \frac{1}{2} \times 9.8 \times t^2$ より $t = 2.0$ 秒です。水平方向の初速度は落下時間に影響しません。` },
@@ -1441,7 +1463,7 @@
       ]
     },
     {
-      id: "st2", num: 6, title: "力とニュートンの法則", sub: "運動方程式・摩擦・つりあい", icon: "⚖️", color: "#0284c7",
+      id: "st2", num: 6, unit: "mech", title: "力とニュートンの法則", sub: "運動方程式・摩擦・つりあい", icon: "⚖️", color: "#0284c7",
       questions: [
         { q: raw`質量 $3.0\,\mathrm{kg}$ の物体に $12\,\mathrm{N}$ の力を加えたときの加速度は何 $\mathrm{m/s^2}$ か。`, opts: ["0.25 m/s²", "4.0 m/s²", "9.0 m/s²", "36 m/s²"], ans: 1, exp: raw`運動方程式 $ma = F$ より $a = 12 / 3.0 = 4.0\,\mathrm{m/s^2}$ です。` },
         { q: raw`電車が急ブレーキをかけたとき、乗客が前に倒れそうになるのはどの法則によるか。`, opts: ["慣性の法則", "作用・反作用の法則", "フックの法則", "オームの法則"], ans: 0, exp: raw`元の運動状態を保とうとする「慣性の法則」による現象です。` },
@@ -1449,7 +1471,7 @@
       ]
     },
     {
-      id: "st2b", num: 6, title: "力の分解と斜面", sub: "合力・分力・斜面上の運動", icon: "📐", color: "#0284c7",
+      id: "st2b", num: 6, unit: "mech", title: "力の分解と斜面", sub: "合力・分力・斜面上の運動", icon: "📐", color: "#0284c7",
       questions: [
         { q: raw`互いに直角な向きにはたらく $3.0\,\mathrm{N}$ と $4.0\,\mathrm{N}$ の2力の合力の大きさは何 $\mathrm{N}$ か。`, opts: ["5.0 N", "6.0 N", "7.0 N", "12 N"], ans: 0, exp: raw`合力は2力を2辺とする長方形の対角線で、$\sqrt{3.0^2 + 4.0^2} = 5.0\,\mathrm{N}$ です（三平方の定理）。` },
         { q: raw`傾角 $\theta$ のなめらかな斜面上にある物体にはたらく重力の、斜面に平行な成分の大きさはどれか。`, opts: ["mg", "mg sinθ", "mg cosθ", "mg tanθ"], ans: 1, exp: raw`重力を斜面方向と斜面に垂直な方向に分解すると、斜面方向成分は $mg sin\theta$、垂直成分は $mg cos\theta$ になります。` },
@@ -1464,7 +1486,7 @@
       ]
     },
     {
-      id: "st3", num: 7, title: "仕事とエネルギー", sub: "位置・運動エネルギー保存", icon: "🎢", color: "#0d9488",
+      id: "st3", num: 7, unit: "mech", title: "仕事とエネルギー", sub: "位置・運動エネルギー保存", icon: "🎢", color: "#0d9488",
       questions: [
         { q: raw`物体に $20\,\mathrm{N}$ の力を加えて力の向きに $3.0\,\mathrm{m}$ 動かしたとき、した仕事は何 $\mathrm{J}$ か。`, opts: ["6.7 J", "23 J", "60 J", "120 J"], ans: 2, exp: raw`仕事 $W = Fx = 20 \times 3.0 = 60\,\mathrm{J}$ です。` },
         { q: raw`質量 $2.0\,\mathrm{kg}$ の物体が速さ $5.0\,\mathrm{m/s}$ で動いているときの運動エネルギーは何 $\mathrm{J}$ か。`, opts: ["5.0 J", "10 J", "25 J", "50 J"], ans: 2, exp: raw`$K = \frac{1}{2}mv^2 = \frac{1}{2}\times 2.0 \times 5.0^2 = 25\,\mathrm{J}$ です。` },
@@ -1472,7 +1494,7 @@
       ]
     },
     {
-      id: "st3b", num: 7, title: "エネルギーの応用", sub: "ばね・振り子・保存則の計算", icon: "🔄", color: "#14b8a6",
+      id: "st3b", num: 7, unit: "mech", title: "エネルギーの応用", sub: "ばね・振り子・保存則の計算", icon: "🔄", color: "#14b8a6",
       questions: [
         { q: raw`ばね定数 $200\,\mathrm{N/m}$ のばねを $0.050\,\mathrm{m}$ 縮めたとき、蓄えられる弾性エネルギーは何 $\mathrm{J}$ か。`, opts: ["0.25 J", "0.50 J", "5.0 J", "10 J"], ans: 0, exp: raw`$U = \frac{1}{2}kx^2 = \frac{1}{2} \times 200 \times 0.050^2 = 0.25\,\mathrm{J}$ です。` },
         { q: raw`振り子のおもりが最も速くなるのはどの位置か。`, opts: ["最も高い位置", "最下点", "途中のどこでも同じ", "手放した位置"], ans: 1, exp: raw`最下点では位置エネルギーが最小で、その分がすべて運動エネルギーに変わっているため、速さが最大になります。` },
@@ -1487,7 +1509,7 @@
       ]
     },
     {
-      id: "st4", num: 8, title: "運動量と円運動", sub: "衝突・モーメント・万有引力", icon: "🪐", color: "#16a34a",
+      id: "st4", num: 8, unit: "mech", title: "運動量と円運動", sub: "衝突・モーメント・万有引力", icon: "🪐", color: "#16a34a",
       questions: [
         { q: raw`質量 $2.0\,\mathrm{kg}$ の物体が速さ $6.0\,\mathrm{m/s}$ で動いているときの運動量の大きさは何 $\mathrm{kg\cdot m/s}$ か。`, opts: ["3.0", "8.0", "12", "36"], ans: 2, exp: raw`運動量 $p = mv = 2.0 \times 6.0 = 12\,\mathrm{kg\cdot m/s}$ です。` },
         { q: raw`ドアノブが蝶番から遠い位置についているのは、何を大きくするためか。`, opts: ["力のモーメント", "摩擦力", "運動エネルギー", "遠心力"], ans: 0, exp: raw`うでの長さ $l$ を大きくすることで、小さい力でも大きな力のモーメント $M = Fl$ を得られます。` },
@@ -1495,7 +1517,7 @@
       ]
     },
     {
-      id: "st4b", num: 8, title: "単振動", sub: "ばね振り子・単振り子・周期", icon: "🌀", color: "#22c55e",
+      id: "st4b", num: 8, unit: "mech", title: "単振動", sub: "ばね振り子・単振り子・周期", icon: "🌀", color: "#22c55e",
       questions: [
         { q: raw`ばね振り子の周期 $T = 2\pi\sqrt{\frac{m}{k}}$ について、おもりの質量を4倍にすると周期はどうなるか。`, opts: ["1/2倍", "変わらない", "2倍", "4倍"], ans: 2, exp: raw`周期は質量の平方根に比例するので、質量4倍で周期は $\sqrt{4} = 2$ 倍になります。` },
         { q: raw`単振り子（糸の長さ $l$ の振り子）の周期は、おもりの質量を変えるとどうなるか。`, opts: ["重いほど長くなる", "重いほど短くなる", "変わらない", "質量に比例する"], ans: 2, exp: raw`単振り子の周期 $T = 2\pi\sqrt{\frac{l}{g}}$ は糸の長さと重力加速度だけで決まり、おもりの質量や（小さい範囲での）振れ幅にはよりません。` },
@@ -1510,7 +1532,7 @@
       ]
     },
     {
-      id: "st4c", num: 9, title: "惑星と人工衛星", sub: "ケプラーの法則・宇宙速度", icon: "🛰️", color: "#16a34a",
+      id: "st4c", num: 9, unit: "mech", title: "惑星と人工衛星", sub: "ケプラーの法則・宇宙速度", icon: "🛰️", color: "#16a34a",
       questions: [
         { q: raw`ケプラーの第1法則によると、惑星の軌道はどのような形か。`, opts: ["真円", "太陽を1つの焦点とする楕円", "放物線", "直線"], ans: 1, exp: raw`惑星は太陽を焦点の1つとする楕円軌道を描きます。地球の軌道は円に近い楕円です。` },
         { q: raw`ケプラーの第3法則として正しいものはどれか。`, opts: ["公転周期は軌道半径に比例する", "公転周期の2乗は軌道の長半径の3乗に比例する", "公転周期は惑星の質量に比例する", "公転周期は太陽からの距離によらない"], ans: 1, exp: raw`$T^2 ∝ a^3$ という関係です。太陽から遠い惑星ほど、公転周期が長くなります。` },
@@ -1525,7 +1547,7 @@
       ]
     },
     {
-      id: "st5", num: 9, title: "熱と気体の法則", sub: "絶対温度・状態方程式・第1法則", icon: "🔥", color: "#ea580c",
+      id: "st5", num: 9, unit: "heat", title: "熱と気体の法則", sub: "絶対温度・状態方程式・第1法則", icon: "🔥", color: "#ea580c",
       questions: [
         { q: raw`セルシウス温度 $27°\mathrm{C}$ を絶対温度 $[\mathrm{K}]$ で表すとおよそいくらか。`, opts: ["246 K", "273 K", "300 K", "327 K"], ans: 2, exp: raw`$T = t + 273 = 27 + 273 = 300\,\mathrm{K}$ です。` },
         { q: raw`気体に $400\,\mathrm{J}$ の熱を加えたところ、外部に $150\,\mathrm{J}$ の仕事をした。内部エネルギーの増加は何 $\mathrm{J}$ か。`, opts: ["150 J", "250 J", "400 J", "550 J"], ans: 1, exp: raw`熱力学第1法則 $\Delta U = Q - W = 400 - 150 = 250\,\mathrm{J}$ です。` },
@@ -1533,7 +1555,7 @@
       ]
     },
     {
-      id: "st5b", num: 10, title: "気体の状態変化と熱機関", sub: "定圧・定積・断熱・熱効率", icon: "♨️", color: "#f97316",
+      id: "st5b", num: 10, unit: "heat", title: "気体の状態変化と熱機関", sub: "定圧・定積・断熱・熱効率", icon: "♨️", color: "#f97316",
       questions: [
         { q: raw`圧力を一定に保って（定圧変化）理想気体を温めると、体積は絶対温度とどのような関係で変化するか（シャルルの法則）。`, opts: ["比例する", "反比例する", "2乗に比例する", "変化しない"], ans: 0, exp: raw`定圧では $V / T =$ 一定、つまり体積は絶対温度に比例します。風船を温めると膨らむのはこのためです。` },
         { q: raw`体積を一定に保って（定積変化）理想気体を温めると、圧力はどうなるか。`, opts: ["下がる", "上がる（絶対温度に比例）", "変わらない", "0になる"], ans: 1, exp: raw`定積では $p / T =$ 一定なので、圧力は絶対温度に比例して上がります。密閉容器を熱すると破裂しやすくなるのはこのためです。` },
@@ -1548,7 +1570,7 @@
       ]
     },
     {
-      id: "st6", num: 10, title: "波の性質と音", sub: "波長・振動数・ドップラー効果", icon: "🌊", color: "#0891b2",
+      id: "st6", num: 10, unit: "wave", title: "波の性質と音", sub: "波長・振動数・ドップラー効果", icon: "🌊", color: "#0891b2",
       questions: [
         { q: raw`振動数 $5.0\,\mathrm{Hz}$、波長 $2.0\,\mathrm{m}$ の波が伝わる速さは何 $\mathrm{m/s}$ か。`, opts: ["0.4 m/s", "2.5 m/s", "7.0 m/s", "10 m/s"], ans: 3, exp: raw`波の基本式 $v = f\lambda = 5.0 \times 2.0 = 10\,\mathrm{m/s}$ です。` },
         { q: raw`振動数 $440\,\mathrm{Hz}$ と $443\,\mathrm{Hz}$ のおんさを同時に鳴らすと、1秒間に何回のうなりが聞こえるか。`, opts: ["1回", "3回", "6回", "441回"], ans: 1, exp: raw`うなりの振動数は $|443 - 440| = 3\,\mathrm{Hz}$（1秒間に3回）です。` },
@@ -1556,7 +1578,7 @@
       ]
     },
     {
-      id: "st6b", num: 11, title: "弦と気柱の振動", sub: "定常波・共鳴・倍音", icon: "🎸", color: "#06b6d4",
+      id: "st6b", num: 11, unit: "wave", title: "弦と気柱の振動", sub: "定常波・共鳴・倍音", icon: "🎸", color: "#06b6d4",
       questions: [
         { q: raw`弦にできる定常波について、両端はどのようになっているか。`, opts: ["両端とも腹になる", "両端とも節になる", "一方が節で他方が腹", "端では振動しない部分はない"], ans: 1, exp: raw`弦は両端が固定されているため、両端は振動しない「節」になります。基本振動では中央に腹が1つできます。` },
         { q: raw`長さ $0.85\,\mathrm{m}$ の開管（両端が開いた管）の基本振動数は何 $\mathrm{Hz}$ か。音速を $340\,\mathrm{m/s}$ とする。`, opts: ["100 Hz", "200 Hz", "400 Hz", "800 Hz"], ans: 1, exp: raw`開管の基本振動では管の長さが波長の半分になるので $\lambda = 2 \times 0.85 = 1.7\,\mathrm{m}$、振動数は $f = 340 / 1.7 = 200\,\mathrm{Hz}$ です。` },
@@ -1571,7 +1593,7 @@
       ]
     },
     {
-      id: "st7", num: 11, title: "光の干渉とレンズ", sub: "屈折・全反射・シャボン玉", icon: "🌈", color: "#7c3aed",
+      id: "st7", num: 11, unit: "light", title: "光の干渉とレンズ", sub: "屈折・全反射・シャボン玉", icon: "🌈", color: "#7c3aed",
       questions: [
         { q: raw`光ファイバーの中で光が外に漏れず遠くまで伝わるのはどの現象を利用しているか。`, opts: ["全反射", "偏光", "ドップラー効果", "熱伝導"], ans: 0, exp: raw`臨界角以上の角度で入射した光が境界面で100%反射される「全反射」を利用しています。` },
         { q: raw`シャボン玉の表面が虹色に見える主な理由は何か。`, opts: ["薄膜の干渉", "万有引力", "電磁誘導", "静電気"], ans: 0, exp: raw`膜の表と裏で反射した光が干渉して特定の色が強めあう「薄膜の干渉」によるものです。` },
@@ -1579,7 +1601,7 @@
       ]
     },
     {
-      id: "st7b", num: 12, title: "レンズと鏡の応用", sub: "レンズの式・倍率・鏡", icon: "🔍", color: "#8b5cf6",
+      id: "st7b", num: 12, unit: "light", title: "レンズと鏡の応用", sub: "レンズの式・倍率・鏡", icon: "🔍", color: "#8b5cf6",
       questions: [
         { q: raw`凸レンズの公式として正しいものはどれか。ただし物体までの距離を $a$、像までの距離を $b$、焦点距離を $f$ とする。`, opts: ["1/a + 1/b = 1/f", "a + b = f", "ab = f", "1/a − 1/b = 1/f"], ans: 0, exp: raw`レンズの公式は $\frac{1}{a} + \frac{1}{b} = \frac{1}{f}$ です。倍率は $\frac{b}{a}$ で求められます。` },
         { q: raw`焦点距離 $20\,\mathrm{cm}$ の凸レンズから $30\,\mathrm{cm}$ 離して物体を置いた。像ができる位置はレンズから何 $\mathrm{cm}$ か。`, opts: ["30 cm", "45 cm", "60 cm", "120 cm"], ans: 2, exp: raw`$\frac{1}{30} + \frac{1}{b} = \frac{1}{20}$ より $\frac{1}{b} = \frac{1}{20} - \frac{1}{30} = \frac{1}{60}$ なので $b = 60\,\mathrm{cm}$ です。倍率は $60/30 = 2$ 倍の倒立実像です。` },
@@ -1594,7 +1616,7 @@
       ]
     },
     {
-      id: "st7c", num: 13, title: "光の干渉演習", sub: "ヤングの実験・回折格子・薄膜", icon: "🌈", color: "#a855f7",
+      id: "st7c", num: 13, unit: "light", title: "光の干渉演習", sub: "ヤングの実験・回折格子・薄膜", icon: "🌈", color: "#a855f7",
       questions: [
         { q: raw`ヤングの実験でスクリーンにできる明線の間隔 $\Delta x$ は、$\Delta x = \frac{\lambda L}{d}$ と表される。波長 $\lambda$ が大きいほど間隔はどうなるか。`, opts: ["広くなる", "狭くなる", "変わらない", "明線が消える"], ans: 0, exp: raw`間隔は波長に比例するので、赤い光（波長が長い）ほど間隔が広く、紫の光ほど狭くなります。` },
         { q: raw`1 mm あたり500本の線が引かれた回折格子がある。隣り合う線の間隔（格子定数）は何 $\mathrm{m}$ か。`, opts: ["$2 \times 10^{-6}$ m", "$5 \times 10^{-4}$ m", "$2 \times 10^{-3}$ m", "$5 \times 10^{-6}$ m"], ans: 0, exp: raw`格子定数は $d = \frac{1 \times 10^{-3}\,\mathrm{m}}{500} = 2 \times 10^{-6}\,\mathrm{m}$ です。回折格子は光の波長を精密に測るのに使われます。` },
@@ -1609,7 +1631,7 @@
       ]
     },
     {
-      id: "st8", num: 12, title: "静電気と直流回路", sub: "オームの法則・電力・コンデンサー", icon: "🔋", color: "#4f46e5",
+      id: "st8", num: 12, unit: "elec", title: "静電気と直流回路", sub: "オームの法則・電力・コンデンサー", icon: "🔋", color: "#4f46e5",
       questions: [
         { q: raw`$10\,\Omega$ の抵抗に $2.0\,\mathrm{A}$ の電流が流れているとき、抵抗の両端の電圧は何 $\mathrm{V}$ か。`, opts: ["0.2 V", "5.0 V", "12 V", "20 V"], ans: 3, exp: raw`オームの法則 $V = RI = 10 \times 2.0 = 20\,\mathrm{V}$ です。` },
         { q: raw`電圧 $100\,\mathrm{V}$ で電流 $3.0\,\mathrm{A}$ が流れる家電の消費電力は何 $\mathrm{W}$ か。`, opts: ["33 W", "103 W", "300 W", "900 W"], ans: 2, exp: raw`電力 $P = IV = 3.0 \times 100 = 300\,\mathrm{W}$ です。` },
@@ -1617,7 +1639,7 @@
       ]
     },
     {
-      id: "st8b", num: 14, title: "電場と電位", sub: "電位・等電位面・電場の計算", icon: "⚡", color: "#6366f1",
+      id: "st8b", num: 14, unit: "elec", title: "電場と電位", sub: "電位・等電位面・電場の計算", icon: "⚡", color: "#6366f1",
       questions: [
         { q: raw`電位とは何を表す量か。`, opts: ["単位電荷あたりの位置エネルギー", "単位時間あたりの電流", "単位面積あたりの力", "電荷の総量"], ans: 0, exp: raw`電位は、$+1\,\mathrm{C}$ の電荷がその場所でもつ位置エネルギーで、単位は $\mathrm{V}$（ボルト）です。重力での「高さ」に似た量です。` },
         { q: raw`一様な電場 $E = 100\,\mathrm{V/m}$ の中で、電場の向きに $0.50\,\mathrm{m}$ 離れた2点間の電位差は何 $\mathrm{V}$ か。`, opts: ["50 V", "100 V", "200 V", "0.5 V"], ans: 0, exp: raw`電位差は $V = Ed = 100 \times 0.50 = 50\,\mathrm{V}$ です。` },
@@ -1632,7 +1654,7 @@
       ]
     },
     {
-      id: "st8c", num: 15, title: "コンデンサーの応用", sub: "合成容量・誘電体・エネルギー", icon: "🔋", color: "#4f46e5",
+      id: "st8c", num: 15, unit: "elec", title: "コンデンサーの応用", sub: "合成容量・誘電体・エネルギー", icon: "🔋", color: "#4f46e5",
       questions: [
         { q: raw`電気容量 $10\,\mathrm{μ F}$ のコンデンサーを $100\,\mathrm{V}$ で充電した。蓄えられるエネルギーは何 $\mathrm{J}$ か。`, opts: ["0.050 J", "0.50 J", "5.0 J", "50 J"], ans: 0, exp: raw`$U = \frac{1}{2}CV^2 = \frac{1}{2} \times 10 \times 10^{-6} \times 100^2 = 0.050\,\mathrm{J}$ です。` },
         { q: raw`コンデンサーの極板の間に誘電体（絶縁体）を入れると、電気容量はどうなるか。`, opts: ["小さくなる", "大きくなる", "変わらない", "0になる"], ans: 1, exp: raw`誘電体を入れると、その分極によって実質的な電場が弱まり、同じ電圧でより多くの電荷を蓄えられるため、容量は大きくなります。` },
@@ -1647,7 +1669,7 @@
       ]
     },
     {
-      id: "st9", num: 13, title: "磁場と電磁誘導", sub: "ローレンツ力・レンツの法則・交流", icon: "🧲", color: "#db2777",
+      id: "st9", num: 13, unit: "mag", title: "磁場と電磁誘導", sub: "ローレンツ力・レンツの法則・交流", icon: "🧲", color: "#db2777",
       questions: [
         { q: raw`コイルに磁石を近づけると電流が流れる現象を何というか。`, opts: ["電磁誘導", "光電効果", "熱膨張", "全反射"], ans: 0, exp: raw`磁束の変化によって誘導起電力が生じる現象を電磁誘導といいます。` },
         { q: raw`磁場中で動く荷電粒子が受ける力を何というか。`, opts: ["摩擦力", "浮力", "ローレンツ力", "核力"], ans: 2, exp: raw`大きさ $f = qvBsin\theta$ のローレンツ力を受けます。` },
@@ -1655,7 +1677,7 @@
       ]
     },
     {
-      id: "st9b", num: 16, title: "交流回路", sub: "リアクタンス・共振・インピーダンス", icon: "🔌", color: "#ec4899",
+      id: "st9b", num: 16, unit: "mag", title: "交流回路", sub: "リアクタンス・共振・インピーダンス", icon: "🔌", color: "#ec4899",
       questions: [
         { q: raw`交流回路で、コイルが電流の流れを妨げるはたらきの大きさ（誘導リアクタンス）は、周波数が高いほどどうなるか。`, opts: ["大きくなる", "小さくなる", "変わらない", "0になる"], ans: 0, exp: raw`誘導リアクタンスは $X_L = ω L = 2\pi f L$ で、周波数に比例します。直流（$f = 0$）では理想コイルの抵抗は0です。` },
         { q: raw`交流回路で、コンデンサーが電流を妨げるはたらきの大きさ（容量リアクタンス）は、周波数が高いほどどうなるか。`, opts: ["大きくなる", "小さくなる", "変わらない", "無限大になる"], ans: 1, exp: raw`容量リアクタンスは $X_C = \frac{1}{ω C}$ で、周波数に反比例します。直流は通さず、周波数が高いほど通しやすくなります。` },
@@ -1670,7 +1692,7 @@
       ]
     },
     {
-      id: "st9c", num: 17, title: "半導体とダイオード", sub: "p型・n型・LED・整流", icon: "🔲", color: "#db2777",
+      id: "st9c", num: 17, unit: "mag", title: "半導体とダイオード", sub: "p型・n型・LED・整流", icon: "🔲", color: "#db2777",
       questions: [
         { q: raw`ダイオードの基本的な性質はどれか。`, opts: ["電流を一方向にだけ流す", "電圧を増幅する", "電気を蓄える", "磁場を作る"], ans: 0, exp: raw`ダイオードは順方向には電流を流しますが、逆方向にはほとんど流しません。この性質が整流などに使われます。` },
         { q: raw`LED（発光ダイオード）が光る仕組みとして正しいものはどれか。`, opts: ["電流による発熱で光る", "電子と正孔が結びつくときにエネルギーを光として放出する", "蛍光物質が光る", "放電で光る"], ans: 1, exp: raw`順方向電流を流すと、電子と正孔（プラスの電荷の抜け穴）が再結合し、そのエネルギー差が光として放出されます。材料によって色が決まります。` },
@@ -1685,7 +1707,7 @@
       ]
     },
     {
-      id: "st10", num: 14, title: "量子と原子核", sub: "光電効果・半減期・E=mc²", icon: "⚛️", color: "#be123c",
+      id: "st10", num: 14, unit: "atom", title: "量子と原子核", sub: "光電効果・半減期・E=mc²", icon: "⚛️", color: "#be123c",
       questions: [
         { q: raw`金属に光を当てると電子が飛び出す現象を何というか。`, opts: ["光電効果", "電磁誘導", "ドップラー効果", "共鳴"], ans: 0, exp: raw`光が光子（エネルギー $h\nu$）として電子を弾き出す「光電効果」です。` },
         { q: raw`半減期 5 年の放射性物質が、10 年後に残っている割合は元の何倍か。`, opts: ["1/2 倍", "1/4 倍", "1/8 倍", "0 倍"], ans: 1, exp: raw`10年は半減期2回分なので $(\frac{1}{2})^2 = \frac{1}{4}$ 倍になります。` },
@@ -1693,7 +1715,7 @@
       ]
     },
     {
-      id: "st10b", num: 18, title: "原子の構造と放射線", sub: "ボーア模型・スペクトル・放射線", icon: "☢️", color: "#e11d48",
+      id: "st10b", num: 18, unit: "atom", title: "原子の構造と放射線", sub: "ボーア模型・スペクトル・放射線", icon: "☢️", color: "#e11d48",
       questions: [
         { q: raw`ボーアの原子模型の特徴として正しいものはどれか。`, opts: ["電子はとびとびの決まった軌道（エネルギー準位）だけを取る", "電子は原子全体に雲のように一様に広がるだけ", "電子は原子核の中にある", "電子の軌道は連続的に変わる"], ans: 0, exp: raw`ボーアは、電子は特定のエネルギー準位の軌道だけを取るという仮説を立て、水素のスペクトルを見事に説明しました。` },
         { q: raw`水素原子の出す光が「線スペクトル」（決まった波長だけの光）になるのはなぜか。`, opts: ["電子のエネルギー準位がとびとびだから", "水素が軽いから", "光の速さが一定だから", "原子が小さいから"], ans: 0, exp: raw`電子が準位間を移るとき、その差のエネルギーを持つ光子だけが放出されるため、波長が決まった線状のスペクトルになります。` },
@@ -1708,7 +1730,7 @@
       ]
     },
     {
-      id: "ch1", num: 31, title: "力学チャレンジ①", sub: "難問・等加速度と放物運動", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch1", num: 31, unit: "challenge", title: "力学チャレンジ①", sub: "難問・等加速度と放物運動", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`初速度 $30\,\mathrm{m/s}$ で走る車が $-5.0\,\mathrm{m/s^2}$ の加速度で減速した。止まるまでに進む距離は何 $\mathrm{m}$ か。`, opts: ["60 m", "90 m", "150 m", "300 m"], ans: 1, exp: raw`$v^2 - v_0^2 = 2ax$ より $0 - 30^2 = 2 \times (-5.0) x$ なので $x = 90\,\mathrm{m}$ です。` },
         { q: raw`初速度 $20\,\mathrm{m/s}$、角度 $60°$ で斜方投射した。最高点の高さはおよそ何 $\mathrm{m}$ か。重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["10 m", "15 m", "20 m", "31 m"], ans: 1, exp: raw`鉛直成分は $20 sin 60° \approx 17.3\,\mathrm{m/s}$。$h = \frac{v_y^2}{2g} = \frac{17.3^2}{2 \times 9.8} \approx 15\,\mathrm{m}$ です。` },
@@ -1725,7 +1747,7 @@
       ]
     },
     {
-      id: "ch2", num: 32, title: "力学チャレンジ②", sub: "難問・運動方程式と摩擦", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch2", num: 32, unit: "challenge", title: "力学チャレンジ②", sub: "難問・運動方程式と摩擦", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`なめらかな水平面上で、質量 $2.0\,\mathrm{kg}$ の物体Aと $3.0\,\mathrm{kg}$ の物体Bを糸でつなぎ、Aを $10\,\mathrm{N}$ の力で引いた。糸の張力は何 $\mathrm{N}$ か。`, opts: ["4.0 N", "6.0 N", "10 N", "2.0 N"], ans: 1, exp: raw`全体の加速度は $a = 10 / (2.0 + 3.0) = 2.0\,\mathrm{m/s^2}$。Bを引く力は張力だけなので $T = 3.0 \times 2.0 = 6.0\,\mathrm{N}$ です。` },
         { q: raw`傾角 $30°$ のあらい斜面に物体を置いた。静止摩擦係数が $0.60$ のとき、物体はどうなるか。$tan 30° \approx 0.58$ とする。`, opts: ["滑り出す", "静止したまま", "斜面を上る", "浮き上がる"], ans: 1, exp: raw`滑り出す条件は $tan\theta > μ$ です。$0.58 < 0.60$ なので、最大静止摩擦力が重力の斜面成分を上回り、静止したままになります。` },
@@ -1742,7 +1764,7 @@
       ]
     },
     {
-      id: "ch3", num: 33, title: "力学チャレンジ③", sub: "難問・エネルギーと運動量", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch3", num: 33, unit: "challenge", title: "力学チャレンジ③", sub: "難問・エネルギーと運動量", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`反発係数 $e = 0.50$ のボールが床に落ちて跳ね返った。跳ね返った後の最高点の高さは、落とした高さの何倍か。`, opts: ["0.50倍", "0.25倍", "0.71倍", "1.0倍"], ans: 1, exp: raw`跳ね返りの速さは落下時の $e$ 倍、高さは速さの2乗に比例するので $e^2 = 0.25$ 倍です。` },
         { q: raw`同じ質量の2つの小球が正面衝突した。一方が速さ $v$ で進み、他方が静止していた完全弾性衝突の後はどうなるか。`, opts: ["両方とも v/2 で進む", "進んでいた方が止まり、静止していた方が v で進む", "両方とも止まる", "両方とも v で進む"], ans: 1, exp: raw`質量が等しい完全弾性衝突では、速度がそのまま交換されます。ビリヤードの止まった球に当てるショットが典型例です。` },
@@ -1759,7 +1781,7 @@
       ]
     },
     {
-      id: "ch4", num: 34, title: "力学チャレンジ④", sub: "難問・円運動と単振動", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch4", num: 34, unit: "challenge", title: "力学チャレンジ④", sub: "難問・円運動と単振動", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`振幅 $0.10\,\mathrm{m}$、角振動数 $20\,\mathrm{rad/s}$ の単振動がある。速さの最大値は何 $\mathrm{m/s}$ か。`, opts: ["0.50 m/s", "2.0 m/s", "20 m/s", "200 m/s"], ans: 1, exp: raw`単振動の速さの最大値は $Aω = 0.10 \times 20 = 2.0\,\mathrm{m/s}$ です。加速度の最大値は $Aω^2 = 40\,\mathrm{m/s^2}$ になります。` },
         { q: raw`ばね振り子のおもりの質量を2倍にし、ばね定数も2倍にした。周期はどうなるか。`, opts: ["2倍", "1/2倍", "変わらない", "4倍"], ans: 2, exp: raw`$T = 2\pi\sqrt{m/k}$ で、$m$ と $k$ が両方2倍になると比 $m/k$ は変わらないため、周期は変わりません。` },
@@ -1776,7 +1798,7 @@
       ]
     },
     {
-      id: "ch5", num: 35, title: "熱チャレンジ", sub: "難問・気体と熱力学", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch5", num: 35, unit: "challenge", title: "熱チャレンジ", sub: "難問・気体と熱力学", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`$80°\mathrm{C}$ の水 $100\,\mathrm{g}$ と $20°\mathrm{C}$ の水 $200\,\mathrm{g}$ を混ぜた。全体の温度は何 $°\mathrm{C}$ になるか（熱の出入りは無視）。`, opts: ["30 ℃", "40 ℃", "50 ℃", "60 ℃"], ans: 1, exp: raw`熱量の保存より、温度は質量で重み付けした平均になります。$(100 \times 80 + 200 \times 20) / 300 = 40°\mathrm{C}$ です。` },
         { q: raw`高温熱源 $600\,\mathrm{K}$、低温熱源 $300\,\mathrm{K}$ の間で働く理想的な熱機関（カルノー機関）の熱効率はいくらか。`, opts: ["25 %", "50 %", "75 %", "100 %"], ans: 1, exp: raw`カルノー効率は $1 - \frac{T_L}{T_H} = 1 - \frac{300}{600} = 0.50$、つまり $50\,%$ です。実際の熱機関はこれより低くなります。` },
@@ -1793,7 +1815,7 @@
       ]
     },
     {
-      id: "ch6", num: 36, title: "波チャレンジ", sub: "難問・波と音", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch6", num: 36, unit: "challenge", title: "波チャレンジ", sub: "難問・波と音", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`音源が速さ $10\,\mathrm{m/s}$ で観測者に向かって近づきながら、振動数 $500\,\mathrm{Hz}$ の音を出している。観測者に聞こえる振動数はおよそ何 $\mathrm{Hz}$ か。音速を $340\,\mathrm{m/s}$ とする。`, opts: ["485 Hz", "500 Hz", "515 Hz", "550 Hz"], ans: 2, exp: raw`ドップラー効果の式 $f' = f \frac{V}{V - v_s} = 500 \times \frac{340}{330} \approx 515\,\mathrm{Hz}$ です。` },
         { q: raw`長さ $0.85\,\mathrm{m}$ の閉管の基本振動数はおよそ何 $\mathrm{Hz}$ か。音速を $340\,\mathrm{m/s}$ とする。`, opts: ["100 Hz", "200 Hz", "300 Hz", "400 Hz"], ans: 0, exp: raw`閉管の基本振動では $\lambda = 4L = 3.4\,\mathrm{m}$ なので、$f = 340 / 3.4 = 100\,\mathrm{Hz}$ です。開管の場合（200 Hz）の半分になります。` },
@@ -1810,7 +1832,7 @@
       ]
     },
     {
-      id: "ch7", num: 37, title: "光チャレンジ", sub: "難問・干渉とレンズ", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch7", num: 37, unit: "challenge", title: "光チャレンジ", sub: "難問・干渉とレンズ", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`ヤングの実験で、波長 $600\,\mathrm{nm}$ の光、スリット間隔 $0.50\,\mathrm{mm}$、スクリーンまでの距離 $1.0\,\mathrm{m}$ のとき、明線の間隔は何 $\mathrm{mm}$ か。`, opts: ["0.60 mm", "1.2 mm", "2.4 mm", "12 mm"], ans: 1, exp: raw`$\Delta x = \frac{\lambda L}{d} = \frac{600 \times 10^{-9} \times 1.0}{0.50 \times 10^{-3}} = 1.2 \times 10^{-3}\,\mathrm{m} = 1.2\,\mathrm{mm}$ です。` },
         { q: raw`水（屈折率 $1.33$）から空気へ光が出るとき、全反射が起こり始める臨界角はおよそ何度か。$sin 49° \approx 0.75$ とする。`, opts: ["30°", "41°", "49°", "60°"], ans: 2, exp: raw`臨界角は $sin c = \frac{1}{1.33} \approx 0.75$ より約 $49°$ です。これ以上の入射角では光は水中に全反射します。` },
@@ -1827,7 +1849,7 @@
       ]
     },
     {
-      id: "ch8", num: 38, title: "電気チャレンジ①", sub: "難問・回路計算", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch8", num: 38, unit: "challenge", title: "電気チャレンジ①", sub: "難問・回路計算", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`$6\,\Omega$ と $3\,\Omega$ の抵抗を並列にしたものに、$4\,\Omega$ の抵抗を直列につないだ。全体の合成抵抗は何 $\Omega$ か。`, opts: ["5 Ω", "6 Ω", "9 Ω", "13 Ω"], ans: 1, exp: raw`並列部分は $\frac{6 \times 3}{6 + 3} = 2\,\Omega$。直列の $4\,\Omega$ と合わせて $2 + 4 = 6\,\Omega$ です。` },
         { q: raw`起電力 $3.0\,\mathrm{V}$、内部抵抗 $1.0\,\Omega$ の電池に、$5.0\,\Omega$ の抵抗をつないだ。回路の電流と電池の端子電圧はどれか。`, opts: ["電流 0.50 A ・ 端子電圧 2.5 V", "電流 0.60 A ・ 端子電圧 3.0 V", "電流 0.50 A ・ 端子電圧 3.0 V", "電流 3.0 A ・ 端子電圧 2.5 V"], ans: 0, exp: raw`電流は $I = \frac{3.0}{5.0 + 1.0} = 0.50\,\mathrm{A}$。端子電圧は内部抵抗での降下を引いて $3.0 - 0.50 \times 1.0 = 2.5\,\mathrm{V}$ です。` },
@@ -1844,7 +1866,7 @@
       ]
     },
     {
-      id: "ch9", num: 39, title: "電気チャレンジ②", sub: "難問・電場とコンデンサー", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch9", num: 39, unit: "challenge", title: "電気チャレンジ②", sub: "難問・電場とコンデンサー", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`点電荷が作る電場の強さは距離の2乗に反比例する。距離を半分にすると電場の強さは何倍になるか。`, opts: ["2倍", "4倍", "1/2倍", "変わらない"], ans: 1, exp: raw`$E = k\frac{Q}{r^2}$ より、$r$ が半分になると $E$ は $\frac{1}{(1/2)^2} = 4$ 倍です。電位（$r$ に反比例）との違いに注意しましょう。` },
         { q: raw`電気容量 $2.0\,\mathrm{μ F}$ と $3.0\,\mathrm{μ F}$ のコンデンサーを直列につないだ。合成容量は何 $\mathrm{μ F}$ か。`, opts: ["1.2 μF", "2.5 μF", "5.0 μF", "6.0 μF"], ans: 0, exp: raw`$\frac{1}{C} = \frac{1}{2.0} + \frac{1}{3.0} = \frac{5}{6}$ より $C = 1.2\,\mathrm{μ F}$ です。直列ではもとの容量より小さくなります。` },
@@ -1861,7 +1883,7 @@
       ]
     },
     {
-      id: "ch10", num: 40, title: "磁気チャレンジ", sub: "難問・電磁誘導とローレンツ力", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch10", num: 40, unit: "challenge", title: "磁気チャレンジ", sub: "難問・電磁誘導とローレンツ力", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`平行に置かれた2本の導線に、同じ向きの電流を流すと、導線どうしはどうなるか。`, opts: ["引き合う", "退け合う", "何も起こらない", "回転する"], ans: 0, exp: raw`一方の電流が作る磁場の中でもう一方が力を受けるため、同じ向きの電流どうしは引き合い、逆向きでは退け合います。アンペアの定義にも使われた現象です。` },
         { q: raw`磁場中を運動する荷電粒子の円運動の半径 $r = \frac{mv}{qB}$ について、速さが2倍になると半径はどうなるか。`, opts: ["1/2倍", "変わらない", "2倍", "4倍"], ans: 2, exp: raw`半径は速さに比例します。磁場を強くすると半径は小さくなり、周期は速さによらず一定になります。` },
@@ -1878,7 +1900,7 @@
       ]
     },
     {
-      id: "ch11", num: 41, title: "交流チャレンジ", sub: "難問・RLC回路と共振", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch11", num: 41, unit: "challenge", title: "交流チャレンジ", sub: "難問・RLC回路と共振", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`抵抗 $30\,\Omega$、誘導リアクタンス $40\,\Omega$、容量リアクタンス $0\,\Omega$ の直列回路のインピーダンスは何 $\Omega$ か。`, opts: ["30 Ω", "50 Ω", "70 Ω", "1200 Ω"], ans: 1, exp: raw`$Z = \sqrt{R^2 + (X_L - X_C)^2} = \sqrt{30^2 + 40^2} = 50\,\Omega$ です（3:4:5の直角三角形）。` },
         { q: raw`RLC直列回路が共振しているとき、回路の電流と電源電圧の位相の関係はどうなるか。`, opts: ["電流が電圧より遅れる", "電流が電圧より進む", "位相がそろう（同位相）", "常に90°ずれる"], ans: 2, exp: raw`共振では $X_L$ と $X_C$ が打ち消し合い、回路は抵抗だけの場合と同じ振る舞いをするため、電流と電圧は同位相になります。力率は1です。` },
@@ -1895,7 +1917,7 @@
       ]
     },
     {
-      id: "ch12", num: 42, title: "原子チャレンジ", sub: "難問・光子と原子核", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch12", num: 42, unit: "challenge", title: "原子チャレンジ", sub: "難問・光子と原子核", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`光電効果で、金属の限界振動数より小さい振動数の光をいくら強く当てても電子が飛び出さないのはなぜか。`, opts: ["光が反射されるから", "光子1個のエネルギーが不足しているから", "金属が熱を持つから", "電子が足りないから"], ans: 1, exp: raw`電子を弾き出すのは光子1個との衝突で決まるため、1個あたりのエネルギー $h\nu$ が仕事関数に満たなければ、光子を増やしても（強くしても）電子は出ません。光の粒子性の決定的な証拠です。` },
         { q: raw`光子の運動量は $p = \frac{h}{\lambda}$ と表される。波長が半分になると運動量はどうなるか。`, opts: ["半分になる", "変わらない", "2倍になる", "4倍になる"], ans: 2, exp: raw`運動量は波長に反比例します。波長の短い（エネルギーの大きい）光子ほど運動量も大きくなります。コンプトン効果で確かめられました。` },
@@ -1912,7 +1934,7 @@
       ]
     },
     {
-      id: "ch13", num: 43, title: "総合チャレンジ①", sub: "難問・力学と熱の総合", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch13", num: 43, unit: "challenge", title: "総合チャレンジ①", sub: "難問・力学と熱の総合", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`質量 $0.50\,\mathrm{kg}$ の小球を、長さ $1.0\,\mathrm{m}$ の糸で吊るして振り子にした。最下点での速さが $3.0\,\mathrm{m/s}$ のとき、糸の張力はおよそ何 $\mathrm{N}$ か。重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["4.9 N", "9.4 N", "14 N", "45 N"], ans: 1, exp: raw`最下点では張力と重力の差が向心力になるので、$T = mg + m\frac{v^2}{r} = 0.50 \times 9.8 + 0.50 \times \frac{9.0}{1.0} = 4.9 + 4.5 = 9.4\,\mathrm{N}$ です。` },
         { q: raw`初速度 $25\,\mathrm{m/s}$、角度 $45°$ で投げたボールの水平到達距離はおよそ何 $\mathrm{m}$ か。重力加速度を $9.8\,\mathrm{m/s^2}$ とする。`, opts: ["32 m", "64 m", "96 m", "128 m"], ans: 1, exp: raw`到達距離は $\frac{v_0^2 sin 2\theta}{g} = \frac{25^2 \times 1}{9.8} \approx 64\,\mathrm{m}$ です。$45°$ では $sin 2\theta = 1$ になります。` },
@@ -1929,7 +1951,7 @@
       ]
     },
     {
-      id: "ch14", num: 44, title: "総合チャレンジ②", sub: "難問・波と電磁気の総合", icon: "👹", color: "#991b1b", challenge: true,
+      id: "ch14", num: 44, unit: "challenge", title: "総合チャレンジ②", sub: "難問・波と電磁気の総合", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: raw`振動数 $1000\,\mathrm{Hz}$ の音を出す音源が、速さ $20\,\mathrm{m/s}$ で観測者から遠ざかっている。観測者に聞こえる振動数はおよそ何 $\mathrm{Hz}$ か。音速を $340\,\mathrm{m/s}$ とする。`, opts: ["944 Hz", "1000 Hz", "1059 Hz", "1200 Hz"], ans: 0, exp: raw`$f' = f \frac{V}{V + v_s} = 1000 \times \frac{340}{360} \approx 944\,\mathrm{Hz}$ です。遠ざかる場合は低くなります。` },
         { q: raw`$8\,\Omega$ の抵抗、$6\,\Omega$ の誘導リアクタンス、$6\,\Omega$ の容量リアクタンスを直列につないだ回路に、実効値 $100\,\mathrm{V}$ の交流を加えた。流れる電流の実効値は何 $\mathrm{A}$ か。`, opts: ["6.25 A", "10 A", "12.5 A", "5 A"], ans: 2, exp: raw`$X_L = X_C$ で打ち消し合い、$Z = R = 8\,\Omega$。電流は $100 / 8 = 12.5\,\mathrm{A}$ です（共振状態）。` },
@@ -1946,7 +1968,7 @@
       ]
     },
     {
-      id: "ch15", num: 45, title: "最終チャレンジ", sub: "難問・全範囲グランドフィナーレ", icon: "👹", color: "#7f1d1d", challenge: true,
+      id: "ch15", num: 45, unit: "challenge", title: "最終チャレンジ", sub: "難問・全範囲グランドフィナーレ", icon: "👹", color: "#7f1d1d", challenge: true,
       questions: [
         { q: raw`質量 $2.0\,\mathrm{kg}$ の物体が、ばね定数 $200\,\mathrm{N/m}$ のばねにつながれてなめらかな水平面で単振動している。周期はおよそ何秒か。`, opts: ["0.31秒", "0.63秒", "1.3秒", "2.0秒"], ans: 1, exp: raw`$T = 2\pi\sqrt{\frac{m}{k}} = 2\pi\sqrt{\frac{2.0}{200}} = 2\pi \times 0.10 \approx 0.63$ 秒です。` },
         { q: raw`温度 $27°\mathrm{C}$、圧力 $1.0 \times 10^5\,\mathrm{Pa}$ の理想気体 $1.0\,\mathrm{mol}$ の体積はおよそ何 $\mathrm{L}$ か。気体定数を $8.3\,\mathrm{J/(mol\cdot K)}$ とする。`, opts: ["12 L", "25 L", "22 L", "30 L"], ans: 1, exp: raw`$V = \frac{nRT}{p} = \frac{1.0 \times 8.3 \times 300}{1.0 \times 10^5} = 0.0249\,\mathrm{m^3} \approx 25\,\mathrm{L}$ です。$0°\mathrm{C}$ では約 $22.4\,\mathrm{L}$ になります。` },
@@ -1970,7 +1992,7 @@
   // 各教科 45ステージ×10問＝450問（単元30＋チャレンジ15）
   const MATH_STAGES = [
     {
-      id: "m1", num: 1, title: "計算と文字式", sub: "四則計算・文字式・割合", icon: "🔢", color: "#2563eb",
+      id: "m1", num: 1, unit: "algebra", title: "計算と文字式", sub: "四則計算・文字式・割合", icon: "🔢", color: "#2563eb",
       intro: { concept: "文字式と計算のルール", what: "数のかわりに文字を使うと、どんな数でもあてはまる計算のルールを表せます。かけ算の順序や、＋－の扱いに気をつけて計算しましょう。", terms: [{ word: "文字式", what: "数や量を文字で表した式。x や a などを使います。" }, { word: "係数", what: "文字の前につく数。3x の係数は 3 です。" }, { word: "項", what: "＋や－で区切られた、式のひとつひとつの部分。" }], points: ["かけ算・割り算は、足し算・引き算より先に計算する", "文字式では × や 1 を省略して書く（1x ではなく x）", "分配法則：a(b+c) = ab + ac を使ってカッコをはずす"], formula: raw`$3x + 2x = 5x$` },
       questions: [
 { q: raw`$3 + 4 \times 5$ を計算しなさい。`, opts: ["35", "23", "27", "20"], ans: 1, exp: raw`かけ算を先に計算します。$4 \times 5 = 20$ なので、$3 + 20 = 23$ です。` },
@@ -1986,7 +2008,7 @@
       ]
     },
     {
-      id: "m2", num: 2, title: "方程式と関数", sub: "一次方程式・連立方程式・一次関数", icon: "📈", color: "#0891b2",
+      id: "m2", num: 2, unit: "algebra", title: "方程式と関数", sub: "一次方程式・連立方程式・一次関数", icon: "📈", color: "#0891b2",
       intro: { concept: "方程式は「未知の数を求める道具」", what: "方程式は、わからない数を x とおいて、等しい関係を式にしたものです。両辺に同じ操作をすると、等式はくずれません。この性質を使って x を求めます。", terms: [{ word: "方程式", what: "x などの文字を含む等式。x の値を求める問題になります。" }, { word: "移項", what: "項を等号の反対側に移すこと。移すと符号が変わります。" }, { word: "一次関数", what: "y = ax + b の形の関数。グラフは直線になります。" }], points: ["両辺に同じ数をたす・引く・かける・割っても等式は成り立つ", "移項するときは符号を変える", "一次関数 y = ax + b で、a は傾き、b は切片"], formula: raw`$y = ax + b$` },
       questions: [
 { q: raw`方程式 $x + 5 = 12$ の解はいくつか。`, opts: ["5", "7", "12", "17"], ans: 1, exp: raw`両辺から5を引くと $x = 12 - 5 = 7$ です。` },
@@ -2002,7 +2024,7 @@
       ]
     },
     {
-      id: "m3", num: 3, title: "図形と確率", sub: "角度・面積・三平方の定理・確率", icon: "📐", color: "#7c3aed",
+      id: "m3", num: 3, unit: "geom", title: "図形と確率", sub: "角度・面積・三平方の定理・確率", icon: "📐", color: "#7c3aed",
       intro: { concept: "図形の性質と「起こりやすさ」", what: "三角形の内角の和は180°、円の面積は半径×半径×円周率など、図形には決まった性質があります。確率は「ある場合の数 ÷ 全体の場合の数」で求めます。", terms: [{ word: "三平方の定理", what: "直角三角形で、斜辺² = 他の2辺²の和になる定理。" }, { word: "確率", what: "あることが起こる割合。場合の数で求めます。" }, { word: "相似", what: "形が同じで大きさだけが違う図形の関係。" }], points: ["三角形の内角の和は180°", "円の面積 = 半径 × 半径 × 円周率", "確率は「その場合の数 ÷ 全体の場合の数」"], formula: raw`$a^2 + b^2 = c^2$` },
       questions: [
 { q: "三角形の3つの内角の和は何度か。", opts: ["90°", "180°", "270°", "360°"], ans: 1, exp: "三角形の内角の和はつねに180°です。" },
@@ -2018,7 +2040,7 @@
       ]
     },
     {
-      id: "m4", num: 4, title: "中学復習：比例と反比例・資料の活用", sub: "比例定数・平均・中央値", icon: "📊", color: "#0ea5e9",
+      id: "m4", num: 4, unit: "func", title: "中学復習：比例と反比例・資料の活用", sub: "比例定数・平均・中央値", icon: "📊", color: "#0ea5e9",
       intro: { concept: "比例と反比例", what: "y = ax の関係が比例、y = a/x の関係が反比例です。資料の活用では、平均と中央値の読み取りが大事です。", terms: [{ word: "比例定数", what: "y = ax の a のこと。グラフの傾きを決めます。" }, { word: "反比例", what: "x が2倍になると y が1/2倍になる関係。" }, { word: "中央値", what: "データを小さい順に並べたときの真ん中の値。" }], points: ["比例は原点を通る直線になる", "反比例は双曲線になる", "中央値は真ん中の値"], formula: raw`$y = ax$` },
       questions: [
         { q: raw`$y = 6x$ のとき、$x = 5$ のときの $y$ はいくつか。`, opts: ["36", "30", "24", "11"], ans: 1, exp: raw`$y = 6 \times 5 = 30$ です。` },
@@ -2034,7 +2056,7 @@
       ]
     },
     {
-      id: "m5", num: 5, title: "中学復習：平方根と三平方の定理", sub: "√の計算・直角三角形", icon: "📐", color: "#059669",
+      id: "m5", num: 5, unit: "geom", title: "中学復習：平方根と三平方の定理", sub: "√の計算・直角三角形", icon: "📐", color: "#059669",
       intro: { concept: "平方根", what: "√ は2乗するともとの数になる数です。三平方の定理は直角三角形の辺の関係を表します。", terms: [{ word: "平方根", what: "2乗すると a になる数。√a と表します。" }, { word: "三平方の定理", what: "直角三角形で a²+b²=c² が成り立つ。" }, { word: "斜辺", what: "直角に向かい合う、一番長い辺。" }], points: ["√a × √a = a", "a²+b²=c²", "√の中を簡単にできる"], formula: raw`$a^2 + b^2 = c^2$` },
       questions: [
         { q: raw`$\sqrt{20}$ を簡単にしなさい。`, opts: ["2√6", "2√2", "√5", "2√5"], ans: 3, exp: raw`$\sqrt{20} = 2√5$ です。` },
@@ -2050,7 +2072,7 @@
       ]
     },
     {
-      id: "m6", num: 6, title: "数と式の基礎", sub: "文字式・係数・次数", icon: "🔤", color: "#2563eb",
+      id: "m6", num: 6, unit: "algebra", title: "数と式の基礎", sub: "文字式・係数・次数", icon: "🔤", color: "#2563eb",
       intro: { concept: "文字式", what: "文字式では、数と同じように計算できます。同類項をまとめるのが基本です。", terms: [{ word: "係数", what: "文字の前につく数。3x の係数は 3 です。" }, { word: "項", what: "＋や－で区切られた、式のひとつひとつの部分。" }, { word: "次数", what: "文字の指数の合計。" }], points: ["同類項をまとめる", "次数は指数の合計", "カッコは分配法則ではずす"], formula: raw`$3x + 2x = 5x$` },
       questions: [
         { q: raw`$x = 2$ のとき、$2x -1$ の値はいくつか。`, opts: ["2", "5", "4", "3"], ans: 3, exp: raw`$2 \times 2 -1 = 3$ です。` },
@@ -2066,7 +2088,7 @@
       ]
     },
     {
-      id: "m7", num: 7, title: "式の展開①", sub: "分配法則・乗法公式", icon: "✖️", color: "#d97706",
+      id: "m7", num: 7, unit: "algebra", title: "式の展開①", sub: "分配法則・乗法公式", icon: "✖️", color: "#d97706",
       intro: { concept: "展開", what: "(x+a)(x+b) の展開は、分配法則を2回使うだけです。公式として覚えると速く計算できます。", terms: [{ word: "展開", what: "カッコのある式を、カッコのない式に直すこと。" }, { word: "乗法公式", what: "展開を速くする公式。" }, { word: "同類項", what: "文字の部分が同じ項。" }], points: ["(x+a)(x+b)=x²+(a+b)x+ab", "(x+a)²=x²+2ax+a²", "(x+a)(x-a)=x²-a²"], formula: raw`$(x + a)(x + b) = x^2 + (a + b)x + ab$` },
       questions: [
         { q: raw`$(x + 8)(x + 2)$ を展開しなさい。`, opts: ["x² + 11x + 16", "x² + 16x + 10", "x² + 10x + 16", "x² + 10x + 17"], ans: 2, exp: raw`$(x + 8)(x + 2) = x^2 + (8 + 2)x + 8 \times 2 = x² + 10x + 16$ です。` },
@@ -2082,7 +2104,7 @@
       ]
     },
     {
-      id: "m8", num: 8, title: "式の展開②・因数分解①", sub: "共通因数・公式の逆", icon: "🧩", color: "#7c3aed",
+      id: "m8", num: 8, unit: "algebra", title: "式の展開②・因数分解①", sub: "共通因数・公式の逆", icon: "🧩", color: "#7c3aed",
       intro: { concept: "因数分解", what: "因数分解は展開の逆です。共通因数でくくってから、かけ算の形に直します。", terms: [{ word: "因数分解", what: "和や差の式を、かけ算の形に直すこと。" }, { word: "共通因数", what: "すべての項に共通する因数。" }, { word: "公式", what: "展開の公式を逆向きに使う。" }], points: ["共通因数でくくる", "たすとかけるの関係を見る", "展開して確認する"], formula: raw`$x^2 + (a + b)x + ab = (x + a)(x + b)$` },
       questions: [
         { q: raw`$(2x + 2)(3x + 2)$ を展開しなさい。`, opts: ["6x² + 10x + 4", "6x² + 11x + 4", "6x² + 10x + 5", "7x² + 10x + 4"], ans: 0, exp: raw`$(2x + 2)(3x + 2) = 6x^2 + (4 + 6)x + 4 = 6x² + 10x + 4$ です。` },
@@ -2098,7 +2120,7 @@
       ]
     },
     {
-      id: "m9", num: 9, title: "因数分解②", sub: "平方の差・完全平方", icon: "🧩", color: "#0891b2",
+      id: "m9", num: 9, unit: "algebra", title: "因数分解②", sub: "平方の差・完全平方", icon: "🧩", color: "#0891b2",
       intro: { concept: "因数分解の公式", what: "x²-a² や x²+2ax+a² は、公式の形を覚えるとすぐに因数分解できます。", terms: [{ word: "平方の差", what: "x²-a² の形。" }, { word: "完全平方", what: "x²+2ax+a² の形。" }, { word: "因数", what: "かけ算の1つひとつの数や式。" }], points: ["x²-a²=(x+a)(x-a)", "x²+2ax+a²=(x+a)²", "符号に注意"], formula: raw`$x^2 - a^2 = (x + a)(x - a)$` },
       questions: [
         { q: raw`$x^2 - 25$ を因数分解しなさい。`, opts: ["(x + 5)(x + 5)", "(x + 6)(x - 6)", "(x - 5)(x - 5)", "(x + 5)(x - 5)"], ans: 3, exp: raw`$x^2 - 25 = x^2 - 5^2 = (x + 5)(x - 5)$ です。` },
@@ -2114,7 +2136,7 @@
       ]
     },
     {
-      id: "m10", num: 10, title: "1次方程式", sub: "移項・割合の文章題", icon: "⚖️", color: "#65a30d",
+      id: "m10", num: 10, unit: "algebra", title: "1次方程式", sub: "移項・割合の文章題", icon: "⚖️", color: "#65a30d",
       intro: { concept: "1次方程式", what: "方程式は、= の両辺に同じ操作をしても成り立ちます。文字を左辺に集めて解きます。", terms: [{ word: "方程式", what: "文字の値を求める等式。" }, { word: "解", what: "方程式を成り立たせる文字の値。" }, { word: "移項", what: "項を反対の辺に移すこと。符号が変わる。" }], points: ["移項すると符号が変わる", "両辺に同じ数をかけてもよい", "答えを代入して確認"], formula: raw`$ax + b = c$` },
       questions: [
         { q: raw`$5x + 1 = 46$ を解きなさい。`, opts: ["x = 10", "x = 8", "x = 9", "x = 11"], ans: 2, exp: raw`$5x = 46 - 1 = 45$ より、$x = 9$ です。` },
@@ -2130,7 +2152,7 @@
       ]
     },
     {
-      id: "m11", num: 11, title: "連立方程式", sub: "加減法・代入法・文章題", icon: "👥", color: "#db2777",
+      id: "m11", num: 11, unit: "algebra", title: "連立方程式", sub: "加減法・代入法・文章題", icon: "👥", color: "#db2777",
       intro: { concept: "連立方程式", what: "2つの式を同時に満たす x, y を求めます。加減法と代入法を使い分けましょう。", terms: [{ word: "連立方程式", what: "2つ以上の方程式を組にしたもの。" }, { word: "加減法", what: "たしたりひいたりして1文字を消す方法。" }, { word: "代入法", what: "1つの式をもう1つの式に代入する方法。" }], points: ["1文字を消す", "係数をそろえてたす・ひく", "代入して検算"], formula: raw`$x + y = 5$` },
       questions: [
         { q: raw`連立方程式 $x + y = 11$、$x - y = 5$ のとき、$x$ はいくつか。`, opts: ["x = 7", "x = 9", "x = 3", "x = 8"], ans: 3, exp: raw`2式をたすと $2x = 16$ となり、$x = 8$ です。` },
@@ -2146,7 +2168,7 @@
       ]
     },
     {
-      id: "m12", num: 12, title: "2次方程式①", sub: "平方根・因数分解で解く", icon: "🔢", color: "#dc2626",
+      id: "m12", num: 12, unit: "algebra", title: "2次方程式①", sub: "平方根・因数分解で解く", icon: "🔢", color: "#dc2626",
       intro: { concept: "2次方程式の基本", what: "x² = a や (x-a)(x-b) = 0 の形は、因数分解や平方根で解けます。", terms: [{ word: "2次方程式", what: "x² を含む方程式。" }, { word: "平方根", what: "2乗すると a になる数。" }, { word: "因数分解", what: "かけ算の形に直すこと。" }], points: ["x²=a → x=±√a", "(x-a)(x-b)=0 → x=a, b", "x²-ax=0 は x でくくる"], formula: raw`$x^2 = a$` },
       questions: [
         { q: raw`$x^2 = 36$ を解きなさい。`, opts: ["x = 6, -5", "x = ±7", "x = 6", "x = ±6"], ans: 3, exp: raw`$x^2 = 36$ より、$x = ±6$ です。` },
@@ -2162,7 +2184,7 @@
       ]
     },
     {
-      id: "m13", num: 13, title: "2次方程式②", sub: "解の公式・判別式", icon: "🔢", color: "#2563eb",
+      id: "m13", num: 13, unit: "algebra", title: "2次方程式②", sub: "解の公式・判別式", icon: "🔢", color: "#2563eb",
       intro: { concept: "解の公式と判別式", what: "因数分解できない2次方程式は、解の公式で解きます。判別式 D は解の個数を教えてくれます。", terms: [{ word: "解の公式", what: "どんな2次方程式でも解ける公式。" }, { word: "判別式", what: "D=b²-4ac。解の個数を判定する。" }, { word: "平方完成", what: "x²+bx を (x+a)² の形に直すこと。" }], points: ["D=b²-4ac", "D>0 なら実数解2個", "公式は使い慣れることが大事"], formula: raw`$D = b^2 - 4ac$` },
       questions: [
         { q: raw`$x^2 -6x +5 = 0$ の解のうち、大きい方はどれか。`, opts: ["x = 6", "x = -5", "x = 5", "x = 1"], ans: 2, exp: raw`因数分解すると $(x - 1)(x - 5) = 0$ となり、解は $x = 1, 5$。大きい方は 5 です。` },
@@ -2178,7 +2200,7 @@
       ]
     },
     {
-      id: "m14", num: 14, title: "2次関数① グラフと頂点", sub: "放物線・軸・変化の割合", icon: "📈", color: "#059669",
+      id: "m14", num: 14, unit: "func", title: "2次関数① グラフと頂点", sub: "放物線・軸・変化の割合", icon: "📈", color: "#059669",
       intro: { concept: "2次関数 y=ax²", what: "y = ax² のグラフは放物線です。a の符号で開く向きが決まります。", terms: [{ word: "放物線", what: "2次関数のグラフの形。" }, { word: "頂点", what: "放物線の一番上または一番下の点。" }, { word: "軸", what: "放物線の対称軸。" }], points: ["a>0 は下に凸", "a<0 は上に凸", "頂点は原点"], formula: raw`$y = ax^2$` },
       questions: [
         { q: raw`$y = -1x^2$ について、$x = 3$ のときの $y$ はいくつか。`, opts: ["-10", "-9", "-3", "-8"], ans: 1, exp: raw`$y = -1 \times 3^2 = -9$ です。` },
@@ -2194,7 +2216,7 @@
       ]
     },
     {
-      id: "m15", num: 15, title: "2次関数② 最大・最小", sub: "平方完成・平行移動", icon: "📈", color: "#d97706",
+      id: "m15", num: 15, unit: "func", title: "2次関数② 最大・最小", sub: "平方完成・平行移動", icon: "📈", color: "#d97706",
       intro: { concept: "2次関数の最大・最小", what: "y = a(x-p)²+q の形にすると、頂点 (p, q) が見えて最大・最小がわかります。", terms: [{ word: "平方完成", what: "y=a(x-p)²+q の形に直すこと。" }, { word: "頂点", what: "放物線の一番上または一番下の点。" }, { word: "最大値・最小値", what: "関数のとる値の最大・最小。" }], points: ["平方完成で頂点が見える", "a>0 は最小値", "a<0 は最大値"], formula: raw`$y = a(x - p)^2 + q$` },
       questions: [
         { q: raw`$y = 1(x -2)^2 +4$ の最小値はいくつか。`, opts: ["最小値 4", "最大値 4", "最小値 -4", "最小値 5"], ans: 0, exp: raw`$a > 0$ の放物線は下に凸で、頂点の $y$ 座標 4 が最小値です。` },
@@ -2210,7 +2232,7 @@
       ]
     },
     {
-      id: "m16", num: 16, title: "三角比①", sub: "sin・cos・tan の基本", icon: "📐", color: "#7c3aed",
+      id: "m16", num: 16, unit: "geom", title: "三角比①", sub: "sin・cos・tan の基本", icon: "📐", color: "#7c3aed",
       intro: { concept: "三角比", what: "直角三角形の辺の比が sin, cos, tan です。30°、45°、60° の値は表で覚えましょう。", terms: [{ word: "sin", what: "対辺÷斜辺。" }, { word: "cos", what: "隣辺÷斜辺。" }, { word: "tan", what: "対辺÷隣辺。" }], points: ["sin=対辺/斜辺", "cos=隣辺/斜辺", "tan=対辺/隣辺"], formula: "" },
       questions: [
         { q: "tan45° の値はいくつか。", opts: ["1", "√3/3", "1/2", "√3"], ans: 0, exp: "tan45° = 1 です。三角比の表で覚えましょう。" },
@@ -2226,7 +2248,7 @@
       ]
     },
     {
-      id: "m17", num: 17, title: "三角比② 図形への応用", sub: "余弦定理・正弦定理・面積", icon: "📐", color: "#0891b2",
+      id: "m17", num: 17, unit: "geom", title: "三角比② 図形への応用", sub: "余弦定理・正弦定理・面積", icon: "📐", color: "#0891b2",
       intro: { concept: "三角比の応用", what: "余弦定理や正弦定理、面積の公式で、三角形の辺や角を求められます。", terms: [{ word: "余弦定理", what: "辺と角の関係を表す定理。" }, { word: "正弦定理", what: "辺と外接円の半径の関係。" }, { word: "外接円", what: "三角形の3頂点を通る円。" }], points: ["c²=a²+b²-2ab・cosC", "a/sinA=2R", "面積=(1/2)ab・sinC"], formula: "" },
       questions: [
         { q: "地面から 30 m 離れた地点から、木の先端を見上げると仰角が 30° だった。木の高さはおよそ何 m か。ただし tan30° = 1/√3 とする。", opts: ["10√3", "20√3", "30", "21√3"], ans: 0, exp: "高さ = 30 × tan30° = 30 × (1/√3) = 10√3 m です。" },
@@ -2242,7 +2264,7 @@
       ]
     },
     {
-      id: "m18", num: 18, title: "場合の数①", sub: "順列・階乗", icon: "🔀", color: "#65a30d",
+      id: "m18", num: 18, unit: "prob", title: "場合の数①", sub: "順列・階乗", icon: "🔀", color: "#65a30d",
       intro: { concept: "順列", what: "並べ方の数を数えるのが順列です。nPr は n×(n-1)×… で計算できます。", terms: [{ word: "順列", what: "順序を区別して並べること。" }, { word: "階乗", what: "n! = n×(n-1)×…×1。" }, { word: "nPr", what: "n個から r個選んで並べる場合の数。" }], points: ["nPr=n×(n-1)×…", "n!=n×(n-1)×…×1", "順序を区別する"], formula: "" },
       questions: [
         { q: raw`$_4\mathrm{P}_2$ の値はいくつか。`, opts: ["22", "7", "12", "24"], ans: 2, exp: raw`$_4\mathrm{P}_2 = 4 \times 3$ です。` },
@@ -2258,7 +2280,7 @@
       ]
     },
     {
-      id: "m19", num: 19, title: "場合の数②", sub: "組合せ・選び方", icon: "🔀", color: "#db2777",
+      id: "m19", num: 19, unit: "prob", title: "場合の数②", sub: "組合せ・選び方", icon: "🔀", color: "#db2777",
       intro: { concept: "組合せ", what: "選び方の数を数えるのが組合せです。順序を区別しないのが順列とのちがいです。", terms: [{ word: "組合せ", what: "順序を区別せずに選ぶこと。" }, { word: "nCr", what: "n個から r個選ぶ場合の数。" }, { word: "重複", what: "同じものを何度も選ぶこと。" }], points: ["nCr=nPr/r!", "順序を区別しない", "選び方と並べ方を区別する"], formula: "" },
       questions: [
         { q: raw`$_7\mathrm{C}_2$ の値はいくつか。`, opts: ["26", "21", "19", "42"], ans: 1, exp: raw`$_7\mathrm{C}_2 = \frac{7 \times 6}{2!} = 21$ です。` },
@@ -2274,7 +2296,7 @@
       ]
     },
     {
-      id: "m20", num: 20, title: "確率①", sub: "サイコロ・コイン・くじ", icon: "🎲", color: "#dc2626",
+      id: "m20", num: 20, unit: "prob", title: "確率①", sub: "サイコロ・コイン・くじ", icon: "🎲", color: "#dc2626",
       intro: { concept: "確率の基本", what: "確率は「あてはまる場合の数 ÷ すべての場合の数」です。サイコロやコインで慣れましょう。", terms: [{ word: "確率", what: "あることが起こる割合。" }, { word: "同様に確からしい", what: "どの場合も同じくらい起こりやすいこと。" }, { word: "余事象", what: "あることが起こらない場合。" }], points: ["確率=あてはまる数/すべての数", "サイコロは6通り", "余事象は 1-確率"], formula: "" },
       questions: [
         { q: "サイコロを1回投げるとき、5の目が出る確率はいくつか。", opts: ["1/6", "1/2", "1/3", "2/3"], ans: 0, exp: raw`サイコロの目は6通り、そのうち条件にあうのは 1通りなので、確率は $\frac{1}{6} = 1/6$ です。` },
@@ -2290,7 +2312,7 @@
       ]
     },
     {
-      id: "m21", num: 21, title: "確率②", sub: "2個のサイコロ・余事象", icon: "🎲", color: "#2563eb",
+      id: "m21", num: 21, unit: "prob", title: "確率②", sub: "2個のサイコロ・余事象", icon: "🎲", color: "#2563eb",
       intro: { concept: "確率の応用", what: "2個のサイコロやくり返しの試行では、表や余事象を使うと数えやすくなります。", terms: [{ word: "独立試行", what: "前の結果が次の結果に影響しない試行。" }, { word: "余事象", what: "あることが起こらない場合。" }, { word: "和事象", what: "どちらかが起こる場合。" }], points: ["2個のサイコロは36通り", "余事象で「少なくとも」を計算", "表を書いて数える"], formula: "" },
       questions: [
         { q: "サイコロを2個同時に投げるとき、目の和が10になる確率はいくつか。", opts: ["1/6", "1/3", "1/12", "1/9"], ans: 2, exp: raw`2個のサイコロの目の出方は36通り、そのうち条件にあうのは 3通りなので、確率は $1/12$ です。` },
@@ -2306,7 +2328,7 @@
       ]
     },
     {
-      id: "m22", num: 22, title: "指数の法則", sub: "累乗の計算", icon: "🔢", color: "#059669",
+      id: "m22", num: 22, unit: "seq", title: "指数の法則", sub: "累乗の計算", icon: "🔢", color: "#059669",
       intro: { concept: "指数法則", what: "aᵐ×aⁿ=aᵐ⁺ⁿ など、指数の計算には決まったルールがあります。", terms: [{ word: "指数法則", what: "累乗の計算のルール。" }, { word: "累乗", what: "同じ数を何回もかけること。" }, { word: "負の指数", what: "a⁻ⁿ=1/aⁿ のこと。" }], points: ["aᵐ×aⁿ=aᵐ⁺ⁿ", "(aᵐ)ⁿ=aᵐⁿ", "a⁻ⁿ=1/aⁿ"], formula: raw`$a^m \times a^n = a^{m+n}$` },
       questions: [
         { q: raw`$2^{4} \times 2^{4}$ を計算しなさい。`, opts: ["2^0", "2^8", "2^9", "2^16"], ans: 1, exp: raw`指数法則より、$2^{4} \times 2^{4} = 2^{4 + 4} = 2^{8}$ です。` },
@@ -2322,7 +2344,7 @@
       ]
     },
     {
-      id: "m23", num: 23, title: "対数", sub: "log の基本", icon: "🔢", color: "#d97706",
+      id: "m23", num: 23, unit: "seq", title: "対数", sub: "log の基本", icon: "🔢", color: "#d97706",
       intro: { concept: "対数", what: "logₐb は「a を何乗したら b になるか」という数です。指数の逆の考え方です。", terms: [{ word: "対数", what: "指数の逆の考え方。" }, { word: "底", what: "log の a の部分。" }, { word: "真数", what: "log の b の部分。" }], points: ["logₐa=1", "logₐ1=0", "log の和は積の log"], formula: "" },
       questions: [
         { q: "log₁₀1000 の値はいくつか。", opts: ["6", "4", "2", "3"], ans: 3, exp: "10^3 = 1000 なので、log₁₀1000 = 3 です。" },
@@ -2338,7 +2360,7 @@
       ]
     },
     {
-      id: "m24", num: 24, title: "数列① 等差数列", sub: "一般項・和の公式", icon: "🔢", color: "#7c3aed",
+      id: "m24", num: 24, unit: "seq", title: "数列① 等差数列", sub: "一般項・和の公式", icon: "🔢", color: "#7c3aed",
       intro: { concept: "等差数列", what: "となり合う項の差が一定の数列が等差数列です。一般項と和の公式を覚えましょう。", terms: [{ word: "初項", what: "数列の最初の項。" }, { word: "公差", what: "となり合う項の差。" }, { word: "一般項", what: "第n項を n で表した式。" }], points: ["第n項=a+(n-1)d", "和=n/2×(初項+末項)", "差が一定"], formula: "" },
       questions: [
         { q: "初項 5、公差 -2 の等差数列の第 6 項はいくつか。", opts: ["-3", "-5", "-7", "-4"], ans: 1, exp: raw`第 6 項 $= 5 + (6 - 1) \times -2 = -5$ です。` },
@@ -2354,7 +2376,7 @@
       ]
     },
     {
-      id: "m25", num: 25, title: "数列② 等比数列と和", sub: "一般項・和の公式", icon: "🔢", color: "#0891b2",
+      id: "m25", num: 25, unit: "seq", title: "数列② 等比数列と和", sub: "一般項・和の公式", icon: "🔢", color: "#0891b2",
       intro: { concept: "等比数列", what: "となり合う項の比が一定の数列が等比数列です。比が一定なのがポイントです。", terms: [{ word: "初項", what: "数列の最初の項。" }, { word: "公比", what: "となり合う項の比。" }, { word: "一般項", what: "第n項を n で表した式。" }], points: ["第n項=a×rⁿ⁻¹", "和=a×(rⁿ-1)/(r-1)", "比が一定"], formula: "" },
       questions: [
         { q: "初項 3、公比 2 の等比数列の第 4 項はいくつか。", opts: ["24", "48", "26", "12"], ans: 0, exp: raw`第 4 項 $= 3 \times 2^{3} = 24$ です。` },
@@ -2370,7 +2392,7 @@
       ]
     },
     {
-      id: "m26", num: 26, title: "微分①", sub: "導関数・微分係数", icon: "📉", color: "#65a30d",
+      id: "m26", num: 26, unit: "calc", title: "微分①", sub: "導関数・微分係数", icon: "📉", color: "#65a30d",
       intro: { concept: "微分", what: "微分は、関数の変化の割合（接線の傾き）を求める計算です。(xⁿ)'=nxⁿ⁻¹ が基本です。", terms: [{ word: "導関数", what: "微分したあとの関数。" }, { word: "微分係数", what: "ある点での微分の値。" }, { word: "接線", what: "曲線に1点で接する直線。" }], points: ["(xⁿ)'=nxⁿ⁻¹", "定数倍はそのまま", "和は分けて微分"], formula: raw`$(x^n)' = nx^{n-1}$` },
       questions: [
         { q: raw`$(x^{4})'$ を求めなさい。`, opts: ["x³", "4x³", "4x⁴", "5x⁴"], ans: 1, exp: raw`$(x^n)' = nx^{n-1}$ より、$(x^{4})' = 4x^{3}$ です。` },
@@ -2386,7 +2408,7 @@
       ]
     },
     {
-      id: "m27", num: 27, title: "微分② 接線と極値", sub: "接線の方程式・極大極小", icon: "📉", color: "#db2777",
+      id: "m27", num: 27, unit: "calc", title: "微分② 接線と極値", sub: "接線の方程式・極大極小", icon: "📉", color: "#db2777",
       intro: { concept: "接線と極値", what: "導関数の値が接線の傾きです。f'(x)=0 になる点で、関数は極大・極小になります。", terms: [{ word: "接線", what: "曲線に1点で接する直線。" }, { word: "極大・極小", what: "関数の値が山・谷になる点。" }, { word: "増減", what: "関数が増えるか減るか。" }], points: ["接線の傾き=f'(a)", "f'(x)=0 が極値の候補", "符号の変化を見る"], formula: "" },
       questions: [
         { q: raw`曲線 $y = 1x^2$ 上の点 $x = 1$ における接線の傾きはいくつか。`, opts: ["4", "0", "1", "2"], ans: 3, exp: raw`$y' = 2x$ より、$x = 1$ での傾きは 2 です。` },
@@ -2402,7 +2424,7 @@
       ]
     },
     {
-      id: "m28", num: 28, title: "積分", sub: "不定積分・定積分・面積", icon: "∫", color: "#dc2626",
+      id: "m28", num: 28, unit: "calc", title: "積分", sub: "不定積分・定積分・面積", icon: "∫", color: "#dc2626",
       intro: { concept: "積分", what: "積分は微分の逆です。定積分は、グラフと x 軸で囲まれた部分の面積を表します。", terms: [{ word: "不定積分", what: "微分の逆の計算。" }, { word: "定積分", what: "区間を決めた積分。" }, { word: "原始関数", what: "微分するともとの関数になる関数。" }], points: ["∫xⁿdx=xⁿ⁺¹/(n+1)+C", "定積分は面積", "微分して確認"], formula: "" },
       questions: [
         { q: "∫x³ dx を求めなさい。", opts: ["x⁴ + C", "x⁴/4 + C", "4x³ + C", "x³/3 + C"], ans: 1, exp: "∫x³ dx = x⁴/4 + C です。" },
@@ -2418,7 +2440,7 @@
       ]
     },
     {
-      id: "m29", num: 29, title: "ベクトル", sub: "成分・大きさ・内積", icon: "➡️", color: "#2563eb",
+      id: "m29", num: 29, unit: "calc", title: "ベクトル", sub: "成分・大きさ・内積", icon: "➡️", color: "#2563eb",
       intro: { concept: "ベクトル", what: "ベクトルは、向きと大きさをもつ量です。成分で計算すると、足し算や内積が簡単にできます。", terms: [{ word: "成分", what: "ベクトルを x, y の数で表したもの。" }, { word: "大きさ", what: "ベクトルの長さ。" }, { word: "内積", what: "2つのベクトルから1つの数を出す計算。" }], points: ["大きさ=√(x²+y²)", "内積=x₁x₂+y₁y₂", "成分どうしで計算"], formula: "" },
       questions: [
         { q: "ベクトル a = (3, 4) の大きさ |a| はいくつか。", opts: ["7", "5", "4", "6"], ans: 1, exp: "|a| = √(3² + 4²) = √25 = 5 です。" },
@@ -2434,7 +2456,7 @@
       ]
     },
     {
-      id: "m30", num: 30, title: "複素数と2次方程式", sub: "虚数単位 i・共役", icon: "🌀", color: "#059669",
+      id: "m30", num: 30, unit: "calc", title: "複素数と2次方程式", sub: "虚数単位 i・共役", icon: "🌀", color: "#059669",
       intro: { concept: "複素数", what: "i²=-1 とする数 i を使うと、x²+1=0 のような方程式も解けるようになります。", terms: [{ word: "虚数単位 i", what: "2乗すると -1 になる数。" }, { word: "共役複素数", what: "虚部の符号を変えた複素数。" }, { word: "実部・虚部", what: "a+bi の a が実部、b が虚部。" }], points: ["i²=-1", "(a+bi)(c+di) を展開", "共役は虚部の符号を変える"], formula: raw`$i^2 = -1$` },
       questions: [
         { q: raw`$i^{3}$ の値はいくつか。`, opts: ["i", "1", "-i", "-1"], ans: 2, exp: raw`$i^2 = -1$ なので、$i^{3} = -i$ です。` },
@@ -2450,7 +2472,7 @@
       ]
     },
     {
-      id: "mc1", num: 31, title: "総合チャレンジ①", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc1", num: 31, unit: "challenge", title: "総合チャレンジ①", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: raw`$5^2 - 3^2$ を計算しなさい。`, opts: ["16", "22", "8", "34"], ans: 0, exp: raw`$5^2 = 25$、$3^2 = 9$ なので、$25 - 9 = 16$ です。` },
@@ -2468,7 +2490,7 @@
       ]
     },
     {
-      id: "mc2", num: 32, title: "総合チャレンジ②", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc2", num: 32, unit: "challenge", title: "総合チャレンジ②", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: raw`方程式 $x - 7 = 3$ の解はいくつか。`, opts: ["-4", "4", "10", "21"], ans: 2, exp: raw`両辺に7をたすと $x = 3 + 7 = 10$ です。` },
@@ -2486,7 +2508,7 @@
       ]
     },
     {
-      id: "mc3", num: 33, title: "総合チャレンジ③", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc3", num: 33, unit: "challenge", title: "総合チャレンジ③", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: "直角三角形の直角をはさむ2辺が 5cm と 12cm のとき、斜辺の長さは何cmか。", opts: ["13cm", "17cm", "10cm", "7cm"], ans: 0, exp: "三平方の定理より、斜辺² = 5² + 12² = 169 なので、斜辺は 13cm です。" },
@@ -2504,7 +2526,7 @@
       ]
     },
     {
-      id: "mc4", num: 34, title: "総合チャレンジ④", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc4", num: 34, unit: "challenge", title: "総合チャレンジ④", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: raw`$x^2 + 5x + 6$ を因数分解しなさい。`, opts: ["(x+2)(x+3)", "(x+1)(x+6)", "(x-2)(x-3)", "(x+5)(x+1)"], ans: 0, exp: raw`$2 + 3 = 5$、$2 \times 3 = 6$ なので $(x+2)(x+3)$ です。` },
@@ -2522,7 +2544,7 @@
       ]
     },
     {
-      id: "mc5", num: 35, title: "総合チャレンジ⑤", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc5", num: 35, unit: "challenge", title: "総合チャレンジ⑤", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: "時速 60km で2時間走ったときの距離は何kmか。", opts: ["30km", "120km", "62km", "90km"], ans: 1, exp: "距離 = 速さ × 時間 = 60 × 2 = 120km です。" },
@@ -2540,7 +2562,7 @@
       ]
     },
     {
-      id: "mc6", num: 36, title: "総合チャレンジ⑥", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc6", num: 36, unit: "challenge", title: "総合チャレンジ⑥", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "りんご1個 120円、みかん1個 90円。あわせて 4個買って 390円だった。りんごは何個買ったか。", opts: ["3個", "0個", "1個", "2個"], ans: 2, exp: raw`りんごを $x$ 個とすると、みかんは $4 - x$ 個。$120x + 90(4 - x) = 390$ より $x = 1$ です。` },
@@ -2558,7 +2580,7 @@
       ]
     },
     {
-      id: "mc7", num: 37, title: "総合チャレンジ⑦", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc7", num: 37, unit: "challenge", title: "総合チャレンジ⑦", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "3、5、13、21、24 の中央値はいくつか。", opts: ["13", "5", "3", "21"], ans: 0, exp: "小さい順に並べると 3、5、13、21、24 となり、真ん中は 13 です。" },
@@ -2576,7 +2598,7 @@
       ]
     },
     {
-      id: "mc8", num: 38, title: "総合チャレンジ⑧", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc8", num: 38, unit: "challenge", title: "総合チャレンジ⑧", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "∫x⁴ dx を求めなさい。", opts: ["x⁴/4 + C", "5x⁴ + C", "x⁵/5 + C", "x⁵ + C"], ans: 2, exp: "∫x⁴ dx = x⁵/5 + C です。" },
@@ -2594,7 +2616,7 @@
       ]
     },
     {
-      id: "mc9", num: 39, title: "総合チャレンジ⑨", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc9", num: 39, unit: "challenge", title: "総合チャレンジ⑨", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "2辺が 6 と 6、その間の角が 60° の三角形の面積はいくつか。", opts: ["18", "18√3", "9√3", "10√3"], ans: 2, exp: "面積 = (1/2) × 6 × 6 × sin60° = 9√3 です。" },
@@ -2612,7 +2634,7 @@
       ]
     },
     {
-      id: "mc10", num: 40, title: "総合チャレンジ⑩", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc10", num: 40, unit: "challenge", title: "総合チャレンジ⑩", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: raw`$(x - 1)^2 = 25$ を解きなさい。`, opts: ["x = 6, -4", "x = 1", "x = 7, -4", "x = ±5"], ans: 0, exp: raw`$x - 1 = ±5$ より、$x = 6, -4$ です。` },
@@ -2630,7 +2652,7 @@
       ]
     },
     {
-      id: "mc11", num: 41, title: "総合チャレンジ⑪", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc11", num: 41, unit: "challenge", title: "総合チャレンジ⑪", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: raw`等差数列 $3$、$6$、$9$、… の第 3 項はいくつか。`, opts: ["9", "12", "10", "6"], ans: 0, exp: "初項 3、公差 3 の等差数列なので、第 3 項は 9 です。" },
@@ -2648,7 +2670,7 @@
       ]
     },
     {
-      id: "mc12", num: 42, title: "総合チャレンジ⑫", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc12", num: 42, unit: "challenge", title: "総合チャレンジ⑫", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: raw`$y = 1(x -2)^2 +4$ の最小値はいくつか。`, opts: ["最小値 4", "最小値 5", "最大値 4", "最小値 -4"], ans: 0, exp: raw`$a > 0$ の放物線は下に凸で、頂点の $y$ 座標 4 が最小値です。` },
@@ -2666,7 +2688,7 @@
       ]
     },
     {
-      id: "mc13", num: 43, title: "総合チャレンジ⑬", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc13", num: 43, unit: "challenge", title: "総合チャレンジ⑬", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "1、2、9、9、9 の平均はいくつか。", opts: ["6", "5", "7", "8"], ans: 0, exp: raw`1、2、9、9、9 の合計は 30 なので、平均は $30 \div 5 = 6$ です。` },
@@ -2684,7 +2706,7 @@
       ]
     },
     {
-      id: "mc14", num: 44, title: "総合チャレンジ⑭", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc14", num: 44, unit: "challenge", title: "総合チャレンジ⑭", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: raw`等差数列 $1$、$4$、$7$、… の第 5 項はいくつか。`, opts: ["16", "13", "14", "10"], ans: 1, exp: "初項 1、公差 3 の等差数列なので、第 5 項は 13 です。" },
@@ -2702,7 +2724,7 @@
       ]
     },
     {
-      id: "mc15", num: 45, title: "総合チャレンジ⑮", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "mc15", num: 45, unit: "challenge", title: "総合チャレンジ⑮", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: raw`$5^{5} \div 5^{2}$ を計算しなさい。`, opts: ["5^4", "5^10", "5^3", "5^7"], ans: 2, exp: raw`$5^{5} \div 5^{2} = 5^{5 - 2} = 5^{3}$ です。` },
@@ -2724,7 +2746,7 @@
 
   const CHEM_STAGES = [
     {
-      id: "c1", num: 1, title: "物質と原子", sub: "元素・原子のつくり・状態変化", icon: "🧪", color: "#0ea5e9",
+      id: "c1", num: 1, unit: "basic", title: "物質と原子", sub: "元素・原子のつくり・状態変化", icon: "🧪", color: "#0ea5e9",
       intro: { concept: "すべてのものは原子からできている", what: "身の回りのものはすべて、100種類ほどの元素の原子の組み合わせでできています。原子は陽子・中性子・電子からできていて、陽子の数が元素を決めます。", terms: [{ word: "元素", what: "物質を構成する基本的な種類。酸素・水素・鉄など。" }, { word: "原子", what: "物質をつくる最小の粒子。陽子・中性子・電子からなる。" }, { word: "分子", what: "原子が結びついてできた、物質の性質をもつ最小の単位。" }], points: ["原子番号 = 陽子の数", "水の化学式は H₂O", "状態変化では物質そのものは変わらない"], formula: raw`$\mathrm{H_2O}$` },
       questions: [
 { q: "水素の原子番号はいくつか。", opts: ["0", "1", "2", "8"], ans: 1, exp: "水素の原子番号は1です。陽子が1個あります。" },
@@ -2740,7 +2762,7 @@
       ]
     },
     {
-      id: "c2", num: 2, title: "化学反応式とモル", sub: "質量保存・モル計算・反応式", icon: "⚗️", color: "#059669",
+      id: "c2", num: 2, unit: "amount", title: "化学反応式とモル", sub: "質量保存・モル計算・反応式", icon: "⚗️", color: "#059669",
       intro: { concept: "化学反応では原子の数が保存される", what: "化学反応では、原子は新しく生まれたり消えたりしません。並び方が変わるだけです。だから反応の前後で原子の数は同じで、全体の質量も変わりません。これを質量保存の法則といいます。", terms: [{ word: "モル", what: "物質の量の単位。1 mol は 6.0×10²³ 個の集まり。" }, { word: "化学反応式", what: "化学反応を化学式と係数で表した式。" }, { word: "質量保存の法則", what: "化学反応の前後で、物質の質量の合計は変わらないという法則。" }], points: ["化学反応式は、左右の原子の数をそろえる", "1 mol = 6.0×10²³ 個", "水 18g が 1 mol"], formula: raw`$2\mathrm{H_2} + \mathrm{O_2} → 2\mathrm{H_2O}$` },
       questions: [
 { q: raw`水の生成反応 $2\mathrm{H_2} + \mathrm{O_2} → 2\mathrm{H_2O}$ で、酸素分子1個と反応する水素分子は何個か。`, opts: ["1個", "2個", "3個", "4個"], ans: 1, exp: "反応式の係数から、水素分子2個が酸素分子1個と反応します。" },
@@ -2756,7 +2778,7 @@
       ]
     },
     {
-      id: "c3", num: 3, title: "酸・塩基とイオン", sub: "pH・中和・電解質・電気分解", icon: "🧫", color: "#db2777",
+      id: "c3", num: 3, unit: "acid", title: "酸・塩基とイオン", sub: "pH・中和・電解質・電気分解", icon: "🧫", color: "#db2777",
       intro: { concept: "酸と塩基は打ち消し合う", what: "酸性の水溶液と塩基性（アルカリ性）の水溶液をまぜると、互いの性質を打ち消し合って中性に近づきます。これを中和といい、塩と水ができます。", terms: [{ word: "中和", what: "酸と塩基がまざって、互いの性質を打ち消し合う反応。" }, { word: "電解質", what: "水にとけて、電気を通すようになる物質。" }, { word: "イオン", what: "電子を失ったり受け取ったりして、電気を帯びた原子や原子の集まり。" }], points: ["pH7 が中性、7より小さいと酸性、大きいと塩基性", "BTB溶液は酸性で黄、塩基性で青", "中和では塩と水ができる"], formula: raw`$\mathrm{HCl} + \mathrm{NaOH} → \mathrm{NaCl} + \mathrm{H_2O}$` },
       questions: [
 { q: "pH が7の水溶液の性質はどれか。", opts: ["酸性", "塩基性", "中性", "強い酸性"], ans: 2, exp: "pH7 は中性です。7より小さいと酸性、大きいと塩基性です。" },
@@ -2772,7 +2794,7 @@
       ]
     },
     {
-      id: "c4", num: 4, title: "中学復習：気体と水溶液", sub: "気体の性質・集め方・溶解度", icon: "💨", color: "#0ea5e9",
+      id: "c4", num: 4, unit: "gas", title: "中学復習：気体と水溶液", sub: "気体の性質・集め方・溶解度", icon: "💨", color: "#0ea5e9",
       intro: { concept: "気体の性質", what: "気体には、それぞれ性質と集め方・つくり方があります。性質から集め方を考えましょう。", terms: [{ word: "水上置換", what: "水にとけにくい気体を集める方法。" }, { word: "上方置換", what: "空気より軽い気体を集める方法。" }, { word: "下方置換", what: "空気より重い気体を集める方法。" }], points: ["水にとけにくい→水上置換", "空気より軽い→上方置換", "空気より重い→下方置換"], formula: "" },
       questions: [
         { q: "食塩水の性質として正しいのはどれか。", opts: ["中性である", "電気を通さない", "酸性である", "アルカリ性である"], ans: 0, exp: "食塩水は中性の水溶液です。" },
@@ -2788,7 +2810,7 @@
       ]
     },
     {
-      id: "c5", num: 5, title: "中学復習：化学変化と熱", sub: "燃焼・発熱・吸熱・質量保存", icon: "🔥", color: "#d97706",
+      id: "c5", num: 5, unit: "basic", title: "中学復習：化学変化と熱", sub: "燃焼・発熱・吸熱・質量保存", icon: "🔥", color: "#d97706",
       intro: { concept: "化学変化と熱", what: "化学変化では熱が出たり、熱を吸収したりします。質量保存の法則も忘れずに。", terms: [{ word: "発熱反応", what: "熱を出す反応。燃焼や中和。" }, { word: "吸熱反応", what: "熱を吸収する反応。" }, { word: "質量保存の法則", what: "化学変化の前後で質量の合計は変わらない。" }], points: ["燃焼・中和は発熱", "硝酸アンモニウムの溶解は吸熱", "質量の合計は変わらない"], formula: "" },
       questions: [
         { q: "質量保存の法則として正しいのはどれか。", opts: ["化学変化の前後で、物質の種類は変わらない", "化学変化の前後で、気体の質量は0になる", "化学変化の前後で、物質の質量は必ず増える", "化学変化の前後で、物質の質量の合計は変わらない"], ans: 3, exp: "化学変化では原子の種類と数が変わらないので、質量の合計は変わりません。" },
@@ -2804,7 +2826,7 @@
       ]
     },
     {
-      id: "c6", num: 6, title: "物質量と化学式の基礎", sub: "分子量・組成式・モル", icon: "⚖️", color: "#2563eb",
+      id: "c6", num: 6, unit: "amount", title: "物質量と化学式の基礎", sub: "分子量・組成式・モル", icon: "⚖️", color: "#2563eb",
       intro: { concept: "分子量", what: "分子量は原子量の合計です。1 mol は 6.0×10²³個の集まりです。", terms: [{ word: "原子量", what: "原子1個の重さの目安。" }, { word: "分子量", what: "原子量の合計。" }, { word: "モル", what: "6.0×10²³個の集まりを表す単位。" }], points: ["H=1、C=12、O=16", "分子量=原子量の合計", "1 mol=6.0×10²³個"], formula: "" },
       questions: [
         { q: "1 mol の物質に含まれる粒子の数はいくつか。", opts: ["1.0×10²³個", "6.0×10²³個", "6.0×10²⁴個", "6.0×10²²個"], ans: 1, exp: "1 mol は 6.0×10²³個の集まりです（アボガドロ数）。" },
@@ -2820,7 +2842,7 @@
       ]
     },
     {
-      id: "c7", num: 7, title: "元素と周期表", sub: "族・周期・典型元素", icon: "🧪", color: "#7c3aed",
+      id: "c7", num: 7, unit: "basic", title: "元素と周期表", sub: "族・周期・典型元素", icon: "🧪", color: "#7c3aed",
       intro: { concept: "周期表", what: "元素を原子番号順に並べたのが周期表です。族が同じ元素は性質が似ています。", terms: [{ word: "族", what: "周期表の縦の列。" }, { word: "周期", what: "周期表の横の行。" }, { word: "アルカリ金属", what: "1族の金属。" }], points: ["1族=アルカリ金属", "17族=ハロゲン", "18族=希ガス"], formula: "" },
       questions: [
         { q: "ヘリウム He は周期表のどこにあるか。", opts: ["第2周期18族", "第1周期18族", "第1周期1族", "第1周期17族"], ans: 1, exp: "ヘリウムは第1周期18族の希ガスです。" },
@@ -2836,7 +2858,7 @@
       ]
     },
     {
-      id: "c8", num: 8, title: "原子の構造とイオン", sub: "陽子・中性子・電子", icon: "⚛️", color: "#0891b2",
+      id: "c8", num: 8, unit: "basic", title: "原子の構造とイオン", sub: "陽子・中性子・電子", icon: "⚛️", color: "#0891b2",
       intro: { concept: "原子のつくり", what: "原子は陽子・中性子・電子からできています。電子の出入りでイオンになります。", terms: [{ word: "原子番号", what: "陽子の数。元素を決める。" }, { word: "質量数", what: "陽子の数＋中性子の数。" }, { word: "イオン", what: "電子の数が変わった原子。" }], points: ["陽子の数=原子番号", "質量数=陽子+中性子", "イオンは電子の数が変わった原子"], formula: "" },
       questions: [
         { q: "原子核をつくっている粒子はどれか。", opts: ["陽子と中性子", "中性子と電子", "電子だけ", "陽子と電子"], ans: 0, exp: "原子核は陽子と中性子からできていて、そのまわりを電子が回っています。" },
@@ -2852,7 +2874,7 @@
       ]
     },
     {
-      id: "c9", num: 9, title: "イオン式と化学式", sub: "イオンの組み合わせ", icon: "🧂", color: "#65a30d",
+      id: "c9", num: 9, unit: "basic", title: "イオン式と化学式", sub: "イオンの組み合わせ", icon: "🧂", color: "#65a30d",
       intro: { concept: "イオン式と化学式", what: "イオンの組み合わせで塩の化学式が決まります。全体で電気的に中性になるのがポイントです。", terms: [{ word: "イオン式", what: "イオンを表す式。" }, { word: "化学式", what: "物質の組成を表す式。" }, { word: "価数", what: "イオンのもつ電荷の数。" }], points: ["陽イオンと陰イオンを組み合わせる", "電荷の合計が0になる", "カッコを使う場合がある"], formula: "" },
       questions: [
         { q: "アンモニウムイオンのイオン式はどれか。", opts: ["NH₄⁺", "NH₄⁻", "NH₄", "NH₃⁺"], ans: 0, exp: "アンモニウムイオンは NH₄⁺ です。" },
@@ -2868,7 +2890,7 @@
       ]
     },
     {
-      id: "c10", num: 10, title: "化学結合①", sub: "イオン結合・共有結合・金属結合", icon: "🔗", color: "#db2777",
+      id: "c10", num: 10, unit: "bond", title: "化学結合①", sub: "イオン結合・共有結合・金属結合", icon: "🔗", color: "#db2777",
       intro: { concept: "化学結合", what: "原子やイオンの結びつき方には、イオン結合・共有結合・金属結合があります。", terms: [{ word: "イオン結合", what: "陽イオンと陰イオンの結びつき。" }, { word: "共有結合", what: "電子を共有する結びつき。" }, { word: "金属結合", what: "金属の結びつき。" }], points: ["金属+非金属→イオン結合", "非金属どうし→共有結合", "金属どうし→金属結合"], formula: "" },
       questions: [
         { q: "共有結合結晶の例はどれか。", opts: ["ドライアイス", "食塩", "ダイヤモンド", "水"], ans: 2, exp: "ダイヤモンドは、炭素原子が共有結合でつながった共有結合結晶です。" },
@@ -2884,7 +2906,7 @@
       ]
     },
     {
-      id: "c11", num: 11, title: "化学結合②", sub: "極性・水素結合", icon: "💧", color: "#0ea5e9",
+      id: "c11", num: 11, unit: "bond", title: "化学結合②", sub: "極性・水素結合", icon: "💧", color: "#0ea5e9",
       intro: { concept: "極性と水素結合", what: "共有結合の中には、電気的なかたより（極性）があるものや、水素結合をつくるものがあります。", terms: [{ word: "極性分子", what: "電気的なかたよりのある分子。" }, { word: "水素結合", what: "水素と F・O・N の間にできる強い結びつき。" }, { word: "電気陰性度", what: "電子を引きつける強さ。" }], points: ["水は極性分子", "CO₂は無極性分子", "水素結合で沸点が高くなる"], formula: "" },
       questions: [
         { q: "水の酸素原子がつくる共有結合の数は何本か。", opts: ["4本", "3本", "2本", "1本"], ans: 2, exp: "水の酸素原子は、水素原子と2本の共有結合をつくります。" },
@@ -2900,7 +2922,7 @@
       ]
     },
     {
-      id: "c12", num: 12, title: "物質量① 質量とモル", sub: "質量⇄モル", icon: "⚖️", color: "#2563eb",
+      id: "c12", num: 12, unit: "amount", title: "物質量① 質量とモル", sub: "質量⇄モル", icon: "⚖️", color: "#2563eb",
       intro: { concept: "質量とモル", what: "モル質量（g/mol）を使うと、質量と物質量を換算できます。", terms: [{ word: "モル質量", what: "1 mol あたりの質量。" }, { word: "物質量", what: "モルで表す物質の量。" }, { word: "アボガドロ数", what: "6.0×10²³。" }], points: ["質量=モル質量×物質量", "水のモル質量は18", "1 mol=6.0×10²³個"], formula: "" },
       questions: [
         { q: "水 9 g は何 mol か。", opts: ["1 mol", "0.5 mol", "2 mol", "1.5 mol"], ans: 1, exp: "水 のモル質量は 18 g/mol なので、9 ÷ 18 = 0.5 mol です。" },
@@ -2916,7 +2938,7 @@
       ]
     },
     {
-      id: "c13", num: 13, title: "物質量② 気体と粒子数", sub: "22.4L・アボガドロ数", icon: "🎈", color: "#059669",
+      id: "c13", num: 13, unit: "amount", title: "物質量② 気体と粒子数", sub: "22.4L・アボガドロ数", icon: "🎈", color: "#059669",
       intro: { concept: "気体と粒子数", what: "0℃、1気圧では気体 1 mol の体積は 22.4 L です。粒子数はアボガドロ数で数えます。", terms: [{ word: "標準状態", what: "0℃、1気圧のこと。" }, { word: "アボガドロ数", what: "6.0×10²³。" }, { word: "モル体積", what: "1 mol あたりの気体の体積。" }], points: ["1 mol=22.4 L（0℃、1気圧）", "1 mol=6.0×10²³個", "体積は物質の種類によらない"], formula: "" },
       questions: [
         { q: "0℃、1気圧で、気体 1.5 mol の体積は何 L か。", opts: ["33.6 L", "67.2 L", "16.8 L", "56 L"], ans: 0, exp: "0℃、1気圧では、気体 1 mol の体積は 22.4 L です。1.5 × 22.4 = 33.6 L です。" },
@@ -2932,7 +2954,7 @@
       ]
     },
     {
-      id: "c14", num: 14, title: "化学反応式①", sub: "係数の決め方", icon: "📝", color: "#d97706",
+      id: "c14", num: 14, unit: "amount", title: "化学反応式①", sub: "係数の決め方", icon: "📝", color: "#d97706",
       intro: { concept: "化学反応式の係数", what: "化学反応式は、反応の前後で原子の数が同じになるように係数をつけます。", terms: [{ word: "化学反応式", what: "化学変化を化学式で表したもの。" }, { word: "係数", what: "化学式の前につく数。" }, { word: "原子の数", what: "反応の前後で変わらない。" }], points: ["左右の原子の数をそろえる", "係数は最も簡単な整数比", "燃焼の反応式を覚える"], formula: "" },
       questions: [
         { q: "炭素が燃える反応 C + O₂ → CO₂ で、O₂ の係数はいくつか。", opts: ["2", "1", "3", "0"], ans: 1, exp: "C + O₂ → CO₂ のとおり、O₂ の係数は 1 です。" },
@@ -2948,7 +2970,7 @@
       ]
     },
     {
-      id: "c15", num: 15, title: "化学反応式②", sub: "モル比・質量保存・過不足", icon: "📝", color: "#7c3aed",
+      id: "c15", num: 15, unit: "amount", title: "化学反応式②", sub: "モル比・質量保存・過不足", icon: "📝", color: "#7c3aed",
       intro: { concept: "反応式と量的関係", what: "化学反応式の係数は、物質量の比を表します。質量保存の法則とあわせて計算します。", terms: [{ word: "モル比", what: "係数の比。物質量の比。" }, { word: "質量保存の法則", what: "反応の前後で質量の合計は変わらない。" }, { word: "過不足", what: "どちらかの物質が余ること。" }], points: ["係数比=モル比", "質量の合計は変わらない", "不足する物質に注意"], formula: "" },
       questions: [
         { q: "水素 2 g と酸素 16 g からできる水の質量は何 g か。", opts: ["17 g", "19 g", "18 g", "32 g"], ans: 2, exp: "質量保存の法則より、生成物の質量は反応物の質量の合計 2 + 16 = 18 g です。" },
@@ -2964,7 +2986,7 @@
       ]
     },
     {
-      id: "c16", num: 16, title: "酸と塩基①", sub: "酸・塩基・電離", icon: "🧪", color: "#0891b2",
+      id: "c16", num: 16, unit: "acid", title: "酸と塩基①", sub: "酸・塩基・電離", icon: "🧪", color: "#0891b2",
       intro: { concept: "酸と塩基", what: "酸は H⁺ を出す物質、塩基は OH⁻ を出す物質です。電離のようすを覚えましょう。", terms: [{ word: "酸", what: "H⁺ を出す物質。" }, { word: "塩基", what: "OH⁻ を出す物質。" }, { word: "電離", what: "水にとけてイオンに分かれること。" }], points: ["塩酸は強酸", "酢酸は弱酸", "水酸化ナトリウムは強塩基"], formula: "" },
       questions: [
         { q: "アンモニアの水溶液の性質はどれか。", opts: ["中性", "酸性", "塩基性（アルカリ性）", "塩基性ではない"], ans: 2, exp: "アンモニアは水にとけて OH⁻ を生じ、塩基性を示します。" },
@@ -2980,7 +3002,7 @@
       ]
     },
     {
-      id: "c17", num: 17, title: "酸と塩基② pHと中和", sub: "pH・中和のモル比・指示薬", icon: "⚗️", color: "#65a30d",
+      id: "c17", num: 17, unit: "acid", title: "酸と塩基② pHと中和", sub: "pH・中和のモル比・指示薬", icon: "⚗️", color: "#65a30d",
       intro: { concept: "pHと中和", what: "pH は水素イオン濃度の目安です。中和では酸と塩基が過不足なく反応して塩と水ができます。", terms: [{ word: "pH", what: "水素イオン濃度の目安。" }, { word: "中和", what: "酸と塩基が反応して塩と水ができること。" }, { word: "指示薬", what: "酸性・塩基性で色が変わる薬品。" }], points: ["pH7が中性", "pHが小さいほど酸性が強い", "中和のモル比に注意"], formula: "" },
       questions: [
         { q: "中性の水溶液の pH はいくつか。", opts: ["14", "0", "1", "7"], ans: 3, exp: "25℃では、中性の水溶液の pH は 7 です。" },
@@ -2996,7 +3018,7 @@
       ]
     },
     {
-      id: "c18", num: 18, title: "酸化還元①", sub: "酸化数・酸化と還元", icon: "🔄", color: "#db2777",
+      id: "c18", num: 18, unit: "acid", title: "酸化還元①", sub: "酸化数・酸化と還元", icon: "🔄", color: "#db2777",
       intro: { concept: "酸化数", what: "酸化数は、原子がもつ電荷の目安です。酸化・還元を見分ける道具になります。", terms: [{ word: "酸化数", what: "原子がもつ電荷の目安。" }, { word: "酸化", what: "電子を失う変化。" }, { word: "還元", what: "電子を受け取る変化。" }], points: ["酸化は電子を失う", "還元は電子を受け取る", "単体の酸化数は0"], formula: "" },
       questions: [
         { q: "還元とは、電子のやり取りでいうとどのような変化か。", opts: ["陽子を受け取る変化", "電子を受け取る変化", "電子の数が変わらない変化", "電子を失う変化"], ans: 1, exp: "還元は電子を受け取る変化です。" },
@@ -3012,7 +3034,7 @@
       ]
     },
     {
-      id: "c19", num: 19, title: "酸化還元②", sub: "酸化剤・還元剤・半反応式", icon: "🔄", color: "#dc2626",
+      id: "c19", num: 19, unit: "acid", title: "酸化還元②", sub: "酸化剤・還元剤・半反応式", icon: "🔄", color: "#dc2626",
       intro: { concept: "酸化剤と還元剤", what: "酸化剤は相手を酸化し、還元剤は相手を還元します。半反応式で電子の動きを追いましょう。", terms: [{ word: "酸化剤", what: "相手を酸化する物質。" }, { word: "還元剤", what: "相手を還元する物質。" }, { word: "半反応式", what: "酸化・還元を別々に表した式。" }], points: ["酸化剤は自分が還元される", "還元剤は自分が酸化される", "燃焼は酸化還元反応"], formula: "" },
       questions: [
         { q: "銅イオン Cu²⁺ が銅 Cu になるときの半反応式はどれか。", opts: ["Cu → Cu²⁺ + 2e⁻", "Cu + 2e⁻ → Cu²⁻", "Cu²⁺ + 2e⁻ → Cu", "Cu²⁺ → Cu + 2e⁻"], ans: 2, exp: "銅イオンが還元されるとき、電子を2個受け取ります。" },
@@ -3028,7 +3050,7 @@
       ]
     },
     {
-      id: "c20", num: 20, title: "気体の法則", sub: "ボイル・シャルル・状態方程式", icon: "🎈", color: "#2563eb",
+      id: "c20", num: 20, unit: "gas", title: "気体の法則", sub: "ボイル・シャルル・状態方程式", icon: "🎈", color: "#2563eb",
       intro: { concept: "気体の法則", what: "ボイルの法則とシャルルの法則をあわせると、pV=nRT になります。温度は絶対温度で考えます。", terms: [{ word: "ボイルの法則", what: "温度一定で、圧力×体積=一定。" }, { word: "シャルルの法則", what: "圧力一定で、体積÷絶対温度=一定。" }, { word: "絶対温度", what: "0℃=273K の温度。" }], points: ["pV=一定（温度一定）", "V/T=一定（圧力一定）", "0℃=273K"], formula: raw`$pV = nRT$` },
       questions: [
         { q: "理想気体の状態方程式はどれか。", opts: ["pV = nR/T", "pT = nRV", "p/V = nRT", "pV = nRT"], ans: 3, exp: "理想気体の状態方程式は pV = nRT です。" },
@@ -3044,7 +3066,7 @@
       ]
     },
     {
-      id: "c21", num: 21, title: "溶液の濃度①", sub: "質量パーセント濃度", icon: "🥛", color: "#059669",
+      id: "c21", num: 21, unit: "gas", title: "溶液の濃度①", sub: "質量パーセント濃度", icon: "🥛", color: "#059669",
       intro: { concept: "質量パーセント濃度", what: "質量パーセント濃度は、溶液100 g あたりの溶質の質量です。", terms: [{ word: "質量パーセント濃度", what: "溶液100 g あたりの溶質の質量。" }, { word: "溶質", what: "とかす物質。" }, { word: "溶液", what: "溶質と溶媒をあわせたもの。" }], points: ["濃度=溶質÷溶液×100", "溶液=溶質+溶媒", "単位は％"], formula: "" },
       questions: [
         { q: "溶質 25g をとかして溶液 100g をつくった。この水溶液の質量パーセント濃度は何％か。", opts: ["35％", "30％", "50％", "25％"], ans: 3, exp: "質量パーセント濃度 = 溶質の質量 ÷ 溶液の質量 × 100 = 25 ÷ 100 × 100 = 25％ です。" },
@@ -3060,7 +3082,7 @@
       ]
     },
     {
-      id: "c22", num: 22, title: "溶液の濃度②", sub: "モル濃度・希釈", icon: "🥛", color: "#d97706",
+      id: "c22", num: 22, unit: "gas", title: "溶液の濃度②", sub: "モル濃度・希釈", icon: "🥛", color: "#d97706",
       intro: { concept: "モル濃度", what: "モル濃度は、溶液 1 L あたりの溶質の物質量です。希釈では溶質の量が変わりません。", terms: [{ word: "モル濃度", what: "溶液1 L あたりの溶質の物質量。" }, { word: "希釈", what: "水を加えてうすめること。" }, { word: "物質量", what: "モルで表す物質の量。" }], points: ["モル濃度=物質量÷体積", "希釈では溶質の量は一定", "単位は mol/L"], formula: "" },
       questions: [
         { q: "溶質 1 mol を水にとかして 2 L の水溶液をつくった。この水溶液のモル濃度は何 mol/L か。", opts: ["2 mol/L", "1 mol/L", "1.5 mol/L", "0.5 mol/L"], ans: 3, exp: "モル濃度 = 溶質の物質量 ÷ 溶液の体積 = 1 ÷ 2 = 0.5 mol/L です。" },
@@ -3076,7 +3098,7 @@
       ]
     },
     {
-      id: "c23", num: 23, title: "電池", sub: "ダニエル電池・ボルタ電池", icon: "🔋", color: "#7c3aed",
+      id: "c23", num: 23, unit: "battery", title: "電池", sub: "ダニエル電池・ボルタ電池", icon: "🔋", color: "#7c3aed",
       intro: { concept: "電池", what: "電池は、酸化還元反応で化学エネルギーを電気エネルギーに変える装置です。", terms: [{ word: "ダニエル電池", what: "亜鉛と銅の電池。" }, { word: "負極", what: "電子を出す極。酸化される。" }, { word: "正極", what: "電子を受け取る極。還元される。" }], points: ["負極で酸化", "正極で還元", "イオン化傾向が大きいほうが負極"], formula: "" },
       questions: [
         { q: "イオン化傾向が大きいのはどれか。", opts: ["金 Au", "銅 Cu（亜鉛より大きい）", "銀 Ag", "亜鉛 Zn（銅より大きい）"], ans: 3, exp: "イオン化傾向は Zn ＞ Cu で、亜鉛のほうがイオンになりやすいです。" },
@@ -3092,7 +3114,7 @@
       ]
     },
     {
-      id: "c24", num: 24, title: "電気分解", sub: "水の電気分解・陰極と陽極", icon: "⚡", color: "#0891b2",
+      id: "c24", num: 24, unit: "battery", title: "電気分解", sub: "水の電気分解・陰極と陽極", icon: "⚡", color: "#0891b2",
       intro: { concept: "電気分解", what: "電気分解は、電気の力で化学変化を起こすことです。陰極で還元、陽極で酸化が起こります。", terms: [{ word: "陰極", what: "電子を受け取る極。還元が起こる。" }, { word: "陽極", what: "電子を失う極。酸化が起こる。" }, { word: "ファラデー定数", what: "電子 1 mol あたりの電気量。" }], points: ["陰極で還元", "陽極で酸化", "水の電気分解は水素：酸素=2：1"], formula: "" },
       questions: [
         { q: "水の電気分解で発生する水素と酸素の体積比はどれか。", opts: ["水素：酸素 = 1：1", "水素：酸素 = 3：1", "水素：酸素 = 1：2", "水素：酸素 = 2：1"], ans: 3, exp: "水の電気分解では、水素が酸素の2倍の体積で発生します。" },
@@ -3108,7 +3130,7 @@
       ]
     },
     {
-      id: "c25", num: 25, title: "有機化学① 炭化水素", sub: "アルカン・アルケン・異性体", icon: "⛽", color: "#65a30d",
+      id: "c25", num: 25, unit: "organic", title: "有機化学① 炭化水素", sub: "アルカン・アルケン・異性体", icon: "⛽", color: "#65a30d",
       intro: { concept: "炭化水素", what: "炭素と水素だけからなる化合物が炭化水素です。アルカン・アルケン・アルキンなどがあります。", terms: [{ word: "アルカン", what: "単結合だけの炭化水素。" }, { word: "アルケン", what: "二重結合をもつ炭化水素。" }, { word: "異性体", what: "分子式が同じで構造が異なるもの。" }], points: ["アルカンは CₙH₂ₙ₊₂", "二重結合があると不飽和", "ブタンには異性体が2種"], formula: "" },
       questions: [
         { q: "ペンタンの異性体は何種類あるか。", opts: ["4種類", "2種類", "1種類", "3種類"], ans: 3, exp: "ペンタンには、3種類の異性体があります。" },
@@ -3124,7 +3146,7 @@
       ]
     },
     {
-      id: "c26", num: 26, title: "有機化学② 官能基と身の回り", sub: "アルコール・カルボン酸", icon: "🧴", color: "#db2777",
+      id: "c26", num: 26, unit: "organic", title: "有機化学② 官能基と身の回り", sub: "アルコール・カルボン酸", icon: "🧴", color: "#db2777",
       intro: { concept: "官能基", what: "官能基がちがうと、物質の性質が大きく変わります。-OH、-COOH、-CHO、-NH₂ を覚えましょう。", terms: [{ word: "官能基", what: "性質を決める原子の集まり。" }, { word: "アルコール", what: "-OH をもつ化合物。" }, { word: "カルボン酸", what: "-COOH をもつ化合物。" }], points: ["-OHはアルコール", "-COOHはカルボン酸", "-CHOはアルデヒド"], formula: "" },
       questions: [
         { q: "エタノールの分子式はどれか。", opts: ["C₂H₄", "CH₃OH", "CH₃COOH", "C₂H₅OH"], ans: 3, exp: "エタノールは C₂H₅OH です。" },
@@ -3140,7 +3162,7 @@
       ]
     },
     {
-      id: "c27", num: 27, title: "状態変化と溶解", sub: "融点・沸点・溶解度", icon: "🧊", color: "#0ea5e9",
+      id: "c27", num: 27, unit: "organic", title: "状態変化と溶解", sub: "融点・沸点・溶解度", icon: "🧊", color: "#0ea5e9",
       intro: { concept: "状態変化", what: "融解・凝固・蒸発・凝縮・昇華は、物質の状態の変化です。溶解度は温度で変わります。", terms: [{ word: "状態変化", what: "固体・液体・気体の間の変化。" }, { word: "溶解度", what: "水100 g にとける物質の最大量。" }, { word: "再結晶", what: "溶解度の差で純粋な結晶を取り出す方法。" }], points: ["水の融点0℃・沸点100℃", "固体は温度↑でとけやすくなる", "気体は温度↑でとけにくくなる"], formula: "" },
       questions: [
         { q: "固体の溶解度と温度の関係として正しいのはどれか。", opts: ["温度が上がると、ふつう溶解度は上がる", "温度が上がると0になる", "温度が上がると、ふつう溶解度は下がる", "温度に関係なく一定である"], ans: 0, exp: "固体の溶解度は、ふつう温度が上がると大きくなります。" },
@@ -3156,7 +3178,7 @@
       ]
     },
     {
-      id: "c28", num: 28, title: "化学平衡と反応速度", sub: "ルシャトリエ・触媒", icon: "⚖️", color: "#dc2626",
+      id: "c28", num: 28, unit: "organic", title: "化学平衡と反応速度", sub: "ルシャトリエ・触媒", icon: "⚖️", color: "#dc2626",
       intro: { concept: "化学平衡", what: "正反応と逆反応の速さが等しくなった状態が化学平衡です。条件を変えると平衡は移動します。", terms: [{ word: "ルシャトリエの原理", what: "条件を変えると、それを打ち消す向きに平衡が移動する。" }, { word: "触媒", what: "反応速度を速くする物質。" }, { word: "活性化エネルギー", what: "反応に必要な最小のエネルギー。" }], points: ["触媒は平衡を移動させない", "温度↑で吸熱方向へ", "圧力↑でモル数が減る向きへ"], formula: "" },
       questions: [
         { q: "触媒のはたらきとして正しいのはどれか。", opts: ["反応熱を変える", "反応速度を速くするが、平衡は移動しない", "平衡を生成物の向きに移動させる", "反応速度を遅くする"], ans: 1, exp: "触媒は活性化エネルギーを下げて反応速度を速くしますが、平衡の位置は変えません。" },
@@ -3172,7 +3194,7 @@
       ]
     },
     {
-      id: "c29", num: 29, title: "高分子化合物", sub: "天然・合成・重合", icon: "🧶", color: "#2563eb",
+      id: "c29", num: 29, unit: "organic", title: "高分子化合物", sub: "天然・合成・重合", icon: "🧶", color: "#2563eb",
       intro: { concept: "高分子化合物", what: "小さな分子（単量体）がたくさんつながったものが高分子化合物です。天然と合成があります。", terms: [{ word: "単量体", what: "高分子のもとになる小さな分子。" }, { word: "重合", what: "単量体がつながる反応。" }, { word: "付加重合・縮合重合", what: "重合の2つのタイプ。" }], points: ["デンプンは天然高分子", "ポリエチレンは合成高分子", "付加重合と縮合重合"], formula: "" },
       questions: [
         { q: "天然高分子にあてはまるのはどれか。", opts: ["ポリエステル", "ナイロン", "ポリスチレン", "タンパク質"], ans: 3, exp: "タンパク質は、アミノ酸がつながった天然高分子です。" },
@@ -3188,7 +3210,7 @@
       ]
     },
     {
-      id: "c30", num: 30, title: "金属とイオン化傾向", sub: "反応性・さび・製錬", icon: "🔩", color: "#059669",
+      id: "c30", num: 30, unit: "organic", title: "金属とイオン化傾向", sub: "反応性・さび・製錬", icon: "🔩", color: "#059669",
       intro: { concept: "イオン化傾向", what: "金属が陽イオンになりやすさの順がイオン化傾向です。反応性の目安になります。", terms: [{ word: "イオン化傾向", what: "金属が陽イオンになりやすさ。" }, { word: "さび", what: "金属が酸化されること。" }, { word: "製錬", what: "鉱石から金属を取り出すこと。" }], points: ["K＞Ca＞Na＞Mg＞Al＞Zn＞Fe", "Cuは塩酸と反応しない", "金はさびにくい"], formula: "" },
       questions: [
         { q: "鉄の製錬で、酸化鉄を還元するものはどれか。", opts: ["酸素", "水素", "塩酸", "コークス（炭素）"], ans: 3, exp: "製鉄では、コークス（炭素）が酸化鉄から酸素をうばって鉄を取り出します。" },
@@ -3204,7 +3226,7 @@
       ]
     },
     {
-      id: "cc1", num: 31, title: "総合チャレンジ①", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc1", num: 31, unit: "challenge", title: "総合チャレンジ①", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: "元素記号 Na は何という元素か。", opts: ["窒素", "ナトリウム", "ニッケル", "鉛"], ans: 1, exp: "Na はナトリウム（Natrium）の元素記号です。" },
@@ -3222,7 +3244,7 @@
       ]
     },
     {
-      id: "cc2", num: 32, title: "総合チャレンジ②", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc2", num: 32, unit: "challenge", title: "総合チャレンジ②", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: "水素 2g は何 mol か。ただし H=1 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "4 mol"], ans: 1, exp: "水素分子 H₂ の分子量は 1×2 = 2 なので、2g は 1 mol です。" },
@@ -3240,7 +3262,7 @@
       ]
     },
     {
-      id: "cc3", num: 33, title: "総合チャレンジ③", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc3", num: 33, unit: "challenge", title: "総合チャレンジ③", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: "pH が3の水溶液の性質はどれか。", opts: ["酸性", "塩基性", "中性", "どれでもない"], ans: 0, exp: "pH は7より小さいと酸性です。pH3 は酸性です。" },
@@ -3258,7 +3280,7 @@
       ]
     },
     {
-      id: "cc4", num: 34, title: "総合チャレンジ④", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc4", num: 34, unit: "challenge", title: "総合チャレンジ④", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: "二酸化炭素 CO₂ 44g は何 mol か。ただし C=12、O=16 とする。", opts: ["0.5 mol", "1 mol", "2 mol", "4 mol"], ans: 1, exp: "CO₂ の分子量は 12 + 16×2 = 44 なので、44g は 1 mol です。" },
@@ -3276,7 +3298,7 @@
       ]
     },
     {
-      id: "cc5", num: 35, title: "総合チャレンジ⑤", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc5", num: 35, unit: "challenge", title: "総合チャレンジ⑤", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
 { q: "塩化ナトリウムの結晶をつくる結合はどれか。", opts: ["共有結合", "イオン結合", "金属結合", "水素結合"], ans: 1, exp: "Na⁺ と Cl⁻ が電気的な力で結びつくイオン結合です。" },
@@ -3294,7 +3316,7 @@
       ]
     },
     {
-      id: "cc6", num: 36, title: "総合チャレンジ⑥", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc6", num: 36, unit: "challenge", title: "総合チャレンジ⑥", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "融点が高いのはどれか。", opts: ["食塩（イオン結晶）", "エタノール", "水", "ドライアイス（分子結晶）"], ans: 0, exp: "イオン結晶はイオン同士の結びつきが強く、融点が高くなります。" },
@@ -3312,7 +3334,7 @@
       ]
     },
     {
-      id: "cc7", num: 37, title: "総合チャレンジ⑦", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc7", num: 37, unit: "challenge", title: "総合チャレンジ⑦", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "塩酸と水酸化ナトリウムの中和でできる塩はどれか。", opts: ["塩化ナトリウム NaCl", "硫酸ナトリウム Na₂SO₄", "酢酸ナトリウム CH₃COONa", "炭酸ナトリウム Na₂CO₃"], ans: 0, exp: "HCl + NaOH → NaCl + H₂O の中和で、塩化ナトリウムができます。" },
@@ -3330,7 +3352,7 @@
       ]
     },
     {
-      id: "cc8", num: 38, title: "総合チャレンジ⑧", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc8", num: 38, unit: "challenge", title: "総合チャレンジ⑧", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "水酸化ナトリウムが水にとけると、どのように電離するか。", opts: ["電離しない", "Na⁺ と Cl⁻ に分かれる", "H⁺ と OH⁻ に分かれる", "Na⁺ と OH⁻ に分かれる"], ans: 3, exp: "水酸化ナトリウムは水中で Na⁺ と OH⁻ に電離します。" },
@@ -3348,7 +3370,7 @@
       ]
     },
     {
-      id: "cc9", num: 39, title: "総合チャレンジ⑨", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc9", num: 39, unit: "challenge", title: "総合チャレンジ⑨", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "固体の溶解度と温度の関係として正しいのはどれか。", opts: ["温度が上がると、ふつう溶解度は上がる", "温度が上がると0になる", "温度に関係なく一定である", "温度が上がると、ふつう溶解度は下がる"], ans: 0, exp: "固体の溶解度は、ふつう温度が上がると大きくなります。" },
@@ -3366,7 +3388,7 @@
       ]
     },
     {
-      id: "cc10", num: 40, title: "総合チャレンジ⑩", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc10", num: 40, unit: "challenge", title: "総合チャレンジ⑩", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "アルミニウムがさびにくいのはなぜか。", opts: ["融点が低いから", "水にとけないから", "イオン化傾向が小さいから", "表面に酸化被膜ができるから"], ans: 3, exp: "アルミニウムは表面にうすい酸化被膜ができ、それ以上さびにくくなります。" },
@@ -3384,7 +3406,7 @@
       ]
     },
     {
-      id: "cc11", num: 41, title: "総合チャレンジ⑪", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc11", num: 41, unit: "challenge", title: "総合チャレンジ⑪", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "再結晶で純粋な結晶を取り出すときに利用する性質はどれか。", opts: ["温度による溶解度のちがい", "密度のちがい", "沸点のちがい", "色のちがい"], ans: 0, exp: "再結晶は、温度による溶解度のちがいを利用します。" },
@@ -3402,7 +3424,7 @@
       ]
     },
     {
-      id: "cc12", num: 42, title: "総合チャレンジ⑫", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc12", num: 42, unit: "challenge", title: "総合チャレンジ⑫", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "エタノールの沸点は何℃か。", opts: ["78℃", "65℃", "100℃", "0℃"], ans: 0, exp: "エタノールの沸点は 78℃ で、水より低くなります。" },
@@ -3420,7 +3442,7 @@
       ]
     },
     {
-      id: "cc13", num: 43, title: "総合チャレンジ⑬", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc13", num: 43, unit: "challenge", title: "総合チャレンジ⑬", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "塩化銅水溶液を電気分解したとき、陽極にできるものはどれか。", opts: ["酸素", "銅", "水素", "塩素"], ans: 3, exp: "塩化銅水溶液の電気分解では、陽極で塩化物イオンが酸化されて塩素が発生します。" },
@@ -3438,7 +3460,7 @@
       ]
     },
     {
-      id: "cc14", num: 44, title: "総合チャレンジ⑭", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc14", num: 44, unit: "challenge", title: "総合チャレンジ⑭", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "還元剤として使われるものはどれか。", opts: ["過マンガン酸カリウム", "塩素", "濃硫酸", "水素"], ans: 3, exp: "水素は、相手を還元する還元剤です。" },
@@ -3456,7 +3478,7 @@
       ]
     },
     {
-      id: "cc15", num: 45, title: "総合チャレンジ⑮", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
+      id: "cc15", num: 45, unit: "challenge", title: "総合チャレンジ⑮", sub: "これまでの内容の総まとめ", icon: "🔥", color: "#dc2626", challenge: true,
       intro: { concept: "総合チャレンジ", what: "これまでの内容の総まとめです。いろいろな単元から出題されます。", terms: [{ word: "復習", what: "間違えた問題は、復習モードでもう一度解いてみましょう。" }, { word: "得点", what: "1問10XP、全問正解でボーナス15XPです。" }, { word: "時間", what: "かかった時間で列車ランクが決まります。" }], points: ["いろいろな単元から出題される", "全問正解をめざそう", "わからない問題は解説で確認"], formula: "" },
       questions: [
         { q: "塩化銅水溶液を電気分解したとき、陰極にできるものはどれか。", opts: ["水素", "塩素", "銅", "酸素"], ans: 2, exp: "塩化銅水溶液の電気分解では、陰極で銅イオンが還元されて銅ができます。" },
@@ -3479,7 +3501,7 @@
   // ===== 英語・国語ステージ（外部データ組み込み）ここから =====
   const ENG_STAGES = [
     {
-      id: "e1", num: 1, title: "単語のきほん①", sub: "日常でよく使う基本動詞", icon: "🏃", color: "#2563eb",
+      id: "e1", num: 1, unit: "vocab", title: "単語のきほん①", sub: "日常でよく使う基本動詞", icon: "🏃", color: "#2563eb",
       questions: [
         { q: "次の英語の意味として最も適切なものを選びなさい。\n\narrive", opts: ["出発する", "滞在する", "迷子になる", "到着する"], ans: 3, exp: "arrive は「到着する」という意味の動詞です。後ろに at や in を伴って目的地を表します。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nPlease (　　) me your new smartphone.", opts: ["see", "watch", "look", "show"], ans: 3, exp: "「（人）に（物）を見せる」は show ＋ 人 ＋ 物 の語順で表します。" },
@@ -3494,7 +3516,7 @@
       ]
     },
     {
-      id: "e2", num: 2, title: "単語のきほん②", sub: "動きや変化を表す重要動詞", icon: "🔄", color: "#0284c7",
+      id: "e2", num: 2, unit: "vocab", title: "単語のきほん②", sub: "動きや変化を表す重要動詞", icon: "🔄", color: "#0284c7",
       questions: [
         { q: "次の英語の意味として最も適切なものを選びなさい。\n\nreceive", opts: ["送る", "断る", "返す", "受け取る"], ans: 3, exp: "receive は「受け取る、もらう」という意味の動詞で、手紙やメール、贈り物などに使われます。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nThe population of this city is (　　) rapidly.", opts: ["planting", "building", "growing", "raising"], ans: 2, exp: "grow は「成長する、増加する」という意味の自動詞で、人口や植物などが大きくなる様子を表します。" },
@@ -3509,7 +3531,7 @@
       ]
     },
     {
-      id: "e3", num: 3, title: "身近な名詞①", sub: "学校・生活・自然の単語", icon: "🏫", color: "#0d9488",
+      id: "e3", num: 3, unit: "vocab", title: "身近な名詞①", sub: "学校・生活・自然の単語", icon: "🏫", color: "#0d9488",
       questions: [
         { q: "次の英語の意味として最も適切なものを選びなさい。\n\nsubject", opts: ["宿題", "教科書", "時間割", "教科・科目"], ans: 3, exp: "subject は「教科、科目」や「話題、主題」という意味の名詞です。" },
         { q: "「季節」という意味を表す英語を選びなさい。", opts: ["season", "lesson", "person", "reason"], ans: 0, exp: "season は「季節」です。reason（理由）とスペルが似ているので区別して覚えましょう。" },
@@ -3524,7 +3546,7 @@
       ]
     },
     {
-      id: "e4", num: 4, title: "身近な名詞②", sub: "抽象的な意味をもつ重要名詞", icon: "💡", color: "#16a34a",
+      id: "e4", num: 4, unit: "vocab", title: "身近な名詞②", sub: "抽象的な意味をもつ重要名詞", icon: "💡", color: "#16a34a",
       questions: [
         { q: "次の英語の意味として最も適切なものを選びなさい。\n\nexperience", opts: ["説明", "実験", "経験", "表現"], ans: 2, exp: "experience は「経験、体験」という意味の名詞です。数えられる場合と数えられない場合があります。" },
         { q: "「機会、チャンス」という意味を表す英語を選びなさい。", opts: ["opposite", "operation", "opportunity", "opinion"], ans: 2, exp: "opportunity は chance とほぼ同じ「機会」という意味の少し硬めな表現です。" },
@@ -3539,7 +3561,7 @@
       ]
     },
     {
-      id: "e5", num: 5, title: "表現を広げる形容詞①", sub: "様子・感情を表す形容詞", icon: "😊", color: "#ca8a04",
+      id: "e5", num: 5, unit: "vocab", title: "表現を広げる形容詞①", sub: "様子・感情を表す形容詞", icon: "😊", color: "#ca8a04",
       questions: [
         { q: "次の英語の意味として最も適切なものを選びなさい。\n\nnervous", opts: ["緊張している・不安な", "怒っている", "退屈している", "眠たい"], ans: 0, exp: "nervous は試験やスピーチの前などに「緊張して、ソワソワして」いる状態を表す形容詞です。" },
         { q: "「有名な」という意味を表す形容詞を選びなさい。", opts: ["favorite", "famous", "fantastic", "familiar"], ans: 1, exp: "famous は「有名な」という意味で、be famous for 〜（〜で有名だ）の形でよく使われます。" },
@@ -3554,7 +3576,7 @@
       ]
     },
     {
-      id: "e6", num: 6, title: "表現を広げる形容詞②", sub: "性質・程度を表す形容詞", icon: "✨", color: "#ea580c",
+      id: "e6", num: 6, unit: "vocab", title: "表現を広げる形容詞②", sub: "性質・程度を表す形容詞", icon: "✨", color: "#ea580c",
       questions: [
         { q: "次の英語の意味として最も適切なものを選びなさい。\n\nconvenient", opts: ["不便な", "便利な", "高価な", "危険な"], ans: 1, exp: "convenient は「便利な、都合がよい」という意味の形容詞です。反対語は inconvenient です。" },
         { q: "「必要な」という意味を表す形容詞を選びなさい。", opts: ["natural", "necessary", "normal", "national"], ans: 1, exp: "necessary は「必要な」という意味で、It is necessary for 人 to 〜 の構文でもよく登場します。" },
@@ -3569,7 +3591,7 @@
       ]
     },
     {
-      id: "e7", num: 7, title: "文を彩る副詞", sub: "頻度・程度・時を表す副詞", icon: "⏱️", color: "#7c3aed",
+      id: "e7", num: 7, unit: "vocab", title: "文を彩る副詞", sub: "頻度・程度・時を表す副詞", icon: "⏱️", color: "#7c3aed",
       questions: [
         { q: "次の頻度の副詞のうち、最も頻度が高いものを選びなさい。", opts: ["sometimes", "seldom", "often", "usually"], ans: 3, exp: "頻度の高い順に always（いつも）＞ usually（たいてい）＞ often（よく）＞ sometimes（時々）＞ seldom（めったに〜ない）となります。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nI can (　　) hear you because the music is too loud.", opts: ["clearly", "hardly", "easily", "hard"], ans: 1, exp: "hardly は「ほとんど〜ない」という否定の意味を持つ副詞です。hard（一生懸命に）とは全く意味が異なります。" },
@@ -3584,7 +3606,7 @@
       ]
     },
     {
-      id: "e8", num: 8, title: "基本の熟語・連語", sub: "動詞＋前置詞・副詞の重要表現", icon: "🔗", color: "#db2777",
+      id: "e8", num: 8, unit: "vocab", title: "基本の熟語・連語", sub: "動詞＋前置詞・副詞の重要表現", icon: "🔗", color: "#db2777",
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\nPlease look (　　) my dog while I am away.", opts: ["after", "up", "for", "at"], ans: 0, exp: "look after 〜 で「〜の世話をする」という意味になります。take care of 〜 と同じ意味です。" },
         { q: "「〜をあきらめる」という意味を表す熟語を選びなさい。", opts: ["give up", "stand up", "wake up", "get up"], ans: 0, exp: "give up で「あきらめる、やめる」という意味になります。後ろに動詞を続けるときは動名詞（-ing）にします。" },
@@ -3599,7 +3621,7 @@
       ]
     },
     {
-      id: "e9", num: 9, title: "時制のマスター①", sub: "現在・過去・進行形・未来表現", icon: "⏳", color: "#2563eb",
+      id: "e9", num: 9, unit: "grammar", title: "時制のマスター①", sub: "現在・過去・進行形・未来表現", icon: "⏳", color: "#2563eb",
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nThe earth (　　) around the sun.", opts: ["go", "goes", "is going", "went"], ans: 1, exp: "「地球は太陽の周りを回る」のような不変の真理や科学的事実は、いつでも現在形（主語が三人称単数なので goes）で表します。" },
         { q: "空所に入る最も適切なものを選びなさい。\n\nLook! The bus (　　).", opts: ["comes", "is coming", "will came", "came"], ans: 1, exp: "Look!（見て！）とあることから、今まさに起きている動作を表す現在進行形 is coming が適切です。" },
@@ -3614,7 +3636,7 @@
       ]
     },
     {
-      id: "e10", num: 10, title: "時制のマスター②", sub: "現在完了形（継続・経験・完了）", icon: "🏁", color: "#0284c7",
+      id: "e10", num: 10, unit: "grammar", title: "時制のマスター②", sub: "現在完了形（継続・経験・完了）", icon: "🏁", color: "#0284c7",
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nI have lived in Osaka (　　) five years.", opts: ["for", "since", "during", "from"], ans: 0, exp: "five years のような「期間の長さ」を表す言葉の前には for（〜の間）を使います。since は「〜以来（起点）」を表します。" },
         { q: "空所に入る最も適切なものを選びなさい。\n\nHave you (　　) visited Hokkaido?", opts: ["ever", "never", "since", "yet"], ans: 0, exp: "現在完了形の疑問文で「今までに〜したことがありますか」と経験を尋ねるときは ever を使います。" },
@@ -3629,7 +3651,7 @@
       ]
     },
     {
-      id: "e11", num: 11, title: "助動詞の使い方①", sub: "can・must・may・shouldの基本", icon: "🔑", color: "#0d9488",
+      id: "e11", num: 11, unit: "grammar", title: "助動詞の使い方①", sub: "can・must・may・shouldの基本", icon: "🔑", color: "#0d9488",
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nYou (　　) not run in the hallway at school.", opts: ["can", "must", "don't have to", "may"], ans: 1, exp: "must not で「〜してはいけない（禁止）」を表します。don't have to は「〜する必要はない」という意味です。" },
         { q: "次の問いに対する答え方として正しいものを選びなさい。\n\nMust I finish this report today? — No, you (　　).", opts: ["can't", "mustn't", "don't have to", "may not"], ans: 2, exp: "Must I 〜? に対して「いいえ、その必要はありません」と答えるときは No, you don't have to. を使います。" },
@@ -3644,7 +3666,7 @@
       ]
     },
     {
-      id: "e12", num: 12, title: "助動詞の使い方②", sub: "推量・過去の習慣・助動詞の言い換え", icon: "💭", color: "#16a34a",
+      id: "e12", num: 12, unit: "grammar", title: "助動詞の使い方②", sub: "推量・過去の習慣・助動詞の言い換え", icon: "💭", color: "#16a34a",
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nThe light in his room is on. He (　　) be at home.", opts: ["need", "can", "should not", "must"], ans: 3, exp: "「部屋の電気がついている。彼は家にいるに違いない」という強い推量（〜に違いない）を表すときは must を使います。" },
         { q: "「〜であるはずがない」という強い否定の推量を表す助動詞を選びなさい。", opts: ["must not", "may not", "cannot", "need not"], ans: 2, exp: "cannot（can't）には「〜できない」のほかに「〜であるはずがない」という推量の意味があります。" },
@@ -3659,7 +3681,7 @@
       ]
     },
     {
-      id: "e13", num: 13, title: "受動態（受け身）", sub: "「〜される」の形と重要表現", icon: "🔄", color: "#ca8a04",
+      id: "e13", num: 13, unit: "grammar", title: "受動態（受け身）", sub: "「〜される」の形と重要表現", icon: "🔄", color: "#ca8a04",
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nEnglish is (　　) in many countries around the world.", opts: ["speak", "speaking", "spoke", "spoken"], ans: 3, exp: "受動態（〜される）は be動詞 ＋ 過去分詞 で作ります。speak の過去分詞は spoken です。" },
         { q: "空所に入る最も適切なものを選びなさい。\n\nThis temple was (　　) about 500 years ago.", opts: ["build", "built", "building", "builds"], ans: 1, exp: "500年前に「建てられた」という過去の受動態なので、was ＋ 過去分詞（built）の形にします。" },
@@ -3674,7 +3696,7 @@
       ]
     },
     {
-      id: "e14", num: 14, title: "比較の表現", sub: "原級・比較級・最上級のルールと熟語", icon: "📊", color: "#ea580c",
+      id: "e14", num: 14, unit: "grammar", title: "比較の表現", sub: "原級・比較級・最上級のルールと熟語", icon: "📊", color: "#ea580c",
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nKen is (　　) than his brother.", opts: ["taller", "more tall", "tallest", "tall"], ans: 0, exp: "than（〜よりも）があるので比較級を使います。tall のような短い語は語尾に -er をつけて taller にします。" },
         { q: "空所に入る最も適切なものを選びなさい。\n\nThis book is (　　) interesting than that one.", opts: ["more", "most", "much", "very"], ans: 0, exp: "interesting のような長い形容詞の比較級は、前に more を置いて more interesting とします。" },
@@ -3689,7 +3711,7 @@
       ]
     },
     {
-      id: "e15", num: 15, title: "不定詞の3用法", sub: "名詞的・形容詞的・副詞的用法", icon: "🎯", color: "#7c3aed",
+      id: "e15", num: 15, unit: "grammar", title: "不定詞の3用法", sub: "名詞的・形容詞的・副詞的用法", icon: "🎯", color: "#7c3aed",
       questions: [
         { q: "次の文の下線部の不定詞と同じ用法（名詞的用法）の文を選びなさい。\n\nMy dream is <u>to be</u> a doctor.", opts: ["I went to the library to study.", "I am glad to see you.", "He has a lot of homework to do.", "To read books is fun."], ans: 3, exp: "問題文は「〜すること」という名詞的用法です。選択肢の To read books is fun.（本を読むことは楽しい）も同じ名詞的用法です。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nI want something cold (　　).", opts: ["drank", "drink", "to drink", "drinking"], ans: 2, exp: "「何か冷たい飲み物（飲むためのもの）」と後ろから something cold を修飾する不定詞の形容詞的用法 to drink を入れます。" },
@@ -3704,7 +3726,7 @@
       ]
     },
     {
-      id: "e16", num: 16, title: "動名詞と不定詞の使い分け", sub: "「〜すること」を表す動詞の後ろの形", icon: "⚖️", color: "#db2777",
+      id: "e16", num: 16, unit: "grammar", title: "動名詞と不定詞の使い分け", sub: "「〜すること」を表す動詞の後ろの形", icon: "⚖️", color: "#db2777",
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\nShe enjoys (　　) tennis with her friends.", opts: ["to play", "play", "played", "playing"], ans: 3, exp: "enjoy（楽しむ）は目的語に動名詞（-ing）だけをとる動詞です。to play は使えません。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nHave you finished (　　) your dinner yet?", opts: ["to eat", "eat", "ate", "eating"], ans: 3, exp: "finish（〜し終える）も目的語に動名詞（-ing）だけをとる代表的な動詞です。" },
@@ -3719,7 +3741,7 @@
       ]
     },
     {
-      id: "e17", num: 17, title: "分詞の形容詞的用法", sub: "現在分詞(-ing)と過去分詞(-ed)の修飾", icon: "🏷️", color: "#2563eb",
+      id: "e17", num: 17, unit: "grammar", title: "分詞の形容詞的用法", sub: "現在分詞(-ing)と過去分詞(-ed)の修飾", icon: "🏷️", color: "#2563eb",
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\nLook at the boy (　　) soccer over there.", opts: ["play", "played", "plays", "playing"], ans: 3, exp: "「あそこでサッカーをしている少年」と能動・進行の意味で前の名詞 the boy を修飾するので、現在分詞 playing を使います。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nThe language (　　) in Brazil is Portuguese.", opts: ["spoke", "speak", "spoken", "speaking"], ans: 2, exp: "言語は「話される」側（受動）なので、過去分詞 spoken を使って後ろから The language を修飾します。" },
@@ -3734,7 +3756,7 @@
       ]
     },
     {
-      id: "e18", num: 18, title: "関係代名詞①", sub: "主格（who・which・that）の基本", icon: "🔗", color: "#0284c7",
+      id: "e18", num: 18, unit: "grammar", title: "関係代名詞①", sub: "主格（who・which・that）の基本", icon: "🔗", color: "#0284c7",
       questions: [
         { q: "空所に入る最も適切な関係代名詞を選びなさい。\n\nI have a friend (　　) lives in New York.", opts: ["whom", "whose", "which", "who"], ans: 3, exp: "先行詞が a friend（人）で、後ろに動詞 lives が続いているため、主格の関係代名詞 who（または that）を使います。" },
         { q: "空所に入る最も適切な関係代名詞を選びなさい。\n\nThis is a book (　　) tells us about Japanese history.", opts: ["which", "whose", "who", "whom"], ans: 0, exp: "先行詞が a book（物）で、後ろの節の主語の働きをするため、主格の which（または that）を入れます。" },
@@ -3749,7 +3771,7 @@
       ]
     },
     {
-      id: "e19", num: 19, title: "関係代名詞②", sub: "目的格・所有格・関係副詞の入口", icon: "🧩", color: "#0d9488",
+      id: "e19", num: 19, unit: "grammar", title: "関係代名詞②", sub: "目的格・所有格・関係副詞の入口", icon: "🧩", color: "#0d9488",
       questions: [
         { q: "空所に入る最も適切な関係代名詞を選びなさい。\n\nThe cake (　　) my mother made was very delicious.", opts: ["which", "where", "whose", "who"], ans: 0, exp: "「母が作ったケーキ」で、made の目的語の働きをする目的格の関係代名詞 which（または that）を入れます（省略も可能です）。" },
         { q: "空所に入る最も適切な関係代名詞を選びなさい。\n\nI know a girl (　　) father is a famous singer.", opts: ["which", "who", "whose", "whom"], ans: 2, exp: "「その少女のお父さんが〜」と所有（〜の）を表すため、所有格の関係代名詞 whose を使います。" },
@@ -3764,7 +3786,7 @@
       ]
     },
     {
-      id: "e20", num: 20, title: "仮定法の入口", sub: "「もし〜なら」と現実と違う仮定の表現", icon: "🌈", color: "#16a34a",
+      id: "e20", num: 20, unit: "grammar", title: "仮定法の入口", sub: "「もし〜なら」と現実と違う仮定の表現", icon: "🌈", color: "#16a34a",
       questions: [
         { q: "「もし私が鳥なら、あなたのところへ飛んでいけるのに」を表す文の (　　) に入る語を選びなさい。\n\nIf I (　　) a bird, I could fly to you.", opts: ["were", "was", "am", "be"], ans: 0, exp: "現在の事実と反対の仮定を表す仮定法過去では、if 節の中の be動詞は主語に関係なく were を使うのが基本です。" },
         { q: "空所に入る最も適切な助動詞を選びなさい。\n\nIf I had enough money, I (　　) buy that new computer.", opts: ["will", "shall", "would", "can"], ans: 2, exp: "仮定法過去の帰結節（主節）では、will や can の過去形である would, could, might ＋ 動詞の原形 を使います。" },
@@ -3779,7 +3801,7 @@
       ]
     },
     {
-      id: "e21", num: 21, title: "短文読解①", sub: "日常の会話・メッセージの読み取り", icon: "💬", color: "#ca8a04",
+      id: "e21", num: 21, unit: "reading", title: "短文読解①", sub: "日常の会話・メッセージの読み取り", icon: "💬", color: "#ca8a04",
       questions: [
         { q: "次のメッセージを読んで、質問に答えなさい。\n\n\"Hi Ken, I'm sorry, but I'm going to be about 15 minutes late. The train stopped because of strong wind. Please wait for me at the bookstore near the station. — Yumi\"\n\n質問：ケンはどこでユミを待つことになっていますか。", opts: ["電車の車内", "ユミの家", "駅近くの書店", "駅のホーム"], ans: 2, exp: "最後の文に Please wait for me at the bookstore near the station.（駅近くの書店で待っていてください）と書かれています。" },
         { q: "次のメモを読んで、質問に答えなさい。\n\n\"Mom, I went to the library to return the books. After that, I will go to soccer practice at the park. I'll be back around 6:00 p.m. Don't worry about dinner—I already ate a sandwich! — Taro\"\n\n質問：タロウが図書館へ行った目的は何ですか。", opts: ["サンドイッチを食べるため", "本を返却するため", "サッカーの練習をするため", "新しい本を借りるため"], ans: 1, exp: "to return the books（本を返すために）図書館へ行ったと書かれています。" },
@@ -3794,7 +3816,7 @@
       ]
     },
     {
-      id: "e22", num: 22, title: "短文読解②", sub: "お知らせ・案内文のポイント把握", icon: "📢", color: "#ea580c",
+      id: "e22", num: 22, unit: "reading", title: "短文読解②", sub: "お知らせ・案内文のポイント把握", icon: "📢", color: "#ea580c",
       questions: [
         { q: "次の図書館の案内を読んで、質問に答えなさい。\n\n\"City Library Hours:\nMonday – Friday: 9:00 a.m. – 8:00 p.m.\nSaturday & Sunday: 10:00 a.m. – 6:00 p.m.\nClosed on national holidays.\"\n\n質問：土曜日の開館時間は何時から何時までですか。", opts: ["午前9時〜午後8時", "休館日", "午前10時〜午後6時", "午前9時〜午後6時"], ans: 2, exp: "Saturday & Sunday: 10:00 a.m. – 6:00 p.m. と記載されています。" },
         { q: "次のイベントポスターを読んで、質問に答えなさい。\n\n\"International Food Festival!\nDate: Sunday, October 15 (11:00 a.m. – 4:00 p.m.)\nPlace: Central Park\nEnjoy delicious food from 15 different countries! If it rains heavily, the event will be held in the City Hall.\"\n\n質問：もし当日激しい雨が降った場合、イベントはどうなりますか。", opts: ["開始時間が午後1時に変更される", "翌週の日曜日に延期される", "中止になる", "市役所（City Hall）で開催される"], ans: 3, exp: "If it rains heavily, the event will be held in the City Hall.（激しい雨が降った場合、市役所で開催されます）とあります。" },
@@ -3809,7 +3831,7 @@
       ]
     },
     {
-      id: "e23", num: 23, title: "短文読解③", sub: "説明文・エッセイの要旨把握", icon: "📖", color: "#7c3aed",
+      id: "e23", num: 23, unit: "reading", title: "短文読解③", sub: "説明文・エッセイの要旨把握", icon: "📖", color: "#7c3aed",
       questions: [
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"Reading books before going to bed is a great habit. Unlike using a smartphone, reading a paper book helps your brain relax and prepares your body for sleep. Even 15 minutes of reading can improve the quality of your sleep.\"\n\n質問：寝る前に紙の本を読むことの利点として述べられているものはどれですか。", opts: ["視力が良くなる", "脳がリラックスし、睡眠の質が向上する", "スマートフォンよりも早く情報が探せる", "朝早く起きられるようになる"], ans: 1, exp: "helps your brain relax（脳がリラックスするのを助け）および improve the quality of your sleep（睡眠の質を向上させる）と述べられています。" },
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"Bees are very important for our food supply. When bees fly from flower to flower to collect nectar, they carry pollen with them. This process helps plants produce fruits and vegetables. Without bees, many of the foods we eat every day would disappear.\"\n\n質問：もしハチ（bees）がいなくなるとどうなると書かれていますか。", opts: ["私たちが毎日食べている多くの食べ物がなくなる", "野菜や果物がより甘くなる", "花の数が今よりも増える", "他の昆虫がハチの代わりをする"], ans: 0, exp: "Without bees, many of the foods we eat every day would disappear.（ハチがいなければ、私たちが毎日食べる多くの食べ物が消えてしまうだろう）と書かれています。" },
@@ -3824,7 +3846,7 @@
       ]
     },
     {
-      id: "e24", num: 24, title: "空所補充①", sub: "文脈に合う適切な単語・熟語の選択", icon: "🧩", color: "#db2777",
+      id: "e24", num: 24, unit: "reading", title: "空所補充①", sub: "文脈に合う適切な単語・熟語の選択", icon: "🧩", color: "#db2777",
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\nIt was raining heavily, (　　) we decided to stay home and watch a movie.", opts: ["because", "so", "but", "although"], ans: 1, exp: "「激しい雨が降っていた、だから（so）家にいて映画を見ることにした」という原因→結果の流れになる接続詞 so を選びます。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\n(　　) he was very tired, he continued working until midnight.", opts: ["Although", "Since", "Because", "If"], ans: 0, exp: "「とても疲れていたけれども（Although）、彼は真夜中まで働き続けた」という逆接の接続詞 Although が適切です。" },
@@ -3839,7 +3861,7 @@
       ]
     },
     {
-      id: "e25", num: 25, title: "空所補充②", sub: "接続詞・前置詞・慣用表現の選択", icon: "🔍", color: "#2563eb",
+      id: "e25", num: 25, unit: "reading", title: "空所補充②", sub: "接続詞・前置詞・慣用表現の選択", icon: "🔍", color: "#2563eb",
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\n(　　) it was a holiday, the museum was very crowded.", opts: ["So", "But", "Because", "Or"], ans: 2, exp: "「祝日だったので、博物館はとても混んでいた」という理由を表す接続詞 Because を入れます。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nHe is interested (　　) astronomy and space science.", opts: ["to", "at", "in", "with"], ans: 2, exp: "be interested in 〜 で「〜に興味がある」という非常に重要な表現です。" },
@@ -3854,7 +3876,7 @@
       ]
     },
     {
-      id: "e26", num: 26, title: "整序英作文①", sub: "基本の語順（主語＋動詞＋目的語など）", icon: "🔀", color: "#0284c7",
+      id: "e26", num: 26, unit: "reading", title: "整序英作文①", sub: "基本の語順（主語＋動詞＋目的語など）", icon: "🔀", color: "#0284c7",
       questions: [
         { q: "日本文の意味になるよう、[ ]内の語句を並び替えたとき、3番目と5番目に来る語句の組み合わせを選びなさい。\n\n「彼女は毎朝コーヒーを飲みます。」\nShe [ coffee / drinks / every / a cup of / morning ] .", opts: ["every - morning", "coffee - morning", "drinks - coffee", "a cup of - morning"], ans: 1, exp: "正しい文は She drinks a cup of coffee every morning. です。3番目は coffee、5番目は morning となります。" },
         { q: "日本文の意味になるよう、[ ]内の語句を並び替えたとき、2番目と4番目に来る語句の組み合わせを選びなさい。\n\n「この本は読むのが簡単です。」\nThis book [ easy / is / read / to ] .", opts: ["is - read", "easy - read", "easy - to", "is - to"], ans: 1, exp: "正しい文は This book is easy to read. です。2番目は easy、4番目は read となります。" },
@@ -3869,7 +3891,7 @@
       ]
     },
     {
-      id: "e27", num: 27, title: "整序英作文②", sub: "中級レベルの文型と関係代名詞の語順", icon: "🧱", color: "#0d9488",
+      id: "e27", num: 27, unit: "reading", title: "整序英作文②", sub: "中級レベルの文型と関係代名詞の語順", icon: "🧱", color: "#0d9488",
       questions: [
         { q: "日本文の意味になるよう、[ ]内の語句を並び替えたとき、2番目と4番目に来る語句の組み合わせを選びなさい。\n\n「私はあなたに会えてとてもうれしいです。」\nI [ am / glad / meet / to / you ] .", opts: ["am - to", "to - you", "meet - you", "glad - meet"], ans: 3, exp: "正しい文は I am glad to meet you. です。2番目は glad、4番目は meet となります。" },
         { q: "日本文の意味になるよう、[ ]内の語句を並び替えたとき、3番目と5番目に来る語句の組み合わせを選びなさい。\n\n「これは私が探していた本です。」\nThis is [ been / book / have / I / looking for / the ] .", opts: ["the - have", "I - been", "book - looking for", "have - been"], ans: 1, exp: "正しい文は This is the book I have been looking for.（現在完了進行形＋関係代名詞の省略）です。3番目は I、5番目は been となります。" },
@@ -3884,7 +3906,7 @@
       ]
     },
     {
-      id: "e28", num: 28, title: "長文読解への第一歩", sub: "2段落程度の文章の内容一致・推測", icon: "📰", color: "#16a34a",
+      id: "e28", num: 28, unit: "reading", title: "長文読解への第一歩", sub: "2段落程度の文章の内容一致・推測", icon: "📰", color: "#16a34a",
       questions: [
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"Dogs are known as 'man's best friend' for good reasons. They are loyal and can sense their owners' feelings. When you are sad, a dog often stays close to you to comfort you. Also, dogs have an amazing sense of smell. They can be trained to help people in many ways, such as guiding blind people or finding lost children.\"\n\n質問：本文の内容と合っているものはどれですか。", opts: ["犬は主にその賢さのために「人間の最良の友」と呼ばれている", "犬は優れた嗅覚を持ち、盲導犬などとして人を助ける訓練を受けることができる", "犬は飼い主の気持ちを感じ取ることができない", "犬は飼い主が悲しいときは離れていく"], ans: 1, exp: "本文で dogs have an amazing sense of smell（驚くべき嗅覚）と、ガイド（盲導）や迷子探しへの訓練について述べられています。" },
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"Online shopping has become very popular in recent years because it is convenient. You can buy almost anything without leaving your home. However, there are some disadvantages. You cannot actually touch or try on the products before buying them. Moreover, it sometimes takes a long time for the items to be delivered.\"\n\n質問：オンラインショッピングの短所（disadvantages）として挙げられているものはどれですか。", opts: ["家から出なければ買えないこと", "買える商品の種類が限られていること", "値段が実店舗より必ず高いこと", "購入前に実際に商品に触れたり試着したりできず、配達に時間がかかることがあること"], ans: 3, exp: "However 以降に、実際に触れない（cannot actually touch）ことと、配達に時間がかかる（takes a long time to be delivered）ことが挙げられています。" },
@@ -3899,7 +3921,7 @@
       ]
     },
     {
-      id: "e29", num: 29, title: "要点・要約問題", sub: "本文全体のテーマや筆者の主張を選ぶ", icon: "🎯", color: "#ca8a04",
+      id: "e29", num: 29, unit: "reading", title: "要点・要約問題", sub: "本文全体のテーマや筆者の主張を選ぶ", icon: "🎯", color: "#ca8a04",
       questions: [
         { q: "次の文章を読んで、筆者の最も言いたいこと（主旨）を選びなさい。\n\n\"Some students think that making a study plan is a waste of time. However, a good plan helps you study more efficiently. If you decide what to study and when, you will not panic before a test. Just 10 minutes of planning each morning can save you hours of stress later.\"", opts: ["毎朝10分間勉強することが最も大切である", "テスト前は慌てるのが普通である", "計画を立てないほうが自由に勉強できる", "勉強の計画を立てることは、効率よく勉強しストレスを減らすのに役立つ"], ans: 3, exp: "a good plan helps you study more efficiently（良い計画は効率的な勉強を助ける）が中心主張で、全体がそれを支持しています。" },
         { q: "次の文章を読んで、この文章のタイトルとして最も適切なものを選びなさい。\n\n\"Getting a good night's sleep is crucial for students. Sleep helps your brain organize what you learned during the day. If you stay up late studying the night before a test, you might actually remember less. It is better to review your notes and go to bed early.\"", opts: ["脳の仕組みと記憶の関係", "ノートを効率よく取る方法", "テスト前日の徹夜勉強法", "学生にとっての良い睡眠の重要性"], ans: 3, exp: "文章全体が「学生にとって良い睡眠が重要である」というテーマで統一されています。" },
@@ -3914,7 +3936,7 @@
       ]
     },
     {
-      id: "e30", num: 30, title: "総合仕上げ", sub: "単語・文法・読解の総仕上げ", icon: "🏆", color: "#ea580c",
+      id: "e30", num: 30, unit: "reading", title: "総合仕上げ", sub: "単語・文法・読解の総仕上げ", icon: "🏆", color: "#ea580c",
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\nGlobal warming is a serious (　　) that we must solve together.", opts: ["chance", "custom", "problem", "effort"], ans: 2, exp: "「地球温暖化は私たちが協力して解決しなければならない深刻な問題だ」という意味になるよう、problem（問題）を選びます。" },
         { q: "空所に入る最も適切な語句を選びなさい。\n\nI (　　) my homework by the time my mother came home.", opts: ["will finish", "have finished", "had finished", "finish"], ans: 2, exp: "「母が帰宅したとき（過去）までに、宿題を終えていた（それより前の過去）」という大過去を表すため、過去完了形 had finished を使います。" },
@@ -3929,7 +3951,7 @@
       ]
     },
     {
-      id: "ech1", num: 31, title: "チャレンジ① 基本動詞・熟語の総仕上げ", sub: "基本動詞と熟語の厳選問題", icon: "🏆", color: "#f59e0b", challenge: true,
+      id: "ech1", num: 31, unit: "challenge", title: "チャレンジ① 基本動詞・熟語の総仕上げ", sub: "基本動詞と熟語の厳選問題", icon: "🏆", color: "#f59e0b", challenge: true,
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\nMy sister always (　　) care of our younger brother.", opts: ["makes", "gets", "takes", "does"], ans: 2, exp: "take care of 〜 で「〜の世話をする」という最重要熟語です。" },
         { q: "「（計画などを）思いつく」という意味を表す熟語を選びなさい。", opts: ["come across", "come back", "come from", "come up with"], ans: 3, exp: "come up with 〜 で「（アイデアや計画を）思いつく」という意味になります。" },
@@ -3946,7 +3968,7 @@
       ]
     },
     {
-      id: "ech2", num: 32, title: "チャレンジ② 時制の完全制覇", sub: "あらゆる時制の判別問題", icon: "⏳", color: "#f59e0b", challenge: true,
+      id: "ech2", num: 32, unit: "challenge", title: "チャレンジ② 時制の完全制覇", sub: "あらゆる時制の判別問題", icon: "⏳", color: "#f59e0b", challenge: true,
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nI (　　) three letters so far today.", opts: ["have written", "wrote", "had written", "write"], ans: 0, exp: "so far（今のところ）や today までの完了を表すため、現在完了形 have written を使います。" },
         { q: "空所に入る最も適切なものを選びなさい。\n\nWhen I arrived at the theater, the movie (　　) already started.", opts: ["has", "had", "was", "did"], ans: 1, exp: "劇場に着いた（過去）よりも前に映画は始まっていた（大過去）ので、過去完了形 had started を使います。" },
@@ -3963,7 +3985,7 @@
       ]
     },
     {
-      id: "ech3", num: 33, title: "チャレンジ③ 助動詞と推量の深掘り", sub: "確信度で変わる推量表現の使い分け", icon: "🔮", color: "#f59e0b", challenge: true,
+      id: "ech3", num: 33, unit: "challenge", title: "チャレンジ③ 助動詞と推量の深掘り", sub: "確信度で変わる推量表現の使い分け", icon: "🔮", color: "#f59e0b", challenge: true,
       questions: [
         { q: "「彼は家にいるはずがない（確信度の高い否定推量）」を表す文として最も適切なものを選びなさい。", opts: ["He may not be at home.", "He doesn't have to be at home.", "He cannot be at home.", "He must not be at home."], ans: 2, exp: "「〜であるはずがない」という強い推量は cannot（can't）を使います。must not は「〜してはいけない（禁止）」です。" },
         { q: "空所に入る最も適切なものを選びなさい。\n\nYou (　　) be hungry after your long journey. Come and eat.", opts: ["need not", "might not", "must", "cannot"], ans: 2, exp: "「長旅のあとだからお腹が空いているに違いない」という強い肯定の推量なので must が適切です。" },
@@ -3980,7 +4002,7 @@
       ]
     },
     {
-      id: "ech4", num: 34, title: "チャレンジ④ 受動態マスター", sub: "様々な形の受動態と重要表現", icon: "🏗️", color: "#f59e0b", challenge: true,
+      id: "ech4", num: 34, unit: "challenge", title: "チャレンジ④ 受動態マスター", sub: "様々な形の受動態と重要表現", icon: "🏗️", color: "#f59e0b", challenge: true,
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nThe new bridge (　　) next year.", opts: ["will be built", "is building", "builds", "will build"], ans: 0, exp: "未来の受動態は will be ＋ 過去分詞 の形になります。「来年建設されるでしょう」なので will be built です。" },
         { q: "空所に入る最も適切なものを選びなさい。\n\nMy bicycle (　　) by someone yesterday.", opts: ["was stolen", "is stealing", "stole", "steals"], ans: 0, exp: "「盗まれた」という過去の受動態なので was stolen を選びます。steal - stole - stolen の活用に注意です。" },
@@ -3997,7 +4019,7 @@
       ]
     },
     {
-      id: "ech5", num: 35, title: "チャレンジ⑤ 比較の応用問題", sub: "応用的な比較構文と不規則変化", icon: "⚖️", color: "#f59e0b", challenge: true,
+      id: "ech5", num: 35, unit: "challenge", title: "チャレンジ⑤ 比較の応用問題", sub: "応用的な比較構文と不規則変化", icon: "⚖️", color: "#f59e0b", challenge: true,
       questions: [
         { q: "「〜すればするほど、ますます…」を表す文の (　　) に入る語句を選びなさい。\n\nThe (　　) you practice, the better you will become.", opts: ["more", "much", "many", "most"], ans: 0, exp: "The ＋ 比較級 〜, the ＋ 比較級 … で「〜すればするほど、ますます…」という重要構文を作ります。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nHe is (　　) the most popular singers in this country.", opts: ["better than", "one of", "as", "more"], ans: 1, exp: "one of the ＋ 最上級 ＋ 複数名詞 で「最も〜なものの1人（1つ）」という意味になります。" },
@@ -4014,7 +4036,7 @@
       ]
     },
     {
-      id: "ech6", num: 36, title: "チャレンジ⑥ 不定詞・動名詞の応用", sub: "慣用表現と文型の総合問題", icon: "🎯", color: "#f59e0b", challenge: true,
+      id: "ech6", num: 36, unit: "challenge", title: "チャレンジ⑥ 不定詞・動名詞の応用", sub: "慣用表現と文型の総合問題", icon: "🎯", color: "#f59e0b", challenge: true,
       questions: [
         { q: "空所に入る最も適切なものを選びなさい。\n\nIt's no use (　　) about the past. Let's think about the future.", opts: ["to worry", "worried", "worrying", "worry"], ans: 2, exp: "It's no use 〜ing で「〜しても無駄だ」という重要な表現です。" },
         { q: "「私は彼が駅に到着するのを見た」を表す文の (　　) に入る語を選びなさい。\n\nI saw him (　　) at the station.", opts: ["arrives", "to arrive", "arrived", "arrive"], ans: 3, exp: "see 人 ＋ 動詞の原形（原形不定詞）で「人が〜するのを見る」という知覚動詞の文型です。" },
@@ -4031,7 +4053,7 @@
       ]
     },
     {
-      id: "ech7", num: 37, title: "チャレンジ⑦ 関係詞の完成", sub: "関係代名詞・関係副詞の総合問題", icon: "🔗", color: "#f59e0b", challenge: true,
+      id: "ech7", num: 37, unit: "challenge", title: "チャレンジ⑦ 関係詞の完成", sub: "関係代名詞・関係副詞の総合問題", icon: "🔗", color: "#f59e0b", challenge: true,
       questions: [
         { q: "空所に入る最も適切な関係代名詞を選びなさい。\n\nI will never forget the friends (　　) I met in Australia.", opts: ["which", "whom", "where", "whose"], ans: 1, exp: "先行詞が friends（人）で met の目的語になるため、目的格の whom（または that / 省略）が入ります。" },
         { q: "空所に入る最も適切な語を選びなさい。\n\nThis is the park (　　) we often play soccer.", opts: ["where", "that", "which", "when"], ans: 0, exp: "「私たちがよくサッカーをする公園」と場所を表し、後ろに完全な文が続いているので関係副詞 where を使います。" },
@@ -4048,7 +4070,7 @@
       ]
     },
     {
-      id: "ech8", num: 38, title: "チャレンジ⑧ 仮定法・間接疑問", sub: "応用文法の重要パターン", icon: "🌈", color: "#f59e0b", challenge: true,
+      id: "ech8", num: 38, unit: "challenge", title: "チャレンジ⑧ 仮定法・間接疑問", sub: "応用文法の重要パターン", icon: "🌈", color: "#f59e0b", challenge: true,
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\nIf I (　　) a million dollars, I would travel around the world.", opts: ["will have", "am having", "have", "had"], ans: 3, exp: "主節が would travel であることから、現在の事実に反する仮定法過去だと分かり、if 節は過去形 had にします。" },
         { q: "次の英文と同じ意味になるよう、(　　) に入る語を選びなさい。\n\nI don't have a car, so I can't drive you to the station.\n= If I (　　) a car, I could drive you to the station.", opts: ["will have", "had", "have", "has"], ans: 1, exp: "「車を持っていない」という現在の事実を仮定法に書き換えるため、過去形の had を使います。" },
@@ -4065,7 +4087,7 @@
       ]
     },
     {
-      id: "ech9", num: 39, title: "チャレンジ⑨ 熟語・慣用表現の達人", sub: "入試頻出の重要イディオム集", icon: "🎓", color: "#f59e0b", challenge: true,
+      id: "ech9", num: 39, unit: "challenge", title: "チャレンジ⑨ 熟語・慣用表現の達人", sub: "入試頻出の重要イディオム集", icon: "🎓", color: "#f59e0b", challenge: true,
       questions: [
         { q: "空所に入る最も適切な語を選びなさい。\n\nYou should make (　　) of this great opportunity.", opts: ["use", "using", "usage", "useful"], ans: 0, exp: "make use of 〜 で「〜を利用する、活用する」という重要表現です。" },
         { q: "「言うまでもなく」を表す表現として正しいものを選びなさい。", opts: ["It goes without saying that 〜", "It depends on 〜", "It is up to you", "It is no use 〜ing"], ans: 0, exp: "It goes without saying that 〜 で「〜は言うまでもない」という意味の決まった言い回しです。" },
@@ -4082,7 +4104,7 @@
       ]
     },
     {
-      id: "ech10", num: 40, title: "チャレンジ⑩ 会話表現マスター", sub: "場面に応じた自然な応答表現", icon: "🗣️", color: "#f59e0b", challenge: true,
+      id: "ech10", num: 40, unit: "challenge", title: "チャレンジ⑩ 会話表現マスター", sub: "場面に応じた自然な応答表現", icon: "🗣️", color: "#f59e0b", challenge: true,
       questions: [
         { q: "次の会話文の空所に入る最も適切な表現を選びなさい。\n\nA: \"Thank you so much for your help yesterday.\"\nB: \"(　　)\"", opts: ["Good luck.", "Yes, I am.", "You're welcome.", "Thank you, too."], ans: 2, exp: "お礼（Thank you）に対する返答は You're welcome.（どういたしまして）です。" },
         { q: "次の会話文の空所に入る最も適切な表現を選びなさい。\n\nA: \"May I come in?\"\nB: \"(　　), please come in.\"", opts: ["I'm sorry", "Of course", "No way", "Never mind"], ans: 1, exp: "許可を求める質問に「もちろんです、どうぞお入りください」と答える Of course が適切です。" },
@@ -4099,7 +4121,7 @@
       ]
     },
     {
-      id: "ech11", num: 41, title: "チャレンジ⑪ 整序の上級編", sub: "複雑な構文の正確な組み立て", icon: "🧱", color: "#f59e0b", challenge: true,
+      id: "ech11", num: 41, unit: "challenge", title: "チャレンジ⑪ 整序の上級編", sub: "複雑な構文の正確な組み立て", icon: "🧱", color: "#f59e0b", challenge: true,
       questions: [
         { q: "日本文の意味になるよう、[ ]内の語句を並び替えたとき、2番目に来る語句を選びなさい。\n\n「私はその知らせを聞いてとても驚きました。」\nI [ at / hear / surprised / the news / to / was / very ] .", opts: ["very", "surprised", "hear", "was"], ans: 0, exp: "正しい文は I was very surprised to hear the news. です。at は不要語です。2番目は very となります。" },
         { q: "日本文の意味になるよう、[ ]内の語句を並び替えたとき、3番目に来る語句を選びなさい。\n\n「この本は私にとって読むのが難しいです。」\nThis book [ difficult / for / is / me / read / to ] .", opts: ["is", "me", "for", "difficult"], ans: 2, exp: "正しい文は This book is difficult for me to read. です。3番目は for となります。" },
@@ -4116,7 +4138,7 @@
       ]
     },
     {
-      id: "ech12", num: 42, title: "チャレンジ⑫ 長文読解①", sub: "科学技術・環境問題に関する文章", icon: "🌍", color: "#f59e0b", challenge: true,
+      id: "ech12", num: 42, unit: "challenge", title: "チャレンジ⑫ 長文読解①", sub: "科学技術・環境問題に関する文章", icon: "🌍", color: "#f59e0b", challenge: true,
       questions: [
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"Electric vehicles (EVs) are becoming more common around the world. Unlike gasoline cars, EVs do not emit carbon dioxide while driving, which helps reduce air pollution in cities. However, there are still challenges. Batteries are expensive, and there are not enough charging stations in many areas. Also, producing the batteries requires rare metals, which can cause environmental damage during mining. Scientists are working hard to develop cheaper and more eco-friendly batteries to solve these problems.\"\n\n質問：電気自動車（EVs）の利点として本文で述べられているものはどれですか。", opts: ["充電ステーションがどこにでもあること", "走行中に二酸化炭素を排出せず、都市の大気汚染の削減に役立つこと", "ガソリン車よりも速く走れること", "バッテリーが非常に安いこと"], ans: 1, exp: "EVs do not emit carbon dioxide while driving, which helps reduce air pollution と書かれています。" },
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"Electric vehicles (EVs) are becoming more common around the world. Unlike gasoline cars, EVs do not emit carbon dioxide while driving, which helps reduce air pollution in cities. However, there are still challenges. Batteries are expensive, and there are not enough charging stations in many areas. Also, producing the batteries requires rare metals, which can cause environmental damage during mining. Scientists are working hard to develop cheaper and more eco-friendly batteries to solve these problems.\"\n\n質問：本文で述べられているEVの課題として正しくないものはどれですか。", opts: ["バッテリーの生産に必要なレアメタルの採掘が環境破壊を引き起こす可能性があること", "バッテリーが高価であること", "多くの地域で充電ステーションが不足していること", "EVはガソリン車よりも多くの二酸化炭素を排出すること"], ans: 3, exp: "本文ではEVは走行中にCO2を「排出しない（do not emit）」とあるため、排出するという選択肢が誤りです。" },
@@ -4133,7 +4155,7 @@
       ]
     },
     {
-      id: "ech13", num: 43, title: "チャレンジ⑬ 長文読解②", sub: "歴史・文化・社会に関する文章", icon: "🏛️", color: "#f59e0b", challenge: true,
+      id: "ech13", num: 43, unit: "challenge", title: "チャレンジ⑬ 長文読解②", sub: "歴史・文化・社会に関する文章", icon: "🏛️", color: "#f59e0b", challenge: true,
       questions: [
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"The Great Wall of China is one of the most famous structures in the world. It was built over many centuries to protect China from invaders from the north. The wall stretches for more than 21,000 kilometers across mountains, deserts, and plains. Millions of workers were involved in its construction, and many of them lost their lives during the hard labor. Today, the Great Wall is a symbol of China's long history and attracts millions of tourists every year.\"\n\n質問：万里の長城（The Great Wall）がもともと建てられた目的は何ですか。", opts: ["国境に道路を作るため", "皇帝の墓を作るため", "観光客を集めるため", "北からの侵略者から中国を守るため"], ans: 3, exp: "It was built ... to protect China from invaders from the north. と目的が書かれています。" },
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"The Great Wall of China is one of the most famous structures in the world. It was built over many centuries to protect China from invaders from the north. The wall stretches for more than 21,000 kilometers across mountains, deserts, and plains. Millions of workers were involved in its construction, and many of them lost their lives during the hard labor. Today, the Great Wall is a symbol of China's long history and attracts millions of tourists every year.\"\n\n質問：万里の長城の全長はどのくらいだと書かれていますか。", opts: ["約2,100キロメートル", "21,000キロメートル以上", "約12,000キロメートル", "約210,000キロメートル"], ans: 1, exp: "The wall stretches for more than 21,000 kilometers と書かれています。" },
@@ -4150,7 +4172,7 @@
       ]
     },
     {
-      id: "ech14", num: 44, title: "チャレンジ⑭ 総合読解・要約", sub: "大問形式の読解と文脈推測", icon: "📚", color: "#f59e0b", challenge: true,
+      id: "ech14", num: 44, unit: "challenge", title: "チャレンジ⑭ 総合読解・要約", sub: "大問形式の読解と文脈推測", icon: "📚", color: "#f59e0b", challenge: true,
       questions: [
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"When Thomas Edison invented the light bulb, he didn't succeed on his first try. In fact, he failed more than a thousand times before he found the right material. When a reporter asked him about his failures, Edison replied, 'I have not failed. I've just found 1,000 ways that won't work.' His positive attitude toward failure is what made his success possible.\"\n\n質問：エジソンが記者に語った言葉の意味として最も適切なものはどれですか。", opts: ["「私は一度も失敗したことがない」", "「1,000回失敗したので諦めようと思う」", "「私は失敗したのではなく、うまくいかない方法を1,000通り見つけただけだ」", "「成功するためには失敗を隠すべきだ」"], ans: 2, exp: "'I have not failed. I've just found 1,000 ways that won't work.' は、失敗を前向きに捉えるエジソンの有名な言葉です。" },
         { q: "次の文章を読んで、質問に答えなさい。\n\n\"When Thomas Edison invented the light bulb, he didn't succeed on his first try. In fact, he failed more than a thousand times before he found the right material. When a reporter asked him about his failures, Edison replied, 'I have not failed. I've just found 1,000 ways that won't work.' His positive attitude toward failure is what made his success possible.\"\n\n質問：筆者はエジソンの成功の要因は何だと述べていますか。", opts: ["助手たちの優れた技術", "生まれながらの天才的な才能", "失敗に対する前向きな姿勢（positive attitude）", "裕福な家庭環境"], ans: 2, exp: "His positive attitude toward failure is what made his success possible. と書かれています。" },
@@ -4167,7 +4189,7 @@
       ]
     },
     {
-      id: "ech15", num: 45, title: "チャレンジ⑮ 最終総合テスト", sub: "全範囲の知識を問う最終問題", icon: "👑", color: "#f59e0b", challenge: true,
+      id: "ech15", num: 45, unit: "challenge", title: "チャレンジ⑮ 最終総合テスト", sub: "全範囲の知識を問う最終問題", icon: "👑", color: "#f59e0b", challenge: true,
       questions: [
         { q: "空所に入る最も適切な語句を選びなさい。\n\nNeither of the answers (　　) correct.", opts: ["were", "have been", "is", "are"], ans: 2, exp: "Neither of 〜（〜のどちらも〜ない）は単数扱いとなるため、動詞は is を使います。" },
         { q: "空所に入る最も適切なものを選びなさい。\n\nThe population of Tokyo is larger than (　　) of Osaka.", opts: ["it", "that", "those", "this"], ans: 1, exp: "前に出た名詞（The population）の繰り返しを避けるため、単数形の that を使います。those は複数名詞の代わりです。" },
@@ -4188,7 +4210,7 @@
 
   const JPN_STAGES = [
     {
-      id: "j1", num: 1, title: "漢字の読み①", sub: "間違いやすい日常の漢字", icon: "📖", color: "#2563eb",
+      id: "j1", num: 1, unit: "kanji", title: "漢字の読み①", sub: "間違いやすい日常の漢字", icon: "📖", color: "#2563eb",
       questions: [
         { q: "次の文の「遂行」の読みとして正しいものを選びなさい。\n\n新しい計画を遂行する。", opts: ["じゅんこう", "すいこう", "ついこう", "ちくこう"], ans: 1, exp: "「遂行（すいこう）」は、任務や計画を最後までやりとげることという意味です。「遂」は「遂げる（とげる）」とも読みます。" },
         { q: "次の文の「賛同」の読みとして正しいものを選びなさい。\n\n相手の意見に賛同を示す。", opts: ["さんどう", "さんど", "ざんどう", "さんとう"], ans: 0, exp: "「賛同（さんどう）」は、他人の意見や考えに賛成し、同意することという意味です。" },
@@ -4203,7 +4225,7 @@
       ]
     },
     {
-      id: "j2", num: 2, title: "漢字の読み②", sub: "高校基礎レベルの重要語句", icon: "🔍", color: "#0284c7",
+      id: "j2", num: 2, unit: "kanji", title: "漢字の読み②", sub: "高校基礎レベルの重要語句", icon: "🔍", color: "#0284c7",
       questions: [
         { q: "次の文の「指摘」の読みとして正しいものを選びなさい。\n\n矛盾点を鋭く指摘する。", opts: ["さしてき", "しじゃく", "してき", "しせき"], ans: 2, exp: "「指摘（してき）」は、大切な点や欠点などを指し示すことという意味です。" },
         { q: "次の文の「乖離」の読みとして正しいものを選びなさい。\n\n両者の意見は完全に乖離している。", opts: ["かいり", "はり", "じょうり", "きり"], ans: 0, exp: "「乖離（かいり）」は、結びつきが離れて背き合うこと、隔たりがあることを表す言葉です。" },
@@ -4218,7 +4240,7 @@
       ]
     },
     {
-      id: "j3", num: 3, title: "漢字の書き取り①", sub: "送り仮名と形に注意する漢字", icon: "✍️", color: "#0d9488",
+      id: "j3", num: 3, unit: "kanji", title: "漢字の書き取り①", sub: "送り仮名と形に注意する漢字", icon: "✍️", color: "#0d9488",
       questions: [
         { q: "次の文のカタカナを漢字に直したものとして正しいものを選びなさい。\n\n相手の立場をソンジュウする。", opts: ["損重", "尊重", "存重", "尊長"], ans: 1, exp: "価値あるものや大切なものとして敬い重んじることは「尊重」と書きます。" },
         { q: "次の文のカタカナを漢字に直したものとして正しいものを選びなさい。\n\n資料をセイリして棚に並べる。", opts: ["整理", "制理", "精理", "正理"], ans: 0, exp: "乱れた状態を整え、不要なものを取り除くことは「整理」と書きます。" },
@@ -4233,7 +4255,7 @@
       ]
     },
     {
-      id: "j4", num: 4, title: "漢字の書き取り②", sub: "間違いやすい熟語の漢字", icon: "🖋️", color: "#16a34a",
+      id: "j4", num: 4, unit: "kanji", title: "漢字の書き取り②", sub: "間違いやすい熟語の漢字", icon: "🖋️", color: "#16a34a",
       questions: [
         { q: "次の文のカタカナを漢字に直したものとして正しいものを選びなさい。\n\n両国のボウエキが盛んに行われている。", opts: ["防益", "貿易", "紡績", "暴益"], ans: 1, exp: "外国と商品の売買を行うことは「貿易」と書きます。「易」は「交易（こうえき）」にも使われる漢字です。" },
         { q: "次の文のカタカナを漢字に直したものとして正しいものを選びなさい。\n\n事件のゼンボウを明らかにする。", opts: ["全貌", "全暴", "全防", "全望"], ans: 0, exp: "物事の全体のありさまは「全貌（ぜんぼう）」と書きます。「貌」はすがた・かたちの意味を持ちます。" },
@@ -4248,7 +4270,7 @@
       ]
     },
     {
-      id: "j5", num: 5, title: "同音異義語", sub: "文脈から正しい漢字を選ぶ", icon: "⚖️", color: "#ca8a04",
+      id: "j5", num: 5, unit: "kanji", title: "同音異義語", sub: "文脈から正しい漢字を選ぶ", icon: "⚖️", color: "#ca8a04",
       questions: [
         { q: "次の文の（　）に入る最も適切な漢字を選びなさい。\n\n自分の行動に（　）を持つ。", opts: ["関任", "席任", "責任", "積任"], ans: 2, exp: "自分が引き受けて果たすべき義務や任務は「責任」と書きます。" },
         { q: "次の文の（　）に入る最も適切な漢字を選びなさい。\n\n新しい法律が（　）された。", opts: ["清定", "正定", "制定", "静定"], ans: 2, exp: "法律や規則などを定めることは「制定」と書きます。" },
@@ -4263,7 +4285,7 @@
       ]
     },
     {
-      id: "j6", num: 6, title: "同訓異字の使い分け", sub: "同じ読みで意味が異なる漢字", icon: "🔀", color: "#ea580c",
+      id: "j6", num: 6, unit: "kanji", title: "同訓異字の使い分け", sub: "同じ読みで意味が異なる漢字", icon: "🔀", color: "#ea580c",
       questions: [
         { q: "次の文の（　）に入る最も適切な漢字を選びなさい。\n\n手紙の封筒に切手を（　）る。", opts: ["晴", "張", "腫", "貼"], ans: 3, exp: "紙やシールなどをのりなどでくっつけるときは「貼る」、綱やテントなどを引き伸ばして広げるときは「張る」を使います。" },
         { q: "次の文の（　）に入る最も適切な漢字を選びなさい。\n\n自分の進路について真剣に（　）む。", opts: ["悩", "乱", "惑", "迷"], ans: 0, exp: "読みは「なやむ」なので「悩む」が正解です。心を痛めて苦しむという意味を表します。" },
@@ -4278,7 +4300,7 @@
       ]
     },
     {
-      id: "j7", num: 7, title: "四字熟語①", sub: "基本の四字熟語と意味", icon: "🀄", color: "#7c3aed",
+      id: "j7", num: 7, unit: "kanji", title: "四字熟語①", sub: "基本の四字熟語と意味", icon: "🀄", color: "#7c3aed",
       questions: [
         { q: "「自分の行動や発言に矛盾がなく、最初から最後まで一貫していること」を表す四字熟語を選びなさい。", opts: ["以心伝心", "自画自賛", "初志貫徹", "言行一致"], ans: 3, exp: "「言行一致（げんこういっち）」は、言っていることと行っていることがぴったり合っていることを表します。" },
         { q: "次の四字熟語の空所に入る漢字として正しいものを選びなさい。\n\n一一会", opts: ["機", "期", "季", "記"], ans: 1, exp: "「一期一会（いちごいちえ）」は、一生に一度だけの機会であることを心得て、誠意を尽くすことという意味の茶道に由来する言葉です。" },
@@ -4293,7 +4315,7 @@
       ]
     },
     {
-      id: "j8", num: 8, title: "四字熟語②", sub: "高校生が知っておきたい四字熟語", icon: "📜", color: "#db2777",
+      id: "j8", num: 8, unit: "kanji", title: "四字熟語②", sub: "高校生が知っておきたい四字熟語", icon: "📜", color: "#db2777",
       questions: [
         { q: "「絶望的な状況から一気に形勢を逆転させて立ち直ること」を表す四字熟語を選びなさい。", opts: ["前途多難", "孤立無援", "四面楚歌", "起死回生"], ans: 3, exp: "「起死回生（きしかいせい）」は、死にかけた者を生き返らせることから、絶望的な状況を立て直す意味で使われます。" },
         { q: "次の四字熟語の空所に入る漢字として正しいものを選びなさい。\n\n四面歌", opts: ["漢", "楚", "唐", "秦"], ans: 1, exp: "「四面楚歌（しめんそか）」は、周囲がすべて敵や反対者ばかりで孤立し、助けがない状態を表します。" },
@@ -4308,7 +4330,7 @@
       ]
     },
     {
-      id: "j9", num: 9, title: "語彙のひろば①", sub: "慣用句の意味と使い方", icon: "💬", color: "#2563eb",
+      id: "j9", num: 9, unit: "kanji", title: "語彙のひろば①", sub: "慣用句の意味と使い方", icon: "💬", color: "#2563eb",
       questions: [
         { q: "慣用句「耳を貸す」の意味として正しいものを選びなさい。", opts: ["秘密の話をこっそり教える", "音楽を聴いてリラックスする", "人の話や相談などを熱心に聞いてやる", "他人の悪口を言いふらす"], ans: 2, exp: "「耳を貸す」は、相手の意見や願いなどを聞き入れることという意味です。「耳を貸さない」と否定形で使われることも多いです。" },
         { q: "慣用句「足を引っ張る」の意味として正しいものを選びなさい。", opts: ["一緒に目標に向かって協力する", "他人の行動や成功の邪魔をする", "競争で相手を追い抜く", "転びそうになった人を助ける"], ans: 1, exp: "「足を引っ張る」は、他人が物事をうまく進めようとするのを妨害することを表す慣用句です。" },
@@ -4323,7 +4345,7 @@
       ]
     },
     {
-      id: "j10", num: 10, title: "語彙のひろば②", sub: "ことわざ・故事成語の知識", icon: "🦉", color: "#0284c7",
+      id: "j10", num: 10, unit: "kanji", title: "語彙のひろば②", sub: "ことわざ・故事成語の知識", icon: "🦉", color: "#0284c7",
       questions: [
         { q: "ことわざ「急がば回れ」の意味として最も適切なものを選びなさい。", opts: ["何事もスピードを最優先して行動すべきだ", "急な予定変更には冷静に対応すべきだ", "急いでいるときこそ、危険な近道よりも安全で確実な道を選ぶ方が結局は早い", "遠回りをすると必ず失敗する"], ans: 2, exp: "「急がば回れ」は、急ぐときほど焦って近道をするより、着実で安全な方法をとる方が結果的に早く目的を達せるという教えです。" },
         { q: "「普段は冷静で賢い人でも、時にはうっかり失敗することがある」という意味のことわざを選びなさい。", opts: ["猿も木から落ちる", "犬も歩けば棒に当たる", "馬の耳に念仏", "猫に小判"], ans: 0, exp: "「猿も木から落ちる」は、木登りが得意な猿でも落ちることがあるように、その道の名人でも失敗することがあるという意味です。" },
@@ -4338,7 +4360,7 @@
       ]
     },
     {
-      id: "j11", num: 11, title: "語彙のひろば③", sub: "類義語・対義語と多義語", icon: "🔄", color: "#0d9488",
+      id: "j11", num: 11, unit: "kanji", title: "語彙のひろば③", sub: "類義語・対義語と多義語", icon: "🔄", color: "#0d9488",
       questions: [
         { q: "「抽象（ちゅうしょう）」の対義語として最も適切なものを選びなさい。", opts: ["現象", "印象", "具体", "象徴"], ans: 2, exp: "「抽象」の対義語は「具体（ぐたい）」です。「象徴」は、具体的なものを使って目に見えない内容を表すこと（例：平和の象徴であるハト）で、対義語ではありません。" },
         { q: "「普遍（ふへん）」の対義語として最も適切なものを選びなさい。", opts: ["普通", "特殊", "通常", "一般"], ans: 1, exp: "すべてのものに共通して当てはまることを表す「普遍」に対し、限られたものだけに当てはまる「特殊」が対義語になります。" },
@@ -4353,7 +4375,7 @@
       ]
     },
     {
-      id: "j12", num: 12, title: "文法のきほん①", sub: "言葉の単位と自立語・付属語", icon: "🧱", color: "#16a34a",
+      id: "j12", num: 12, unit: "grammar", title: "文法のきほん①", sub: "言葉の単位と自立語・付属語", icon: "🧱", color: "#16a34a",
       questions: [
         { q: "文を意味が通じる最小のまとまりに区切った単位を何というか選びなさい。", opts: ["文章", "単語", "段落", "文節"], ans: 3, exp: "「私は／今日／学校へ／行く。」のように、「ネ」や「サ」を入れて自然に区切れる単位を「文節」といいます。" },
         { q: "次の文はいくつの文節に区切られるか選びなさい。\n\n「赤い花が美しく咲いた。」", opts: ["3つ", "5つ", "4つ", "6つ"], ans: 2, exp: "「赤い（ネ）／花が（ネ）／美しく（ネ）／咲いた。」と4つの文節に区切ることができます。" },
@@ -4368,7 +4390,7 @@
       ]
     },
     {
-      id: "j13", num: 13, title: "文法のきほん②", sub: "動詞・形容詞・形容動詞の活用", icon: "⚙️", color: "#ca8a04",
+      id: "j13", num: 13, unit: "grammar", title: "文法のきほん②", sub: "動詞・形容詞・形容動詞の活用", icon: "⚙️", color: "#ca8a04",
       questions: [
         { q: "動詞の活用の種類を見分けるとき、後ろに「ない」をつけて直前の音の母音が「ア段」になる活用を何というか選びなさい。", opts: ["上一段活用", "下一段活用", "五段活用", "カ行変格活用"], ans: 2, exp: "「書かない（カ＝ア段）」「走らない（ラ＝ア段）」のように、「ない」をつけたときにア段の音になる動詞は「五段活用」です。" },
         { q: "次の動詞のうち、「上一段活用」に分類されるものを選びなさい。", opts: ["来る", "走る", "食べる", "起きる"], ans: 3, exp: "「起きる」は「起きない（キ＝イ段）」となり、イ段の音で活用するので上一段活用です。「食べる」は下一段、「走る」は五段、「来る」はカ変です。" },
@@ -4383,7 +4405,7 @@
       ]
     },
     {
-      id: "j14", num: 14, title: "文法のきほん③", sub: "名詞・副詞・連体詞・接続詞・感動詞", icon: "🏷️", color: "#ea580c",
+      id: "j14", num: 14, unit: "grammar", title: "文法のきほん③", sub: "名詞・副詞・連体詞・接続詞・感動詞", icon: "🏷️", color: "#ea580c",
       questions: [
         { q: "自立語で活用がなく、主に用言（動詞・形容詞・形容動詞）を詳しく修飾する品詞を選びなさい。", opts: ["副詞", "接続詞", "連体詞", "感動詞"], ans: 0, exp: "「ゆっくり走る」「とても美しい」のように、主に用言を修飾する品詞が「副詞」です。" },
         { q: "自立語で活用がなく、体言（名詞）だけを修飾する品詞を選びなさい。", opts: ["連体詞", "副詞", "接続詞", "形容動詞"], ans: 0, exp: "「この本」「あらゆる人」「大きな木」のように、名詞（体言）だけを修飾する品詞が「連体詞」です。" },
@@ -4398,7 +4420,7 @@
       ]
     },
     {
-      id: "j15", num: 15, title: "文法のきほん④", sub: "助動詞と助詞の働き", icon: "🔗", color: "#7c3aed",
+      id: "j15", num: 15, unit: "grammar", title: "文法のきほん④", sub: "助動詞と助詞の働き", icon: "🔗", color: "#7c3aed",
       questions: [
         { q: "次の文の下線部の助動詞「れる」の意味として正しいものを選びなさい。\n\n弟が母にしかれた。", opts: ["自発", "受け身", "尊敬", "可能"], ans: 1, exp: "「母にしかるという動作をされた」という意味なので、「受け身」の助動詞です。" },
         { q: "次の文の下線部の助動詞「られる」の意味として正しいものを選びなさい。\n\n明日は朝早く起きられるだろう。", opts: ["受け身", "尊敬", "自発", "可能"], ans: 3, exp: "「起きることができるだろう」という意味を表すので、「可能」の助動詞です。" },
@@ -4413,7 +4435,7 @@
       ]
     },
     {
-      id: "j16", num: 16, title: "文の成分と構造", sub: "主語・述語・修飾語と文の組み立て", icon: "🏗️", color: "#db2777",
+      id: "j16", num: 16, unit: "grammar", title: "文の成分と構造", sub: "主語・述語・修飾語と文の組み立て", icon: "🏗️", color: "#db2777",
       questions: [
         { q: "文の成分のうち、「何が・誰が」にあたるものを何というか選びなさい。", opts: ["主語", "修飾語", "独立語", "述語"], ans: 0, exp: "動作・作用・性質・状態の主体を表す文の成分が「主語」です。" },
         { q: "文の成分のうち、「どうする・どんなだ・何だ」にあたるものを何というか選びなさい。", opts: ["主語", "述語", "修飾語", "接続語"], ans: 1, exp: "主語について「どうする」「どんなだ」「何だ」「ある・いる」を表す成分が「述語」で、日本語では原則として文末に来ます。" },
@@ -4428,7 +4450,7 @@
       ]
     },
     {
-      id: "j17", num: 17, title: "敬語マスター①", sub: "尊敬語・謙譲語・丁寧語の基本", icon: "🙇", color: "#2563eb",
+      id: "j17", num: 17, unit: "grammar", title: "敬語マスター①", sub: "尊敬語・謙譲語・丁寧語の基本", icon: "🙇", color: "#2563eb",
       questions: [
         { q: "動作の主体（相手や話題の人物）を高めることで敬意を表す敬語の種類を選びなさい。", opts: ["謙譲語", "丁寧語", "尊敬語", "美化語"], ans: 2, exp: "相手やその人の動作・状態などを直接高める敬語が「尊敬語」です。" },
         { q: "自分（または自分の身内）の動作をへりくだって表現することで、相手を高める敬語の種類を選びなさい。", opts: ["美化語", "尊敬語", "丁寧語", "謙譲語"], ans: 3, exp: "自分の側を低くすることで相手に敬意を表すのが「謙譲語」です。" },
@@ -4443,7 +4465,7 @@
       ]
     },
     {
-      id: "j18", num: 18, title: "敬語マスター②", sub: "場面に応じた正しい敬語表現", icon: "🎓", color: "#0284c7",
+      id: "j18", num: 18, unit: "grammar", title: "敬語マスター②", sub: "場面に応じた正しい敬語表現", icon: "🎓", color: "#0284c7",
       questions: [
         { q: "次の文のうち、敬語の使い方として誤っているものを選びなさい。", opts: ["どうぞ召し上がってください。", "部長がおっしゃられた通りです。", "資料を拝見いたしました。", "先生がこちらへいらっしゃいます。"], ans: 1, exp: "「おっしゃる（尊敬語）」にさらに「られる（尊敬の助動詞）」をつけた「おっしゃられる」は典型的な二重敬語であり誤りです。「おっしゃった通りです」が正解です。" },
         { q: "生徒が先生に向かって「先生、この本を貸してください」と丁寧に頼むときの最も適切な表現を選びなさい。", opts: ["先生、この本をお貸しいたします。", "先生、この本を貸し申し上げてください。", "先生、この本を拝借させていただいてもいいですか。", "先生、この本をお借りしてもよろしいでしょうか。"], ans: 3, exp: "自分が借りる動作なので、謙譲語の「お借りする」に許可を求める表現をつけた「お借りしてもよろしいでしょうか」が最も自然で適切です。" },
@@ -4458,7 +4480,7 @@
       ]
     },
     {
-      id: "j19", num: 19, title: "古文の扉①", sub: "歴史的仮名遣いと古文の読み方", icon: "🏮", color: "#0d9488",
+      id: "j19", num: 19, unit: "kobun", title: "古文の扉①", sub: "歴史的仮名遣いと古文の読み方", icon: "🏮", color: "#0d9488",
       questions: [
         { q: "歴史的仮名遣いの基本ルールとして、語中・語尾のハ行音（「は・ひ・ふ・へ・ほ」）は現代仮名遣いでは何行音に直して読むか選びなさい。", opts: ["マ行音", "パ行音", "ワ行音（わ・い・う・え・お）", "バ行音"], ans: 2, exp: "「思ふ→思う」「川（かは）→かわ」「言へり→いえり」のように、語中・語尾のハ行音はワ行音（わ・い・う・え・お）に直して読みます。" },
         { q: "次の歴史的仮名遣いの現代仮名遣い（読み方）として正しいものを選びなさい。\n\n「てふてふ」", opts: ["とうとう", "ちゅうちゅう", "てふてふ", "ちょうちょう"], ans: 3, exp: "「え段＋ふ」は「よう（拗音＋う）」と読むルールがあるため、「てふてふ」は「ちょうちょう（蝶々）」と読みます。" },
@@ -4473,7 +4495,7 @@
       ]
     },
     {
-      id: "j20", num: 20, title: "古文の扉②", sub: "現代と意味が違う重要古文単語①", icon: "👘", color: "#16a34a",
+      id: "j20", num: 20, unit: "kobun", title: "古文の扉②", sub: "現代と意味が違う重要古文単語①", icon: "👘", color: "#16a34a",
       questions: [
         { q: "古文単語「をかし」の最も代表的な意味として正しいものを選びなさい。", opts: ["恐ろしくて気味が悪い", "おかしくて大笑いする", "哀れで涙が出る", "趣がある・美しい・かわいらしい"], ans: 3, exp: "『枕草子』のキーワードである「をかし」は、知的な興味をひかれる「趣がある」「すばらしい」「かわいらしい」という意味を表します。" },
         { q: "古文単語「あはれなり」の最も代表的な意味として正しいものを選びなさい。", opts: ["かわいそうでみじめだ", "腹立たしくて許せない", "滑稽で面白い", "しみじみと趣深い・心を打たれる"], ans: 3, exp: "『源氏物語』のキーワードである「あはれなり」は、対象に触れて心がしみじみと動かされる「趣深い」「すばらしい」「いとしい」という意味が中心です。" },
@@ -4488,7 +4510,7 @@
       ]
     },
     {
-      id: "j21", num: 21, title: "古文の扉③", sub: "現代と意味が違う重要古文単語②", icon: "📜", color: "#ca8a04",
+      id: "j21", num: 21, unit: "kobun", title: "古文の扉③", sub: "現代と意味が違う重要古文単語②", icon: "📜", color: "#ca8a04",
       questions: [
         { q: "古文単語「めでたし」の意味として最も適切なものを選びなさい。", opts: ["つまらなくて退屈だ", "すばらしい・立派だ・美しい", "かわいそうで哀れだ", "お祝い事があって嬉しい"], ans: 1, exp: "「愛でたし（賞賛したいほどだ）」から、「すばらしい」「立派だ」「美しい」という意味になります。" },
         { q: "古文単語「あやし」の古文における2つの重要な意味の組み合わせとして正しいものを選びなさい。", opts: ["不思議だ・身分が低い（みすぼらしい）", "悲しい・寂しい", "明るい・陽気だ", "美しい・高貴だ"], ans: 0, exp: "「あやし」は、「不思議だ・変だ」という意味と、貴族から見て理解しがたいことから「身分が低い・みすぼらしい」という2つの重要な意味を持ちます。" },
@@ -4503,7 +4525,7 @@
       ]
     },
     {
-      id: "j22", num: 22, title: "古文の文法①", sub: "動詞の活用の種類と基本", icon: "🎋", color: "#ea580c",
+      id: "j22", num: 22, unit: "kobun", title: "古文の文法①", sub: "動詞の活用の種類と基本", icon: "🎋", color: "#ea580c",
       questions: [
         { q: "古文の動詞の活用の種類は、現代語の5種類に対して全部で何種類あるか選びなさい。", opts: ["5種類", "9種類", "11種類", "7種類"], ans: 1, exp: "古文の動詞の活用は「四段・上一段・上二段・下一段・下二段・カ変・サ変・ナ変・ラ変」の全部で9種類あります。" },
         { q: "古文の動詞のうち、「ラ行変格活用（ラ変）」に属する4つの動詞の組み合わせとして正しいものを選びなさい。", opts: ["あり・をり・はべり・いますがり", "死ぬ・往ぬ・去ぬ・居ぬ", "蹴る・見る・着る・似る", "来る・す・おはす・あり"], ans: 0, exp: "ラ変の動詞は「あり・をり・はべり・いますがり」の4語だけです。終止形が「〜り（イ段）」で終わるのが特徴です。" },
@@ -4518,7 +4540,7 @@
       ]
     },
     {
-      id: "j23", num: 23, title: "古文の文法②", sub: "助動詞の入口（き・けり・つ・ぬ・たり・り）", icon: "⏳", color: "#7c3aed",
+      id: "j23", num: 23, unit: "kobun", title: "古文の文法②", sub: "助動詞の入口（き・けり・つ・ぬ・たり・り）", icon: "⏳", color: "#7c3aed",
       questions: [
         { q: "過去の助動詞「き」と「けり」の使い分けとして、自分が直接体験した過去を表すのはどちらか選びなさい。", opts: ["けり（間接体験・伝聞の過去）", "どちらも同じ意味", "き（直接体験の過去）", "どちらも未来を表す"], ans: 2, exp: "「き」は自分が直接見聞き・体験した過去、「けり」は人から聞いた話や物語の語り（〜たそうだ・〜た）および詠嘆（〜だなあ）を表します。" },
         { q: "和歌の中で過去の助動詞「けり」が使われたとき、過去ではなくどのような意味になることが多いか選びなさい。", opts: ["詠嘆（〜だなあ・〜ことよ）", "意志（〜しよう）", "禁止（〜するな）", "打消し（〜ない）"], ans: 0, exp: "和歌や会話文中の「けり」は、気づきや感動を表す「詠嘆（〜だなあ）」と訳すのが定番です。" },
@@ -4533,7 +4555,7 @@
       ]
     },
     {
-      id: "j24", num: 24, title: "古文の文法③", sub: "助動詞の入口（ず・む・べし・らむ・らし）", icon: "🔮", color: "#db2777",
+      id: "j24", num: 24, unit: "kobun", title: "古文の文法③", sub: "助動詞の入口（ず・む・べし・らむ・らし）", icon: "🔮", color: "#db2777",
       questions: [
         { q: "打消しの助動詞「ず」の連体形として正しいものを選びなさい（例：知らぬ人＝知らない人）。", opts: ["ぬ", "ず", "ね", "ざり"], ans: 0, exp: "「ず」の活用は「（ざら）・ざり・ず・ぬ・ね・ざれ」なので、名詞（人）に続く連体形は「ぬ」になります。" },
         { q: "推量の助動詞「む」が、主語が一人称（私）のときに表す最も代表的な意味を選びなさい。", opts: ["推量（〜だろう）", "婉曲（〜ような）", "意志（〜しよう）", "適当・勧誘（〜するのがよい）"], ans: 2, exp: "主語が一人称（私）のときの「む」は「〜しよう」という「意志」、三人称のときは「〜だろう」という「推量」になるのが基本です。" },
@@ -4548,7 +4570,7 @@
       ]
     },
     {
-      id: "j25", num: 25, title: "古文の名文に触れる", sub: "有名な随筆・物語・和歌の一節", icon: "🌸", color: "#2563eb",
+      id: "j25", num: 25, unit: "kobun", title: "古文の名文に触れる", sub: "有名な随筆・物語・和歌の一節", icon: "🌸", color: "#2563eb",
       questions: [
         { q: "清少納言の随筆『枕草子』の冒頭「春はあけぼの。やうやう白くなりゆく山際、少しあかりて、紫だちたる雲の細くたなびきたる。」で、春に最も趣があるとされている時間帯を選びなさい。", opts: ["真昼", "夕暮れ", "真夜中", "夜明け（あけぼの）"], ans: 3, exp: "『枕草子』第一段では、春は「あけぼの（夜明け）」、夏は「夜」、秋は「夕暮れ」、冬は「つとめて（早朝）」がよいと述べられています。" },
         { q: "『枕草子』第一段で、「冬はつとめて。雪の降りたるは言ふべきにもあらず、霜のいと白きも、またさらでもいと寒きに、火など急ぎおこして、炭もて渡るもいとつきづきし。」の「つきづきし」の意味として正しいものを選びなさい。", opts: ["ふさわしい・似つかわしい", "冷たくてつらい", "珍しくて驚く", "不似合いだ"], ans: 0, exp: "寒い冬の早朝に炭火を持って廊下を通る様子が、冬の朝に「ふさわしい・似つかわしい（つきづきし）」と述べています。" },
@@ -4563,7 +4585,7 @@
       ]
     },
     {
-      id: "j26", num: 26, title: "現代文読解①", sub: "指示語と接続詞から論理を追う", icon: "🧭", color: "#0284c7",
+      id: "j26", num: 26, unit: "gendaibun", title: "現代文読解①", sub: "指示語と接続詞から論理を追う", icon: "🧭", color: "#0284c7",
       questions: [
         { q: "次の文章の「それ」が指す内容として最も適切なものを選びなさい。\n\n「現代のスマートフォンは非常に多機能で便利だが、常に通知に追われることで集中力が途切れやすいという側面もある。それを防ぐためには、勉強中や読書中は通知をオフにするなどの工夫が必要だ。」", opts: ["勉強や読書をすること", "通知をオフにすること", "スマートフォンが多機能であること", "常に通知に追われて集中力が途切れやすいこと"], ans: 3, exp: "指示語「それ」は直前の文に書かれている問題点「常に通知に追われることで集中力が途切れやすいこと」を指しています。" },
         { q: "次の文章の（　　）に入る最も適切な接続詞を選びなさい。\n\n「AI（人工知能）は膨大なデータを瞬時に処理し、正確な予測を立てることができる。（　　）、人間の感情に寄り添ったり、全く新しい価値観を生み出したりすることは依然として難しい。」", opts: ["つまり", "一方で", "たとえば", "したがって"], ans: 1, exp: "前半でAIの長所を述べ、後半でAIの限界（短所）を対比して述べているため、対比・逆接の接続詞「一方で」が最適です。" },
@@ -4578,7 +4600,7 @@
       ]
     },
     {
-      id: "j27", num: 27, title: "現代文読解②", sub: "評論文の要点と筆者の主張", icon: "📰", color: "#0d9488",
+      id: "j27", num: 27, unit: "gendaibun", title: "現代文読解②", sub: "評論文の要点と筆者の主張", icon: "📰", color: "#0d9488",
       questions: [
         { q: "次の文章を読んで、筆者の主張として最も適切なものを選びなさい。\n\n「科学技術の進歩は私たちの生活を飛躍的に便利にした。ボタン一つで世界中の情報にアクセスでき、移動時間も大幅に短縮された。しかし、便利さを追求するあまり、私たちは自分の頭でじっくり考えたり、不便さの中から工夫を生み出したりする機会を失いつつあるのではないか。真の豊かさとは、単なる効率や利便性だけではなく、手間や時間をかけて味わう経験の中にも宿っているはずだ。」", opts: ["科学技術の進歩を止めて、昔の不便な生活に戻るべきだ", "情報にアクセスするスピードをもっと速めることが最も重要だ", "現代人は昔の人よりもはるかに賢くなっている", "便利さや効率だけでなく、手間や時間をかけて味わう経験の中にも真の豊かさがある"], ans: 3, exp: "最終文「真の豊かさとは、単なる効率や利便性だけではなく、手間や時間をかけて味わう経験の中にも宿っているはずだ」に筆者の主張が凝縮されています。" },
         { q: "次の文章を読んで、筆者が「言葉の限界」について述べている内容として正しいものを選びなさい。\n\n「言葉は私たちが思考し、他者とコミュニケーションをとるための最も強力な道具である。しかし、言葉にした瞬間、こぼれ落ちてしまう繊細な感情や感覚も確実に存在する。たとえば、美しい夕焼けを見たときの胸の震えを、どんなに言葉を尽くしても完全には伝えきれない。だからこそ、私たちは言葉の力を信じつつも、言葉にならない沈黙や余白にも耳を澄ます必要がある。」", opts: ["言葉は不完全な道具なので、使うのをやめるべきだ", "コミュニケーションにおいて沈黙は常に悪いことである", "言葉では伝えきれない繊細な感情が存在するため、言葉にならない沈黙や余白にも目を向けるべきだ", "美しい夕焼けの感動は、言葉を使えば誰にでも100%伝えられる"], ans: 2, exp: "「だからこそ」以降の最終文に、言葉ではこぼれ落ちる感情があるからこそ沈黙や余白にも耳を澄ますべきだという主張が述べられています。" },
@@ -4593,7 +4615,7 @@
       ]
     },
     {
-      id: "j28", num: 28, title: "現代文読解③", sub: "小説の情景描写と登場人物の心情", icon: "📖", color: "#16a34a",
+      id: "j28", num: 28, unit: "gendaibun", title: "現代文読解③", sub: "小説の情景描写と登場人物の心情", icon: "📖", color: "#16a34a",
       questions: [
         { q: "次の小説の一節を読んで、主人公「健太」の心情として最も適切なものを選びなさい。\n\n「九回裏、最後の打者として打席に立った健太が空振り三振に倒れた瞬間、球場に響き渡った歓声が急に遠のいた。健太は打席で、自分のバットをただじっと見つめていた。指先に残る空振りの感触だけが、やけに重かった。」", opts: ["敗戦のショックを受け、現実をすぐには受け入れられない虚脱感に包まれている", "審判の判定に対して激しい怒りを感じている", "次の試合に向けてすぐに気持ちを切り替えた", "試合に勝って喜びをかみしめている"], ans: 0, exp: "「歓声が急に遠のいた」「ただじっと見つめていた」「やけに重かった」という描写から、負けた直後の深いショックと虚脱感が伝わります。" },
         { q: "次の小説の一節を読んで、登場人物「美咲」の気持ちを表している描写として最も適切な解釈を選びなさい。\n\n「『別に、気にしてないよ』と美咲は笑いながら言った。けれど、机の下で握りしめたスカートの裾は、白くなるほど強く締めつけられていた。」", opts: ["相手に対して冗談を言ってからかっている", "早く家に帰りたくてソワソワしている", "平気なふりをして笑っているが、内心では強い悔しさや悲しさを必死にこらえている", "本当に何とも思っておらず、心から楽しんでいる"], ans: 2, exp: "言葉と笑顔では「気にしてない」と装いつつ、見えないところで「白くなるほど強く握りしめる」という行動描写が、感情を必死に抑えている心情を表しています。" },
@@ -4608,7 +4630,7 @@
       ]
     },
     {
-      id: "j29", num: 29, title: "現代文読解④", sub: "随筆の体験と筆者の思い", icon: "✒️", color: "#ca8a04",
+      id: "j29", num: 29, unit: "gendaibun", title: "現代文読解④", sub: "随筆の体験と筆者の思い", icon: "✒️", color: "#ca8a04",
       questions: [
         { q: "随筆（エッセイ）の基本的な構成パターンとして最も一般的なものを選びなさい。", opts: ["「歴史年表の暗記」＋「人物の系図」", "「筆者の具体的な体験・見聞」＋「そこから導き出された感想・思索・教訓」", "「実験データの羅列」＋「数式による証明」", "「架空の主人公の冒険」＋「悪役との対決」"], ans: 1, exp: "随筆は筆者の実体験や日常の観察（事実・体験）をもとに、そこから感じたことや人生観（思索・感想）へと広げていくのが特徴です。" },
         { q: "次の随筆を読んで、筆者が最も伝えたかったこととして適切なものを選びなさい。\n\n「先日、近所のパン屋で焼きたてのパンを買ったとき、店員さんが『今日は寒いですね、温かいうちにどうぞ』と笑顔で声をかけてくれた。たったそれだけのやりとりなのに、冷え切っていた心までふっと温かくなった。効率やスピードばかりが重視される時代だからこそ、こうした何気ない言葉の温もりを大切にしたいと思う。」", opts: ["寒い日は外出を控えて家で過ごすべきだ", "効率重視の時代だからこそ、日常の何気ない言葉の温もりを大切にしたい", "焼きたてのパンは冷める前に食べるべきだ", "パン屋の店員は全員笑顔で接客する義務がある"], ans: 1, exp: "パン屋での体験（前半）から、「効率やスピードばかりが重視される時代だからこそ、何気ない言葉の温もりを大切にしたい」という思い（後半）へとつながっています。" },
@@ -4623,7 +4645,7 @@
       ]
     },
     {
-      id: "j30", num: 30, title: "総合読解演習", sub: "論理的思考力を試す文章読解", icon: "🏆", color: "#ea580c",
+      id: "j30", num: 30, unit: "gendaibun", title: "総合読解演習", sub: "論理的思考力を試す文章読解", icon: "🏆", color: "#ea580c",
       questions: [
         { q: "次の文章を読んで、問1に答えなさい。\n\n「私たちが何かを『理解する』とはどういうことだろうか。単に専門用語を暗記したり、公式に数字を当てはめて正解を出したりすることだけでは、本当の理解とは言えない。本当に理解している人は、その知識を自分の言葉で分かりやすく説明でき、さらに未知の状況にも応用することができる。」\n\n問1：筆者が考える「本当に理解している状態」の条件として述べられているものはどれですか。", opts: ["テストで常に100点を取ること", "自分の言葉で分かりやすく説明でき、未知の状況にも応用できること", "専門用語を一つも間違えずに暗記していること", "教科書の内容を丸暗記してそのまま再現できること"], ans: 1, exp: "最終文「その知識を自分の言葉で分かりやすく説明でき、さらに未知の状況にも応用することができる」が本当の理解の条件です。" },
         { q: "（前問の続き）次の文章を読んで、問2に答えなさい。\n\n「したがって、学習において最も効果的な方法の一つは、学んだ内容を他人に教えてみることである。いざ説明しようとすると、自分がどこを曖昧にしか分かっていなかったのかが浮き彫りになる。その『分からなさ』に気づくことこそが、深い学びへの出発点なのだ。」\n\n問2：学んだ内容を他人に教えてみることの利点として述べられているものはどれですか。", opts: ["他人よりも自分が優れていることを証明できる", "勉強時間を半分に減らすことができる", "教えることで自分の記憶が消去される", "自分がどこを曖昧にしか分かっていなかったのかが明確になり、深い学びにつながる"], ans: 3, exp: "「自分がどこを曖昧にしか分かっていなかったのかが浮き彫りになる」ことが深い学びの出発点になると述べられています。" },
@@ -4638,7 +4660,7 @@
       ]
     },
     {
-      id: "jch1", num: 31, title: "漢字読み書きチャレンジ①", sub: "ステージj1〜j4の総復習", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch1", num: 31, unit: "challenge", title: "漢字読み書きチャレンジ①", sub: "ステージj1〜j4の総復習", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の文の「歪曲」の漢字の読みとして正しいものを選びなさい。\n\n事実を歪曲して伝えてはいけない。", opts: ["わいきょく", "いかく", "いきょく", "わいかく"], ans: 0, exp: "「歪曲（わいきょく）」は、事実や道理をゆがめて曲げることという意味です。" },
         { q: "次の文の「乖離」の漢字の読みとして正しいものを選びなさい。\n\n両者の意見は大きく乖離している。", opts: ["じょうり", "はり", "かいり", "きり"], ans: 2, exp: "「乖離（かいり）」は、結びつきが離れて背き合うこと、隔たりがあることを表します。" },
@@ -4655,7 +4677,7 @@
       ]
     },
     {
-      id: "jch2", num: 32, title: "同音・同訓異字チャレンジ②", sub: "紛らわしい漢字の完全攻略", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch2", num: 32, unit: "challenge", title: "同音・同訓異字チャレンジ②", sub: "紛らわしい漢字の完全攻略", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の文の（　）に入る最も適切な漢字を選びなさい。\n\n美術館で名画を（　）する。", opts: ["鑑賞", "感傷", "観賞", "干渉"], ans: 0, exp: "芸術作品を味わうことは「鑑賞」、草花や景色を見て楽しむことは「観賞」を使います。" },
         { q: "次の文の（　）に入る最も適切な漢字を選びなさい。\n\n事故の原因を徹底的に（　）する。", opts: ["追究", "追求", "推究", "追及"], ans: 0, exp: "真理や原因を深く調べて明らかにすることは「追究」を使います。「追及」は責任を問い詰めること、「追求」は目的物を追い求めることです。" },
@@ -4672,7 +4694,7 @@
       ]
     },
     {
-      id: "jch3", num: 33, title: "四字熟語チャレンジ③", sub: "故事・由来と意味の応用", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch3", num: 33, unit: "challenge", title: "四字熟語チャレンジ③", sub: "故事・由来と意味の応用", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "「周囲がすべて敵や反対者ばかりで孤立し、助けがない状態」を表す四字熟語を選びなさい。", opts: ["四面楚歌", "単刀直入", "疑心暗鬼", "起死回生"], ans: 0, exp: "「四面楚歌（しめんそか）」は、項羽が劉邦の軍に囲まれた際、周囲から故郷の楚の歌が聞こえてきて孤立を知った故事に由来します。" },
         { q: "「根本となる大切なことと、些細なことを取り違えること」を表す四字熟語を選びなさい。", opts: ["本末転倒", "臨機応変", "初志貫徹", "言行一致"], ans: 0, exp: "「本末転倒（ほんまつてんとう）」は、大事なこと（本）と枝葉のこと（末）が逆さまになるという意味です。" },
@@ -4689,7 +4711,7 @@
       ]
     },
     {
-      id: "jch4", num: 34, title: "慣用句・ことわざチャレンジ④", sub: "豊かな語彙表現の定着", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch4", num: 34, unit: "challenge", title: "慣用句・ことわざチャレンジ④", sub: "豊かな語彙表現の定着", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "慣用句「食指が動く」の意味として正しいものを選びなさい。", opts: ["指を怪我して動かなくなる", "ある物事に対して興味や意欲がわく", "他人の料理をつまみ食いする", "お腹が空いて食事をしたくなる"], ans: 1, exp: "「食指（人差し指）が動く」は、何かを見て「やってみたい」「手に入れたい」という意欲がわくことを表します。" },
         { q: "慣用句「二の足を踏む」の意味として正しいものを選びなさい。", opts: ["他人の足を間違えて踏む", "ためらってすぐに行動に移せない", "急いで走り出す", "2番目にゴールする"], ans: 1, exp: "「二の足を踏む」は、一歩目を踏み出したあと二歩目をためらうことから、決心がつかず尻込みすることを表します。" },
@@ -4706,7 +4728,7 @@
       ]
     },
     {
-      id: "jch5", num: 35, title: "品詞と活用チャレンジ⑤", sub: "用言・体言・修飾語の識別", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch5", num: 35, unit: "challenge", title: "品詞と活用チャレンジ⑤", sub: "用言・体言・修飾語の識別", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の文の「静かな」の品詞として正しいものを選びなさい。\n\n今日はとても静かな夜だ。", opts: ["連体詞", "形容詞", "副詞", "形容動詞"], ans: 3, exp: "「静かな」は終止形に直すと「静かだ」となるため、形容動詞の連体形です。" },
         { q: "次の文の「あらゆる」の品詞として正しいものを選びなさい。\n\nあらゆる手段を尽くして問題を解決する。", opts: ["連体詞", "形容動詞", "副詞", "形容詞"], ans: 0, exp: "「あらゆる」は活用がなく、後ろの名詞「手段」のみを修飾する「連体詞」です。" },
@@ -4723,7 +4745,7 @@
       ]
     },
     {
-      id: "jch6", num: 36, title: "助動詞・文の成分チャレンジ⑥", sub: "現代文法の構造理解", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch6", num: 36, unit: "challenge", title: "助動詞・文の成分チャレンジ⑥", sub: "現代文法の構造理解", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の文の下線部の助動詞「られる」の意味として正しいものを選びなさい。\n\n祖父の昔話が自然としのばれる。", opts: ["可能", "尊敬", "受け身", "自発"], ans: 3, exp: "「思い出す」「しのばれる」「案じられる」など心情を表す動詞につき、自然とそうなる意味を表す場合は「自発」です。" },
         { q: "次の文の「美しい」の文の成分として正しいものを選びなさい。\n\n姉は美しい絵を描いた。", opts: ["連用修飾語", "独立語", "連体修飾語", "主語"], ans: 2, exp: "「美しい」は後ろの名詞「絵（体言）」を修飾しているため、「連体修飾語」です。" },
@@ -4740,7 +4762,7 @@
       ]
     },
     {
-      id: "jch7", num: 37, title: "敬語表現チャレンジ⑦", sub: "実践的な敬語の使い分け", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch7", num: 37, unit: "challenge", title: "敬語表現チャレンジ⑦", sub: "実践的な敬語の使い分け", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "動詞「見る」の尊敬語と謙譲語の組み合わせとして正しいものを選びなさい。", opts: ["尊敬語：見られる ／ 謙譲語：お見せする", "尊敬語：ご覧になる ／ 謙譲語：拝見する", "尊敬語：拝見する ／ 謙譲語：ご覧になる", "尊敬語：お見になる ／ 謙譲語：拝読する"], ans: 1, exp: "「見る」の尊敬語は「ご覧になる」、謙譲語は「拝見する」です。" },
         { q: "次の文のうち、敬語の使い方として最も適切なものを選びなさい。", opts: ["私が先生のカバンをお運びいたします。", "部長はただいまお帰りになられました。", "先生がおっしゃられた通りに進めます。", "どうぞこちらのケーキをいただいてください。"], ans: 0, exp: "自分の動作をへりくだる謙譲語「お運びいたします」を使った1番目の文が正解です。2番目と3番目は二重敬語、4番目は相手に謙譲語「いただく」を使っている誤りです。" },
@@ -4757,7 +4779,7 @@
       ]
     },
     {
-      id: "jch8", num: 38, title: "古文単語・仮名遣いチャレンジ⑧", sub: "古文読解の基礎固め", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch8", num: 38, unit: "challenge", title: "古文単語・仮名遣いチャレンジ⑧", sub: "古文読解の基礎固め", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の歴史的仮名遣いの現代仮名遣い（読み方）として正しいものを選びなさい。\n\n「思ふ（おもふ）」", opts: ["おもわ", "おもえ", "おもう", "おもふ"], ans: 2, exp: "語中・語尾のハ行音はワ行音に直すため、「ふ」は「う」と読み、「おもう」となります。" },
         { q: "次の歴史的仮名遣いの読み方として正しいものを選びなさい。\n\n「けふ（今日）」", opts: ["こう", "けふ", "けう", "きょう"], ans: 3, exp: "「け＋ふ（え段＋ふ）」は「きょう」と発音します。" },
@@ -4774,7 +4796,7 @@
       ]
     },
     {
-      id: "jch9", num: 39, title: "古文助動詞チャレンジ⑨", sub: "古典文法の重要ポイント", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch9", num: 39, unit: "challenge", title: "古文助動詞チャレンジ⑨", sub: "古典文法の重要ポイント", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "古文における「係り結びの法則」で、文中に「ぞ・なむ・や・か」があるとき、文末は何形になるか選びなさい。", opts: ["已然形", "連体形", "未然形", "終止形"], ans: 1, exp: "「ぞ・なむ・や・か」が文中にあるときは、文末が「連体形」になります。" },
         { q: "文中に係助詞「こそ」があるとき、文末は何形になるか選びなさい。", opts: ["未然形", "已然形", "連体形", "連用形"], ans: 1, exp: "係助詞「こそ」が文中にあるときは、文末が「已然形」になります。" },
@@ -4791,7 +4813,7 @@
       ]
     },
     {
-      id: "jch10", num: 40, title: "古文名文チャレンジ⑩", sub: "古典作品の読解と鑑賞", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch10", num: 40, unit: "challenge", title: "古文名文チャレンジ⑩", sub: "古典作品の読解と鑑賞", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "『枕草子』第一段で、「夏は夜。月のころはさらなり。闇もなほ、蛍の多く飛びちがひたる。」の「さらなり」の意味として正しいものを選びなさい。", opts: ["つまらないことだ", "さらに暗い", "珍しいことだ", "言うまでもない（もちろんだ）"], ans: 3, exp: "「さらなり」は「言うまでもない」「もちろんだ」という意味の重要な古文単語（形容動詞）です。" },
         { q: "『徒然草』の冒頭「つれづれなるままに、日暮らし、硯にむかひて、心にうつりゆくよしなしごとを、そこはかとなく書きつくれば、あやしうこそものぐるほしけれ。」で、「日暮らし」の意味として正しいものを選びなさい。", opts: ["日陰で", "夕暮れ時に", "毎日", "一日中"], ans: 3, exp: "「日暮らし（ひぐらし）」は「一日中」という意味です。" },
@@ -4808,7 +4830,7 @@
       ]
     },
     {
-      id: "jch11", num: 41, title: "論理的文章読解チャレンジ⑪", sub: "評論文の要旨把握", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch11", num: 41, unit: "challenge", title: "論理的文章読解チャレンジ⑪", sub: "評論文の要旨把握", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の文章を読んで、問1に答えなさい。\n\n「言語は世界を切り分ける網のようなものである。私たちが世界を認識するとき、言葉という網の目を通して初めて、目の前の現象に輪郭と意味が与えられる。たとえば、日本語では『兄』と『弟』を区別するが、英語ではどちらも『brother』と呼ぶように、どの言語を使うかによって世界の切り取り方は異なるのである。」\n\n問1：筆者が言語を「世界を切り分ける網」にたとえている理由として最も適切なものを選びなさい。", opts: ["言葉の区別（網の目）を通して初めて、世界の中の物事に輪郭と意味が与えられて認識されるから", "世界中のすべての言語がまったく同じ網の目を持っているから", "言葉を使うと現実の世界が見えなくなってしまうから", "言語は魚を捕まえる道具と同じ役割を持っているから"], ans: 0, exp: "言葉の区分によって現象に輪郭と意味が与えられ、世界を認識できるようになることを「網」にたとえています。" },
         { q: "（前問の続き）次の文章を読んで、問2に答えなさい。\n\n「したがって、外国語を学ぶことは、単に別の単語や文法を覚える作業にとどまらない。それは、母語とは異なる『世界の見方』を手に入れ、自分が当たり前だと思っていた認識の枠組みを相対化することなのである。」\n\n問2：筆者が考える「外国語を学ぶことの本質的な意義」として最も適切なものを選びなさい。", opts: ["できるだけ多くの単語を暗記して試験に合格すること", "母語とは異なる世界の見方を知り、自分の当たり前とする認識の枠組みを客観視（相対化）すること", "母語を忘れて外国語だけで生活できるようになること", "どの言語も同じ構造であることを証明すること"], ans: 1, exp: "「母語とは異なる『世界の見方』を手に入れ、自分が当たり前だと思っていた認識の枠組みを相対化すること」と述べられています。" },
@@ -4825,7 +4847,7 @@
       ]
     },
     {
-      id: "jch12", num: 42, title: "文学的文章読解チャレンジ⑫", sub: "小説・随筆の心情理解", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch12", num: 42, unit: "challenge", title: "文学的文章読解チャレンジ⑫", sub: "小説・随筆の心情理解", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の小説の一節を読んで、主人公「拓海」の心情として最も適切なものを選びなさい。\n\n「コンクールの結果発表が終わり、ロビーには喜びの声を上げる他校の生徒たちがあふれていた。拓海は楽器ケースの持ち手を強く握りしめ、誰とも目を合わせないように下を向いて出口へと急いだ。喉の奥が熱く、今にも涙がこぼれそうだった。」", opts: ["他校の生徒の演奏を祝福したいと思っている", "演奏がうまくいき、満足感でいっぱいである", "次の予定に遅れそうで急いでいる", "悔しさと悲しさで胸がいっぱいになり、周囲に涙を見られたくないと必死にこらえている"], ans: 3, exp: "「誰とも目を合わせないように下を向いて」「喉の奥が熱く、今にも涙がこぼれそうだった」という描写から、敗北・落選の悔しさをこらえる心情が読み取れます。" },
         { q: "次の小説の一節を読んで、情景描写が表している主人公の気持ちとして最も適切なものを選びなさい。\n\n「長い喧嘩のあと、ようやく『ごめん』と一言だけメッセージを送った。すると数秒後、画面に『こちらこそ』という返信が届いた。窓の外を見ると、さっきまで激しく降っていた夕立が嘘のように上がり、西の空に大きな虹がかかっていた。」", opts: ["虹の写真をSNSに投稿しようと考えている", "喧嘩が解決せず、さらに落ち込んでいる", "雨に濡れて風邪をひかないか心配している", "わだかまりが解けて仲直りできた安心感と、晴れやかな喜びに包まれている"], ans: 3, exp: "夕立（喧嘩・気まずさ）が上がり、大きな虹（仲直り・晴れやかな気持ち）がかかる情景描写が心情の変化を見事に映し出しています。" },
@@ -4842,7 +4864,7 @@
       ]
     },
     {
-      id: "jch13", num: 43, title: "総合実力チャレンジ⑬", sub: "漢字・語彙・現代文法の融合問題", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch13", num: 43, unit: "challenge", title: "総合実力チャレンジ⑬", sub: "漢字・語彙・現代文法の融合問題", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の文の「乖離」の読みとして正しいものを選びなさい。\n\n両者の意見には大きな乖離がある。", opts: ["はり", "かいり", "じょうり", "きり"], ans: 1, exp: "「乖離（かいり）」は、かけ離れて背き合うことを意味します。" },
         { q: "次の文のカタカナを漢字に直したものとして正しいものを選びなさい。\n\n主張には客観的なコンキョが必要だ。", opts: ["今拠", "混拠", "根処", "根拠"], ans: 3, exp: "よりどころとなる理由は「根拠」と書きます。" },
@@ -4859,7 +4881,7 @@
       ]
     },
     {
-      id: "jch14", num: 44, title: "総合実力チャレンジ⑭", sub: "古文・現代文読解の実践テスト", icon: "👹", color: "#991b1b", challenge: true,
+      id: "jch14", num: 44, unit: "challenge", title: "総合実力チャレンジ⑭", sub: "古文・現代文読解の実践テスト", icon: "👹", color: "#991b1b", challenge: true,
       questions: [
         { q: "次の古文の一節を読んで、問1に答えなさい。\n\n「ある人、弓射ることを習ふに、もろ矢をたばさみて的に向かふ。師のいはく、『初心の人、二つの矢を持つことなかれ。後の矢を頼みて、はじめの矢になほざりの心あり。』と。」（『徒然草』第九十二段）\n\n問1：「後の矢を頼みて、はじめの矢になほざりの心あり」の意味として最も適切なものを選びなさい。", opts: ["1本目の矢が当たったら、2本目の矢は射なくてもよい", "2本目の矢を頼りにして、1本目の矢をおろそかにする気持ちが生じる", "初心者は矢を1本も持つべきではない", "2本目の矢の方が1本目よりもよく当たる"], ans: 1, exp: "「なほざりなり」は「いいかげんだ・おろそかだ」という意味です。次があると思うと最初の1本に全力を尽くせなくなるという戒めです。" },
         { q: "（前問の続き）問2：この『徒然草』の段が伝えている教訓として最も適切なものを選びなさい。", opts: ["「次がある」という甘えを捨て、今目の前の一回に全力を尽くすべきだ", "何事にも予備の計画をたくさん用意しておくべきだ", "弓道の練習は毎日欠かさず行うべきだ", "師匠の言うことにはすべて疑問を持つべきだ"], ans: 0, exp: "「まだ次がある」という油断を断ち切り、最初の一矢に全精神を集中させることの大切さを説いています。" },
@@ -4876,7 +4898,7 @@
       ]
     },
     {
-      id: "jch15", num: 45, title: "最終チャレンジ", sub: "国語全範囲の総決算テスト", icon: "👹", color: "#7f1d1d", challenge: true,
+      id: "jch15", num: 45, unit: "challenge", title: "最終チャレンジ", sub: "国語全範囲の総決算テスト", icon: "👹", color: "#7f1d1d", challenge: true,
       questions: [
         { q: "次の文の「打破」の読みとして正しいものを選びなさい。\n\n固定観念を打破して新しい発想を生み出す。", opts: ["だわ", "だば", "たは", "だは"], ans: 3, exp: "「打破（だは）」は、行き詰まった状態や古い観念を打ち破ることという意味です。" },
         { q: "次の文のカタカナを漢字に直したものとして正しいものを選びなさい。\n\n自然環境と経済活動の両立を目指してコウケンする。", opts: ["高見", "好嫌", "公権", "貢献"], ans: 3, exp: "社会やある物事のために力を尽くして役立つことは「貢献」と書きます。" },
@@ -4905,6 +4927,64 @@
     japanese: { id: "japanese", name: "国語", icon: "🖌️", stages: JPN_STAGES }
   };
   SUBJECTS.physics.stages = PHYSICS_STAGES;
+
+  // ===== 単元（3.0.0）=====
+  // 各ステージは unit を持つ。単元タブの表示順・名前・アイコンはここで決める。
+  // 国語の漢文は内容がまだ無いため comingSoon（タブは「🚧 実装予定」で表示だけする）。
+  const UNIT_DEFS = {
+    physics: [
+      { id: "mech", name: "力学", icon: "⚙️" },
+      { id: "heat", name: "熱", icon: "🌡️" },
+      { id: "wave", name: "波", icon: "〰️" },
+      { id: "light", name: "光", icon: "🔆" },
+      { id: "elec", name: "電気", icon: "🔌" },
+      { id: "mag", name: "磁気", icon: "🧲" },
+      { id: "atom", name: "原子・量子", icon: "⚛️" },
+      { id: "challenge", name: "チャレンジ", icon: "👹" }
+    ],
+    math: [
+      { id: "algebra", name: "数と式・方程式", icon: "🔢" },
+      { id: "func", name: "関数", icon: "📈" },
+      { id: "geom", name: "図形・三角比", icon: "📐" },
+      { id: "prob", name: "場合の数・確率", icon: "🎲" },
+      { id: "seq", name: "指数・対数・数列", icon: "🔣" },
+      { id: "calc", name: "微分・積分など", icon: "∫" },
+      { id: "challenge", name: "チャレンジ", icon: "👹" }
+    ],
+    chem: [
+      { id: "basic", name: "物質の基礎", icon: "🧪" },
+      { id: "bond", name: "化学結合", icon: "🔗" },
+      { id: "amount", name: "物質量・反応式", icon: "⚖️" },
+      { id: "acid", name: "酸と塩基・酸化還元", icon: "🧫" },
+      { id: "gas", name: "気体・溶液", icon: "💨" },
+      { id: "battery", name: "電池・電気分解", icon: "🔋" },
+      { id: "organic", name: "有機・平衡など", icon: "🌿" },
+      { id: "challenge", name: "チャレンジ", icon: "👹" }
+    ],
+    english: [
+      { id: "vocab", name: "単語・語彙", icon: "🔤" },
+      { id: "grammar", name: "文法", icon: "📝" },
+      { id: "reading", name: "読解・英作文", icon: "📖" },
+      { id: "challenge", name: "チャレンジ", icon: "👹" }
+    ],
+    japanese: [
+      { id: "kanji", name: "漢字・語彙", icon: "🖌️" },
+      { id: "grammar", name: "文法・敬語", icon: "📝" },
+      { id: "kobun", name: "古文", icon: "📜" },
+      { id: "gendaibun", name: "現代文読解", icon: "📖" },
+      { id: "kanbun", name: "漢文", icon: "📜", comingSoon: true },
+      { id: "challenge", name: "チャレンジ", icon: "👹" }
+    ]
+  };
+  function unitsForSubject(subjId) {
+    const defs = UNIT_DEFS[subjId] || [];
+    const stages = (SUBJECTS[subjId] && SUBJECTS[subjId].stages) || [];
+    return defs.map(d => ({ ...d, stages: stages.filter(s => s.unit === d.id) }));
+  }
+  function unitNameOf(subjId, unitId) {
+    const d = (UNIT_DEFS[subjId] || []).find(x => x.id === unitId);
+    return d ? d.name : unitId;
+  }
   let currentSubject = "physics";
   function setSubject(id, silent) {
     // ストリーク・XP・進捗はアカウント単位で全教科共通。科目を変えてもリセットされない
@@ -5409,6 +5489,8 @@ const EXTRA_QUESTIONS = {
           Object.keys(a.stars).forEach(id => uset.add(id));
           a.unlockedIds = Array.from(uset);
         }
+        if (typeof a.grade !== "string") a.grade = "";
+        if (!a.difficulty || !DIFF_LEVELS[a.difficulty]) a.difficulty = "basic";
         if (!Array.isArray(a.weekDates)) a.weekDates = [];
         // ストリークは全教科共通（アカウント単位で1本）。科目別に保存された古いデータがあれば最大値を引き継ぐ
         if (a.streakBySubject && typeof a.streakBySubject === "object") {
@@ -5475,15 +5557,56 @@ const EXTRA_QUESTIONS = {
     return appData.accounts[appData.activeId] || appData.accounts["guest"];
   }
 
-  // ステージに挑戦できるか（id基準の記録＋前のステージをクリアしたら次が開く）
+  // ===== レベル（難易度）と学年（3.0.0）=====
+  // 学年は開放には使わない。ユーザーのデータとして保存するだけ。
+  const GRADES = ["中1", "中2", "中3", "高1", "高2", "高3", "大学・その他"];
+  const DIFF_LEVELS = {
+    basic: { id: "basic", name: "基礎から", icon: "🌱", desc: "簡単に基礎から進めます。各単元の第1ステージだけ開きます。" },
+    standard: { id: "standard", name: "標準", icon: "📘", desc: "基礎はできるから標準的な問題を解きます。各単元の前半まで開きます。" },
+    advanced: { id: "advanced", name: "発展", icon: "🚀", desc: "最初から発展で行きたい人向け。すべてのステージが最初から開きます。" }
+  };
+  // 難易度に応じて最初から開くステージidを返す（チャレンジは常時開放なので含めない）
+  function difficultyUnlockIds(level) {
+    const ids = [];
+    if (level === "advanced") {
+      Object.values(SUBJECTS).forEach(subj => (subj.stages || []).forEach(s => { if (!s.challenge) ids.push(s.id); }));
+    } else if (level === "standard") {
+      Object.values(SUBJECTS).forEach(subj => {
+        const stages = (subj.stages || []).filter(s => !s.challenge);
+        const unitIds = [...new Set(stages.map(s => s.unit))];
+        unitIds.forEach(u => {
+          const us = stages.filter(s => s.unit === u);
+          us.slice(0, Math.ceil(us.length / 2)).forEach(s => ids.push(s.id));
+        });
+      });
+    }
+    return ids;
+  }
+  // 難易度を上げた分だけステージを追加で開く（開いているものが閉じることはない）
+  function applyDifficultyUnlock(acc, level) {
+    if (!acc) return;
+    if (!Array.isArray(acc.unlockedIds)) acc.unlockedIds = [];
+    difficultyUnlockIds(level).forEach(id => { if (!acc.unlockedIds.includes(id)) acc.unlockedIds.push(id); });
+    acc.difficulty = level;
+  }
+  // ステージに挑戦できるか（3.0.0：単元単位の開放）
   // 難問チャレンジ（challenge: true）は進捗に関係なく初回から常時挑戦可能
+  // 各単元の第1ステージは最初から遊べる。単元の中は、前のステージをクリアしたら次が開く
   function isStageUnlocked(acc, idx) {
     const st = STAGES[idx];
-    if (st && st.challenge) return true;
+    if (!st) return false;
+    if (st.challenge) return true;
     if (idx <= 0) return true;
-    if (st && Array.isArray(acc.unlockedIds) && acc.unlockedIds.includes(st.id)) return true;
-    const prev = STAGES[idx - 1];
-    return !!(prev && (acc.stars[prev.id] || 0) > 0);
+    if (Array.isArray(acc.unlockedIds) && acc.unlockedIds.includes(st.id)) return true;
+    if (!st.unit) {
+      const prev = STAGES[idx - 1];
+      return !!(prev && (acc.stars[prev.id] || 0) > 0);
+    }
+    const unitStages = STAGES.filter(s => s.unit === st.unit && !s.challenge);
+    const pos = unitStages.findIndex(s => s.id === st.id);
+    if (pos <= 0) return true; // 単元の第1ステージ
+    const prev = unitStages[pos - 1];
+    return (acc.stars[prev.id] || 0) > 0;
   }
   function stageIndexById(id) { return STAGES.findIndex(s => s.id === id); }
 
@@ -7361,6 +7484,8 @@ const EXTRA_QUESTIONS = {
     document.getElementById("soundBtn").textContent = appData.sound ? "🔊" : "🔇";
   }
 
+  // 科目ごとに選んでいる単元タブ（3.0.0）
+  let unitSel = {};
   function renderHome() {
     updateHUD();
     const acc = curAcc();
@@ -7380,7 +7505,16 @@ const EXTRA_QUESTIONS = {
       days.push({ label, done: acc.weekDates.includes(ds) });
     }
 
-    const currentStageIdx = STAGES.findIndex((s, i) => !s.challenge && isStageUnlocked(acc, i) && !(acc.stars[s.id] > 0));
+    // 単元タブ（3.0.0）：選んだ単元のステージだけを並べる
+    const units = unitsForSubject(currentSubject);
+    let selUnit = unitSel[currentSubject] || (units[0] && units[0].id);
+    if (!units.some(u => u.id === selUnit)) selUnit = units[0] && units[0].id;
+    unitSel[currentSubject] = selUnit;
+    const selUnitDef = units.find(u => u.id === selUnit) || units[0];
+    const shownIdxs = STAGES.map((s, i) => ({ s, i })).filter(x => x.s.unit === selUnit);
+    const unitCleared = shownIdxs.filter(x => (acc.stars[x.s.id] || 0) > 0).length;
+    const currentInUnit = shownIdxs.find(x => !x.s.challenge && isStageUnlocked(acc, x.i) && !(acc.stars[x.s.id] > 0));
+    const currentStageIdx = currentInUnit ? currentInUnit.i : -1;
     const main = document.getElementById("appMain");
     main.innerHTML = `
       ${quizResumeHtml("▶ クイズの続きを解く（途中の問題があります）")}
@@ -7417,11 +7551,23 @@ const EXTRA_QUESTIONS = {
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding:0 4px;">
         <h2 style="margin:0; font-size:17px;">🗺️ ステージマップ</h2>
-        <span style="font-size:12px; color:var(--text-light); font-weight:700;">全${STAGES.length}ステージ</span>
+        <span style="font-size:12px; color:var(--text-light); font-weight:700;">${selUnitDef.name} ${unitCleared}/${shownIdxs.length} ・ 全体 ${Object.keys(acc.stars).length}/${STAGES.length}</span>
       </div>
 
+      <div style="display:flex; gap:8px; overflow-x:auto; padding:2px 2px 10px; margin-bottom:4px;">
+        ${units.map(u => {
+          const c = u.stages.filter(x => (acc.stars[x.id] || 0) > 0).length;
+          return `<button class="unit-tab ${u.id === selUnit ? "active" : ""}" data-unit-tab="${u.id}" ${u.comingSoon ? "disabled" : ""}>
+            <span style="font-size:21px; line-height:1;">${u.icon}</span>
+            <span>${u.name}</span>
+            <span style="font-size:11px; opacity:0.75;">${u.comingSoon ? "🚧 実装予定" : `クリア ${c}/${u.stages.length}`}</span>
+          </button>`;
+        }).join("")}
+      </div>
+      ${selUnitDef.id === "challenge" ? `<div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; margin-bottom:10px;">🔥 難問チャレンジ：難易度高めの発展ステージ（全${selUnitDef.stages.length}ステージ）― 最初からいつでも挑戦できます</div>` : ""}
+
       <section class="stage-path">
-        ${STAGES.map((st, idx) => {
+        ${shownIdxs.map(({ s: st, i: idx }) => {
           const unlocked = isStageUnlocked(acc, idx);
           const stars = acc.stars[st.id] || 0;
           const cls = stars > 0 ? "cleared" : unlocked ? "unlocked" : "locked";
@@ -7430,10 +7576,7 @@ const EXTRA_QUESTIONS = {
           const justUnlocked = justUnlockedStageIds.has(st.id);
           if (justUnlocked) justUnlockedStageIds.delete(st.id);
           const offset = (idx % 2 === 0 ? -14 : 14);
-          const challengeHead = st.challenge && (idx === 0 || !STAGES[idx - 1].challenge)
-            ? `<div class="challenge-head">🔥 難問チャレンジ<span>難易度高めの発展ステージ（全${STAGES.filter(s => s.challenge).length}ステージ）― 最初からいつでも挑戦できます</span></div>` : "";
           return `
-            ${challengeHead}
             <div class="stage-node-wrap" style="transform:translateX(${offset}px);">
               <div class="stage-node ${cls}${isCurrent ? " current" : ""}${st.challenge ? " challenge-node" : ""}${justUnlocked ? " just-unlocked" : ""}" data-st-idx="${idx}">
                 ${isCurrent ? `<span class="stage-now-badge">▶ いまここ</span>` : ""}
@@ -7463,6 +7606,12 @@ const EXTRA_QUESTIONS = {
     if (changeSubjectHomeBtn) changeSubjectHomeBtn.addEventListener("click", () => renderSubjectSelect());
     const reviewBtn = document.getElementById("reviewBtn");
     if (reviewBtn && acc.wrongList.length) reviewBtn.addEventListener("click", startReviewQuiz);
+    main.querySelectorAll("[data-unit-tab]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        unitSel[currentSubject] = btn.getAttribute("data-unit-tab");
+        renderHome();
+      });
+    });
     main.querySelectorAll(".stage-node").forEach(btn => {
       btn.addEventListener("click", () => {
         const idx = Number(btn.getAttribute("data-st-idx"));
@@ -8173,15 +8322,23 @@ const EXTRA_QUESTIONS = {
       const totalQ = total;
       const stars = session.correctCount >= Math.ceil(totalQ * 0.9) ? 3 : session.correctCount >= Math.ceil(totalQ * 0.7) ? 2 : session.correctCount >= Math.ceil(totalQ * 0.4) ? 1 : 0;
       if (stars > 0) {
+        // 単元内の次のステージを開く。クリアする前に次のステージが開いていなければ、開いたことを知らせる
+        // （星を入れる前に判定する。入れると「前のステージをクリアしたから開く」判定が必ず通ってしまうため）
+        const unitStages = STAGES.filter(x => x.unit === st.unit && !x.challenge);
+        const posInUnit = unitStages.findIndex(x => x.id === st.id);
+        const nextInUnit = posInUnit >= 0 ? unitStages[posInUnit + 1] : null;
+        const nextWasLocked = nextInUnit ? !isStageUnlocked(acc, stageIndexById(nextInUnit.id)) : false;
         acc.stars[st.id] = Math.max(acc.stars[st.id] || 0, stars);
         logEvent("stage_clear", st.id);
-        const nextIdx = session.stageIdx + 1;
-        if (nextIdx < STAGES.length && !isStageUnlocked(acc, nextIdx)) {
-          const nid = STAGES[nextIdx].id;
+        if (nextInUnit && nextWasLocked) {
+          const nid = nextInUnit.id;
           if (!Array.isArray(acc.unlockedIds)) acc.unlockedIds = ["jr1"];
           if (!acc.unlockedIds.includes(nid)) acc.unlockedIds.push(nid);
           justUnlockedStageIds.add(nid); // マップ表示時に一度だけ解放演出を出す
-          unlockedMsg = `🎉 STAGE ${STAGES[nextIdx].num}「${STAGES[nextIdx].title}」が遊べるようになったよ！`;
+          unlockedMsg = `🎉 STAGE ${nextInUnit.num}「${nextInUnit.title}」が遊べるようになったよ！`;
+        } else if (!nextInUnit && posInUnit >= 0) {
+          const done = unitStages.filter(x => (acc.stars[x.id] || 0) > 0).length;
+          if (done >= unitStages.length) unlockedMsg = `🎉 「${unitNameOf(currentSubject, st.unit)}」をコンプリート！`;
         }
         saveData();
       }
@@ -8233,6 +8390,8 @@ const EXTRA_QUESTIONS = {
 
   // Account Modal Logic
   let pickedAvatar = "🚀";
+  let createGrade = "";
+  let createDifficulty = "standard";
   // アカウントモーダルの表示モード："choice"=初回のはじめ方選択画面、"profile"=通常のプロフィール画面
   let accountFlowMode = "profile";
   function openAccountModal(mode) {
@@ -8346,9 +8505,10 @@ const EXTRA_QUESTIONS = {
   // どの端末・URLからでもサインインして続きから遊ぶためのものです。端末内の保存は
   // オフライン時の予備で、localStorage は URL（オリジン）ごとに分かれるため、
   // サインインは端末内だけでなくクラウド（sync コレクション）も確認します。
-  const APP_VERSION = "2.3.24";
+  const APP_VERSION = "3.0.0";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-25", version: "3.0.0", title: "単元ごとに学べるようになりました", body: "ステージが単元ごとに分かれて、好きな単元から進められるようになりました。アカウントを作るときに学年と難易度を選べるようになっています。" },
     { date: "2026-11-25", version: "2.3.24", title: "英語の単語ページがめくりやすくなりました", body: "単語ページで横にスワイプすると、前後の単語へ移動できるようになりました。検索中の移動も検索結果に合わせています。" },
     { date: "2026-11-25", version: "2.3.23", title: "英語の単語帳が見やすくなりました", body: "英語の単語帳が見やすくなりました。単語をタップして開いてみてください。" },
     { date: "2026-11-25", version: "2.3.22", title: "英語の単語帳が使えるようになりました", body: "英語の単語帳が使えるようになりました。学習タブからひらいてみてください。" },
@@ -8456,13 +8616,19 @@ const EXTRA_QUESTIONS = {
     }
   }
   function newAccountFields(id, name, avatar) {
-    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", themeCustom: { h: 221, s: 83, l: 54 }, xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, hideExpOnCorrect: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "", cloudSyncAt: 0, cloudSyncSig: "", serverCode: "", serverFriends: [], friendPolicy: "manual", achv: {} };
+    return { id, name, avatar, xp: 0, streak: 0, lastActiveDate: null, weekDates: [], unlockedIndex: 0, stars: {}, wrongList: [], badges: {}, totalCorrect: 0, maxStreak: 0, totalAnswered: 0, dailyLog: {}, flashFlips: 0, unlockedIds: ["jr1"], xpBalance: 0, hintTickets: 0, streakFreezes: 0, unlockedAvatars: [], themesOwned: [], themeColor: "blue", themeCustom: { h: 221, s: 83, l: 54 }, xpBoost: 0, gachaTickets: 0, lastDailyRewardDate: null, rareTitles: [], weeklyBonus: { weekKey: null, progress: 0, completed: false }, darkMode: false, hideExpOnCorrect: false, readAnnouncements: [], friendCode: "PQ-" + Math.random().toString(36).slice(2, 6).toUpperCase(), friends: [], cheersSent: 0, xpRace: null, loginId: "", pwHash: "", pwSalt: "", cloudSyncAt: 0, cloudSyncSig: "", serverCode: "", serverFriends: [], friendPolicy: "manual", achv: {}, grade: "", difficulty: "basic" };
   }
   function closeAuthModals() {
     ["createAccountModal", "signinModal", "settingsModal", "adminPasswordModal"].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove("open"); });
   }
   function openCreateModal() {
     document.getElementById("createError").textContent = "";
+    createGrade = "";
+    createDifficulty = "standard";
+    document.querySelectorAll("#createGradePicker .chip").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll("#createDiffPicker .chip").forEach(x => x.classList.toggle("active", x.getAttribute("data-diff") === "standard"));
+    const dd = document.getElementById("createDiffDesc");
+    if (dd) dd.textContent = DIFF_LEVELS.standard.desc;
     document.getElementById("createAccountModal").classList.add("open");
   }
   function openSigninModal() {
@@ -8509,6 +8675,22 @@ const EXTRA_QUESTIONS = {
     b.classList.add("selected");
     pickedAvatar = b.getAttribute("data-av");
   });
+  document.getElementById("createGradePicker").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    document.querySelectorAll("#createGradePicker .chip").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    createGrade = b.getAttribute("data-grade");
+  });
+  document.getElementById("createDiffPicker").addEventListener("click", (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    document.querySelectorAll("#createDiffPicker .chip").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    createDifficulty = b.getAttribute("data-diff");
+    const dd = document.getElementById("createDiffDesc");
+    if (dd) dd.textContent = DIFF_LEVELS[createDifficulty].desc;
+  });
   document.getElementById("createSubmitBtn").addEventListener("click", async () => {
     const errEl = document.getElementById("createError");
     const btn = document.getElementById("createSubmitBtn");
@@ -8521,6 +8703,7 @@ const EXTRA_QUESTIONS = {
     if (Object.values(appData.accounts).some(a => (a.loginId || "").toLowerCase() === loginId.toLowerCase())) return fail("そのユーザーIDはすでに使われています。別のIDにしてください");
     if (pw.length < 6) return fail("パスワードは6文字以上にしてください");
     if (pw !== pw2) return fail("パスワード（確認）が一致しません");
+    if (!createGrade) return fail("学年を選んでください");
     if (btn) btn.disabled = true;
     // クラウド側の重複確認：別端末・別URLですでに使われているIDでは作らせない。
     // 作れてしまうと、空の進捗でクラウドのデータを上書きしてしまうため。
@@ -8537,12 +8720,15 @@ const EXTRA_QUESTIONS = {
     const hash = await hashPassword(pw, salt);
     const id = "acc_" + Date.now();
     const acc = newAccountFields(id, nick, pickedAvatar);
+    acc.grade = createGrade;
+    acc.difficulty = createDifficulty;
+    applyDifficultyUnlock(acc, createDifficulty);
     acc.loginId = loginId; acc.pwHash = hash; acc.pwSalt = salt;
     if (!cloudChecked) csPendingCloudCheckIds.add(loginId.toLowerCase()); // 確認できなかった分は初回アップロード時に改めて確認する
     appData.accounts[id] = acc;
     appData.activeId = id;
     saveData();
-    logEvent("signup", loginId);
+    logEvent("signup", createGrade + "・" + DIFF_LEVELS[createDifficulty].name);
     errEl.textContent = "";
     let up = "unavailable";
     try { up = await csUploadNow(true); } catch (e) {} // 作成直後にクラウドへ初回アップロード（進捗をすぐクラウド依存にする）
@@ -8729,6 +8915,7 @@ const EXTRA_QUESTIONS = {
       }
       u.count += 1;
       u.typeCounts[l.type] = (u.typeCounts[l.type] || 0) + 1;
+      if (l.type === "signup" && !u.signupDetail) u.signupDetail = l.detail;
     });
     const users = Array.from(byAccount.values()).sort((a, b) => {
       const ta = a.lastAt ? a.lastAt.getTime() : 0;
@@ -8753,6 +8940,7 @@ const EXTRA_QUESTIONS = {
             <span style="font-weight:800;">${fbEsc(u.account) || "（名前なし）"}</span>
             <span style="color:var(--text-muted); font-size:12px;">最終 ${adminFmtTime(u.lastAt)}</span>
             <span style="color:var(--text-muted); font-size:12px;">全${u.count}件</span>
+            ${u.signupDetail ? `<span style="color:var(--text-muted); font-size:12px;">🎓 ${fbEsc(u.signupDetail)}</span>` : ""}
             ${selected ? `<span style="font-size:12px; font-weight:800;">表示中</span>` : ""}
           </div>
           <div style="margin-top:3px; color:var(--text-muted); font-size:12.5px; word-break:break-all;">直近：${fbEsc(LOG_TYPE_LABELS[u.lastType] || u.lastType)}${u.lastDetail ? ` ${fbEsc(u.lastDetail)}` : ""}</div>
@@ -8881,6 +9069,27 @@ const EXTRA_QUESTIONS = {
       </div>
 
       <div class="set-group screen-in">
+      <div class="set-group-label">学年・難易度</div>
+      <div class="settings-section set-card">
+        <div class="set-block" style="border-top:none; padding-top:10px;">
+          <div class="set-block-head"><span class="set-icon">🎓</span>学年</div>
+          <div class="chip-row" id="setGradePicker" style="margin-top:6px;">
+            ${GRADES.map(g => `<button type="button" class="chip ${acc.grade === g ? "active" : ""}" data-grade="${g}">${g}</button>`).join("")}
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:6px; line-height:1.6;">学年はデータとして保存するだけで、開くステージには影響しません。</div>
+        </div>
+        <div class="set-block">
+          <div class="set-block-head"><span class="set-icon">🎯</span>難易度</div>
+          <div class="chip-row" id="setDiffPicker" style="margin-top:6px;">
+            ${Object.values(DIFF_LEVELS).map(d => `<button type="button" class="chip ${acc.difficulty === d.id ? "active" : ""}" data-diff="${d.id}">${d.icon} ${d.name}</button>`).join("")}
+          </div>
+          <div id="setDiffDesc" style="font-size:12px; color:var(--text-muted); margin-top:6px; line-height:1.6;">${DIFF_LEVELS[acc.difficulty] ? DIFF_LEVELS[acc.difficulty].desc : ""}</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:4px; line-height:1.6;">難易度を変えると開いているステージが増えます。すでに開いているステージが閉じることはありません。</div>
+        </div>
+      </div>
+      </div>
+
+      <div class="set-group screen-in">
       <div class="set-group-label">学習</div>
       <div class="settings-section set-card">
         <div class="ios-row set-row">
@@ -8970,6 +9179,29 @@ const EXTRA_QUESTIONS = {
     if (sndT) sndT.addEventListener("click", () => { appData.sound = !appData.sound; saveData(); updateHUD(); sndT.classList.toggle("on", appData.sound); });
     const heT = body.querySelector("#setHideExpToggle");
     if (heT) heT.addEventListener("click", () => { const a = curAcc(); a.hideExpOnCorrect = !a.hideExpOnCorrect; saveData(); heT.classList.toggle("on", a.hideExpOnCorrect); });
+    const gP = body.querySelector("#setGradePicker");
+    if (gP) gP.addEventListener("click", (e) => {
+      const b = e.target.closest(".chip");
+      if (!b) return;
+      const a = curAcc();
+      a.grade = b.getAttribute("data-grade");
+      saveData();
+      gP.querySelectorAll(".chip").forEach(x => x.classList.toggle("active", x === b));
+      showToast("学年を「" + a.grade + "」にしました");
+    });
+    const dP = body.querySelector("#setDiffPicker");
+    if (dP) dP.addEventListener("click", (e) => {
+      const b = e.target.closest(".chip");
+      if (!b) return;
+      const a = curAcc();
+      applyDifficultyUnlock(a, b.getAttribute("data-diff"));
+      saveData();
+      dP.querySelectorAll(".chip").forEach(x => x.classList.toggle("active", x === b));
+      const dd = body.querySelector("#setDiffDesc");
+      if (dd) dd.textContent = DIFF_LEVELS[a.difficulty].desc;
+      showToast("難易度を「" + DIFF_LEVELS[a.difficulty].name + "」にしました");
+      renderHome();
+    });
     const setGuideBtn = body.querySelector("#settingsGuideBtn");
     if (setGuideBtn) setGuideBtn.addEventListener("click", () => { closeAuthModals(); renderGuide("settings"); });
     // テーマ選択：設定画面を再描画せず、その場で「使用中」表示だけを切り替える（操作感を途切れさせない）
@@ -11766,7 +11998,8 @@ const EXTRA_QUESTIONS = {
           <h2>📖 使い方</h2>
         </div>
         ${sec("🚀", "はじめ方", `<strong>アカウント</strong>を作ると、ストリーク・フレンド・実績バッジが使えます。<strong>ゲスト</strong>でもクイズは遊べますが、ストリークの記録とフレンド機能は使えません。進捗はこの端末に保存されます。`, true)}
-        ${sec("🗺️", "ステージの進め方", `ステージをタップすると問題が始まります。選択肢を選んで「✔️ 答え合わせ」を押すと、正解・不正解が分かります。押すまでは選び直せるので、間違えてタップしても大丈夫です。解説を読んでから「次へ」で進みます。クリアすると<strong>次のステージ</strong>が開きます。<strong>難問チャレンジ</strong>は最初からいつでも挑戦できます。間違えた問題は「復習モード」にたまります。`)}
+        ${sec("🗺️", "ステージの進め方", `ステージをタップすると問題が始まります。選択肢を選んで「✔️ 答え合わせ」を押すと、正解・不正解が分かります。押すまでは選び直せるので、間違えてタップしても大丈夫です。解説を読んでから「次へ」で進みます。クリアすると<strong>同じ単元の次のステージ</strong>が開きます。各単元の第1ステージは最初から遊べます。<strong>難問チャレンジ</strong>は「チャレンジ」タブから最初からいつでも挑戦できます。間違えた問題は「復習モード」にたまります。`)}
+        ${sec("📚", "単元とレベル", `ステージは単元ごとに分かれていて、ステージマップの上のタブで切り替えられます。単元ごとに進捗が表示されます。アカウント作成では学年と難易度を選びます。学年はデータとして保存するだけで、開くステージには影響しません。難易度は「基礎から」「標準」「発展」の3つで、最初に開いているステージの量が変わります。難易度は設定画面で後から変えることもできます。`)}
         ${sec("✍️", "問題の形式", `問題には3つの形式があります。<strong>一択</strong>は、選択肢を選んで「✔️ 答え合わせ」を押すと判定されます（押すまでは選び直せます）。<strong>☑️ 複数選択</strong>は、当てはまるものを<strong>すべて</strong>選んで「回答する」を押します。全部ぴったり合っていないと不正解です（部分点はありません）。<strong>✏️ 記述式</strong>は、答えを入力して「回答する」を押します。全角・半角や大文字・小文字、数値の書き方（3.0 と 3 など）の違いは、ある程度自動で吸収されます。複数選択と記述式は<strong>チャレンジステージ</strong>に登場します。`)}
         ${sec("⚡", "XPとショップ", `正解すると<strong>XP</strong>がたまります。右上のXP表示をタップするとショップが開き、ヒントチケット（まちがいの選択肢を2つ消せます）やストリークフリーズが買えます。テーマカラーは買わなくても、設定から無料で好きな色に変えられます。`)}
         ${sec("🔥", "ストリーク", `毎日クイズを解くと<strong>連続日数（ストリーク）</strong>が伸びます。全科目共通です。<strong>ストリークフリーズ</strong>を持っていれば、休んだ日も自動で守られます。ゲストは対象外です。`)}
