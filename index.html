@@ -730,13 +730,6 @@
       transition: left 0.32s cubic-bezier(0.25, 0.9, 0.3, 1.05), width 0.32s cubic-bezier(0.25, 0.9, 0.3, 1.05), top 0.2s ease, height 0.2s ease;
       will-change: left, width;
     }
-    /* Screen transition when switching tabs (transform/opacity only, light on iOS) */
-    #appMain.tab-anim-right { animation: tabFromRight 0.26s ease-out both; }
-    #appMain.tab-anim-left { animation: tabFromLeft 0.26s ease-out both; }
-    #appMain.tab-anim-fade { animation: tabFadeIn 0.2s ease-out both; }
-    @keyframes tabFromRight { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: translateX(0); } }
-    @keyframes tabFromLeft { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: translateX(0); } }
-    @keyframes tabFadeIn { from { opacity: 0; } to { opacity: 1; } }
     /* Chrome (HUD / tab bar) hidden: quiz immersion + title/subject flow screens */
     body.chrome-off .hud, body.chrome-off .tab-bar { display: none; }
     body.chrome-off .container { padding-bottom: 24px; }
@@ -781,7 +774,6 @@
       .tab-indicator { transition: none; }
       .tab-btn, .tab-btn .tab-icon { transition: none; }
       .tab-btn.active .tab-icon { animation: none; }
-      #appMain.tab-anim-right, #appMain.tab-anim-left, #appMain.tab-anim-fade { animation: none; }
     }
     .container { padding-bottom: 104px; }
 
@@ -9568,20 +9560,10 @@ const EXTRA_QUESTIONS = {
   }
 
   function switchTab(tab) {
-    const prevIdx = TAB_ORDER.indexOf(currentTab);
-    const nextIdx = TAB_ORDER.indexOf(tab);
     currentTab = tab;
     session = null;
     renderMain();
     window.scrollTo(0, 0);
-    const main = document.getElementById("appMain");
-    if (main) {
-      main.classList.remove("tab-anim-right", "tab-anim-left", "tab-anim-fade");
-      void main.offsetWidth; // restart the CSS animation
-      if (nextIdx > prevIdx) main.classList.add("tab-anim-right");
-      else if (nextIdx < prevIdx) main.classList.add("tab-anim-left");
-      else main.classList.add("tab-anim-fade");
-    }
   }
 
   // 学習タブ：単語帳・教科書への導線と「まずはここから」ガイド
