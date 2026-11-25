@@ -8346,9 +8346,10 @@ const EXTRA_QUESTIONS = {
   // どの端末・URLからでもサインインして続きから遊ぶためのものです。端末内の保存は
   // オフライン時の予備で、localStorage は URL（オリジン）ごとに分かれるため、
   // サインインは端末内だけでなくクラウド（sync コレクション）も確認します。
-  const APP_VERSION = "2.3.22";
+  const APP_VERSION = "2.3.23";
   // アップデート履歴（設定画面に表示。新しいものが上）
   const UPDATE_HISTORY = [
+    { date: "2026-11-25", version: "2.3.23", title: "英語の単語帳が見やすくなりました", body: "英語の単語帳が見やすくなりました。単語をタップして開いてみてください。" },
     { date: "2026-11-25", version: "2.3.22", title: "英語の単語帳が使えるようになりました", body: "英語の単語帳が使えるようになりました。学習タブからひらいてみてください。" },
     { date: "2026-11-24", version: "2.3.21", title: "あたらしい機能を追加しました", body: "ステージの終わりに、ちょっとした復習ができるようになりました。いつものように遊んでみてください。" },
     { date: "2026-11-24", version: "2.3.20", title: "タップできない不具合を直しました", body: "モーダルを開いたあとタップが効かなくなることがあったのを直しました。いつものように遊んでみてください。" },
@@ -11304,6 +11305,7 @@ const EXTRA_QUESTIONS = {
       renderMath(main);
       return;
     }
+    if (currentSubject === "english") { renderEngWordList(); return; }
     const list = filteredTerms();
     const main = document.getElementById("appMain");
     main.innerHTML = `
@@ -11337,6 +11339,172 @@ const EXTRA_QUESTIONS = {
       item.addEventListener("click", () => item.classList.toggle("open"));
     });
     renderMath(main);
+  }
+
+  // ===== 英語専用 単語帳UI（前方一致検索＋単語ページ＋赤シート）=====
+  let engQuery = "";
+  let akaSheetOn = true;
+  let akaPeek = false;
+
+  // 英語の def（「品詞｜意味。使い方メモ…例：例文（訳）」）を分解する
+  function parseEngDef(def) {
+    const i = def.indexOf("｜");
+    const pos = i >= 0 ? def.slice(0, i) : "";
+    let rest = i >= 0 ? def.slice(i + 1) : def;
+    let ex = "";
+    const exIdx = rest.indexOf("例：");
+    if (exIdx >= 0) { ex = rest.slice(exIdx + 2); rest = rest.slice(0, exIdx); }
+    const dot = rest.indexOf("。");
+    const meaning = dot >= 0 ? rest.slice(0, dot) : rest;
+    const notes = dot >= 0 ? rest.slice(dot + 1) : "";
+    return { pos, meaning, notes, ex };
+  }
+
+  function engFiltered() {
+    const q = engQuery.trim().toLowerCase();
+    let list = filteredTerms();
+    if (q) list = list.filter(t => t.term.toLowerCase().startsWith(q));
+    return list;
+  }
+
+  function engResultsHtml() {
+    const list = engFiltered();
+    if (list.length === 0) {
+      return `<div style="text-align:center; padding:28px 12px; color:var(--text-muted); line-height:1.8;">
+        <div style="font-size:32px; margin-bottom:6px;">🔍</div>
+        <div style="font-weight:800;">「${engQuery}」で始まる単語は見つかりませんでした</div>
+        <div style="font-size:12.5px;">つづりを短くすると見つかるかもしれません。</div>
+      </div>`;
+    }
+    return list.map(t => `
+      <button class="word-item" data-eng-term="${t.term}">
+        <span class="w-top">
+          <span class="w-term">${t.term}</span>
+          <span class="w-reading">${t.reading}</span>
+          <span class="field-tag">${t.field}</span>
+        </span>
+      </button>
+    `).join("");
+  }
+
+  function refreshEngResults() {
+    const box = document.getElementById("engResults");
+    const count = document.getElementById("engCount");
+    if (!box) return;
+    box.innerHTML = engResultsHtml();
+    if (count) count.textContent = engFiltered().length + " 語（タップで単語ページが開きます）";
+  }
+
+  function renderEngWordList() {
+    setChromeVisible(true);
+    updateHUD();
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="wordsBackBtn" class="stat-btn">← もどる</button>
+          <h2>📖 ${SUBJECTS[currentSubject].name}用語の単語帳</h2>
+        </div>
+        ${quizResumeHtml()}
+        ${wordChipsHtml("list")}
+        <div style="margin-bottom:10px;">
+          <input id="engSearch" type="text" value="${engQuery.replace(/"/g, "&quot;")}" placeholder="🔍 単語を検索（例：acc）" autocomplete="off"
+            style="width:100%; box-sizing:border-box; padding:12px 14px; font-size:16px; font-weight:700; border-radius:12px; border:2px solid var(--border, #ddd); background:var(--surface, #fff); color:var(--text, #222);">
+          <div style="font-size:11.5px; color:var(--text-light); margin-top:5px;">入力した文字で始まる単語に絞り込まれます（a → ability / able / abroad、acc → accept / access / accident）</div>
+        </div>
+        <div id="engCount" style="font-size:12.5px; color:var(--text-light); font-weight:700; margin-bottom:10px;"></div>
+        <div id="engResults"></div>
+      </div>
+    `;
+    document.getElementById("wordsBackBtn").addEventListener("click", () => renderMain());
+    bindQuizResume();
+    bindWordChips("list");
+    const input = document.getElementById("engSearch");
+    input.addEventListener("input", () => { engQuery = input.value; refreshEngResults(); });
+    document.getElementById("engResults").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-eng-term]");
+      if (b) renderWordDetail(b.getAttribute("data-eng-term"));
+    });
+    refreshEngResults();
+    renderMath(main);
+  }
+
+  function applyAkaMeaning() {
+    const el = document.getElementById("akaMeaning");
+    const hint = document.getElementById("akaHint");
+    if (!el) return;
+    if (akaSheetOn && !akaPeek) {
+      el.style.color = "transparent";
+      el.style.background = "#ef5350";
+      if (hint) hint.textContent = "🟥 赤シートで隠しています（意味をタップで答え合わせ）";
+    } else {
+      el.style.color = "#d32f2f";
+      el.style.background = "transparent";
+      if (hint) hint.textContent = akaSheetOn ? "答え合わせ中（もう一度タップで隠れます）" : "意味を表示中";
+    }
+  }
+
+  function renderWordDetail(termStr) {
+    setChromeVisible(true);
+    updateHUD();
+    const terms = curTerms();
+    const idx = terms.findIndex(t => t.term === termStr);
+    if (idx < 0) { renderEngWordList(); return; }
+    const t = terms[idx];
+    const p = parseEngDef(t.def);
+    akaPeek = false;
+    const prev = idx > 0 ? terms[idx - 1] : null;
+    const next = idx < terms.length - 1 ? terms[idx + 1] : null;
+    const main = document.getElementById("appMain");
+    main.innerHTML = `
+      <div class="sub-screen">
+        <div class="sub-head">
+          <button id="wordDetailBack" class="stat-btn">← 単語帳にもどる</button>
+          <h2>📖 単語ページ</h2>
+        </div>
+        ${quizResumeHtml()}
+        <div style="text-align:center; padding:16px 6px 0;">
+          <div style="font-size:36px; font-weight:900; line-height:1.2;">${t.term}</div>
+          <div style="color:var(--text-light); font-weight:700; margin-top:3px;">${t.reading}</div>
+          <div style="font-size:11.5px; color:var(--text-light); margin-top:4px;">${idx + 1} / ${terms.length} 語</div>
+        </div>
+        <div style="text-align:center; margin:16px 0 2px;">
+          <div id="akaMeaning" style="display:inline-block; font-size:25px; font-weight:900; color:#d32f2f; padding:8px 20px; border-radius:12px; cursor:pointer; line-height:1.4;">${p.meaning}</div>
+          <div id="akaHint" style="font-size:11.5px; color:var(--text-light); margin-top:7px;"></div>
+        </div>
+        <div style="text-align:center; margin:8px 0 4px;">
+          <button id="akaToggle" class="chip ${akaSheetOn ? "active" : ""}">🟥 赤シート ${akaSheetOn ? "ON" : "OFF"}</button>
+        </div>
+        <div style="background:rgba(127,127,127,.08); border-radius:14px; padding:14px 16px; margin-top:10px;">
+          <div>
+            ${p.pos ? `<span class="field-tag">${p.pos}</span>` : ""}
+            <span class="field-tag">${t.field}</span>
+          </div>
+          ${t.formula ? `<div style="margin-top:11px; font-size:14.5px;"><b>活用</b>：${t.formula}</div>` : ""}
+          ${p.notes ? `<div style="margin-top:11px; font-size:14.5px; line-height:1.85;">${p.notes}</div>` : ""}
+          ${p.ex ? `<div style="margin-top:12px; font-size:14.5px; line-height:1.85; background:rgba(127,127,127,.09); border-radius:10px; padding:10px 12px;"><b>例</b>：${p.ex}</div>` : ""}
+        </div>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button id="wordPrev" class="btn-3d btn-blue" style="flex:1;" ${prev ? "" : "disabled"}>← 前の単語</button>
+          <button id="wordNext" class="btn-3d btn-blue" style="flex:1;" ${next ? "" : "disabled"}>次の単語 →</button>
+        </div>
+      </div>
+    `;
+    document.getElementById("wordDetailBack").addEventListener("click", () => renderWordList());
+    bindQuizResume();
+    document.getElementById("akaMeaning").addEventListener("click", () => { akaPeek = !akaPeek; applyAkaMeaning(); });
+    document.getElementById("akaToggle").addEventListener("click", (e) => {
+      akaSheetOn = !akaSheetOn;
+      akaPeek = false;
+      e.currentTarget.textContent = "🟥 赤シート " + (akaSheetOn ? "ON" : "OFF");
+      e.currentTarget.classList.toggle("active", akaSheetOn);
+      applyAkaMeaning();
+    });
+    if (prev) document.getElementById("wordPrev").addEventListener("click", () => renderWordDetail(prev.term));
+    if (next) document.getElementById("wordNext").addEventListener("click", () => renderWordDetail(next.term));
+    applyAkaMeaning();
+    renderMath(main);
+    window.scrollTo(0, 0);
   }
 
   function renderFlashcards(reset) {
