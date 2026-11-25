@@ -7478,6 +7478,7 @@ const EXTRA_QUESTIONS = {
 
   // 科目ごとに選んでいる単元タブ（3.0.0）
   let unitSel = {};
+  let unitBarScroll = 0;
   function renderHome() {
     updateHUD();
     const acc = curAcc();
@@ -7546,7 +7547,7 @@ const EXTRA_QUESTIONS = {
         <span style="font-size:12px; color:var(--text-light); font-weight:700;">${selUnitDef.name} ${unitCleared}/${shownIdxs.length} ・ 全体 ${Object.keys(acc.stars).length}/${STAGES.length}</span>
       </div>
 
-      <div style="display:flex; gap:8px; overflow-x:auto; padding:2px 2px 10px; margin-bottom:4px;">
+      <div id="unitTabBar" style="display:flex; gap:8px; overflow-x:auto; padding:2px 2px 10px; margin-bottom:4px;">
         ${units.map(u => {
           const c = u.stages.filter(x => (acc.stars[x.id] || 0) > 0).length;
           return `<button class="unit-tab ${u.id === selUnit ? "active" : ""}" data-unit-tab="${u.id}" ${u.comingSoon ? "disabled" : ""}>
@@ -7592,6 +7593,19 @@ const EXTRA_QUESTIONS = {
       </section>
     `;
 
+    // 単元タブの横スクロール位置を再描画後も保ち、選択中のタブが必ず見える位置にする
+    const unitBar = document.getElementById("unitTabBar");
+    if (unitBar) {
+      unitBar.scrollLeft = unitBarScroll;
+      const actTab = unitBar.querySelector(".unit-tab.active");
+      if (actTab) {
+        const bl = actTab.offsetLeft, br = bl + actTab.offsetWidth;
+        if (bl < unitBar.scrollLeft) unitBar.scrollLeft = Math.max(0, bl - 6);
+        else if (br > unitBar.scrollLeft + unitBar.clientWidth) unitBar.scrollLeft = br - unitBar.clientWidth + 6;
+        unitBarScroll = unitBar.scrollLeft;
+      }
+    }
+
     bindQuizResume();
     document.getElementById("startDailyBtn").addEventListener("click", startDailyQuiz);
     const changeSubjectHomeBtn = document.getElementById("changeSubjectHomeBtn");
@@ -7600,6 +7614,8 @@ const EXTRA_QUESTIONS = {
     if (reviewBtn && acc.wrongList.length) reviewBtn.addEventListener("click", startReviewQuiz);
     main.querySelectorAll("[data-unit-tab]").forEach(btn => {
       btn.addEventListener("click", () => {
+        const bar = document.getElementById("unitTabBar");
+        if (bar) unitBarScroll = bar.scrollLeft;
         unitSel[currentSubject] = btn.getAttribute("data-unit-tab");
         renderHome();
       });
